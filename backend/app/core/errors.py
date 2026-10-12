@@ -92,6 +92,17 @@ class AiProviderNotConfigured(ServiceUnavailable):
     message = "AI provider not configured. An administrator must configure an LLM provider."
 
 
+class AiProviderFailed(AppError):
+    status_code = 502
+    code = "AI_PROVIDER_FAILED"
+    message = "The AI provider could not complete the request. Please try again."
+
+
+class AiOutputInvalid(AiProviderFailed):
+    code = "AI_OUTPUT_INVALID"
+    message = "The AI provider returned an unusable answer. Please try again."
+
+
 def error_body(
     code: str, message: str, request_id: str | None, details: list[dict[str, str]] | None = None
 ) -> dict[str, Any]:

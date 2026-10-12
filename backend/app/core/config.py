@@ -41,12 +41,15 @@ class Settings(BaseSettings):
     auth_rate_limit_attempts: int = Field(default=10, ge=1)
     auth_rate_limit_window_seconds: int = Field(default=300, ge=1)
 
-    # --- Pending company decisions: abstractions only ---
+    # --- AI provider (D-03: OpenAI). Empty LLM_PROVIDER => "AI provider not configured" ---
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_base_url: str | None = None
     llm_api_key: SecretStr | None = None
+    llm_timeout_seconds: float = Field(default=60, gt=0, le=600)
+    llm_max_retries: int = Field(default=2, ge=0, le=5)
 
+    # --- Other pending company decisions: abstractions only ---
     email_provider: str | None = None
 
     storage_backend: str = "local"
@@ -63,7 +66,9 @@ class Settings(BaseSettings):
             return [part.strip() for part in value.split(",") if part.strip()]
         return value
 
-    @field_validator("llm_provider", "llm_model", "llm_base_url", "email_provider", mode="before")
+    @field_validator(
+        "llm_provider", "llm_model", "llm_base_url", "llm_api_key", "email_provider", mode="before"
+    )
     @classmethod
     def _empty_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():

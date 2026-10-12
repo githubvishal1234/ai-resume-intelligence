@@ -56,8 +56,14 @@
   the work a single upload can cause.
 
 ## AI providers
-- No provider is configured (D-03). Every AI action goes through `get_llm_provider`, which
-  returns `503 AI_PROVIDER_NOT_CONFIGURED` until one is.
+- The provider is OpenAI (D-03), in `app/ai/providers/openai.py`, the only module that calls
+  a vendor API. It uses the standard library, so no vendor SDK is installed. Every AI action
+  goes through `get_llm_provider`, which returns `503 AI_PROVIDER_NOT_CONFIGURED` until
+  `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` are all set.
+- The key is a `SecretStr` read from the environment. It is never logged, and error messages
+  and logs from the adapter carry only the HTTP status, never the key, prompt or answer.
+- Provider failures return `502 AI_PROVIDER_FAILED`, and answers that fail schema validation
+  return `502 AI_OUTPUT_INVALID`. Neither saves anything, so earlier results stay intact.
 - Resume, job, question and answer text is passed to the model as data in user messages,
   never in the system prompt. Tests check this for tailoring rewrites and interview feedback.
 - Model output that changes a resume goes through the same factual check as user edits.

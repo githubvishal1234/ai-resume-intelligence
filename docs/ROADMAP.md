@@ -26,7 +26,7 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | ID | Decision | Needed by |
 |---|---|---|
 | D-02 | Official product name | Before public release |
-| D-03 | LLM provider, model, key ownership, budget | Phase 2 verification |
+| D-03 | LLM provider (decided 2026-10-12: OpenAI); model, key ownership, budget still open | Phase 2 verification |
 | D-04 | User/organization model, roles, SSO | Before any sharing/team feature |
 | D-05 | Approved job sources | Phase 3 extension |
 | D-06 | Deployment target, hosting, object storage | Phase 9 |

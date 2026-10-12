@@ -31,7 +31,9 @@ safe development defaults. In production:
 | `STORAGE_LOCAL_ROOT` | A persistent volume (uploaded resumes). Must be backed up with the database. |
 | `REGISTRATION_ENABLED` | `false` once accounts are provisioned another way (D-04). |
 | `SLOW_REQUEST_MS` | Optional, default 1000. Requests at or over this log a `slow_request` warning. |
-| `LLM_*`, `EMAIL_PROVIDER` | Leave empty until D-03 / D-07 are decided; the app reports "not configured". |
+| `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | Optional. `openai`, a model that supports structured outputs, and a key from the secret store turn on AI rewrites and interview feedback. Left empty, the app reports "AI provider not configured". The API container then needs outbound HTTPS to `LLM_BASE_URL` (default `https://api.openai.com/v1`). |
+| `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES` | Optional, default 60 and 2. Rate-limit and server errors are retried with backoff; a rejected key is not. |
+| `EMAIL_PROVIDER` | Leave empty until D-07 is decided; the app reports "not configured". |
 
 `CORS_ORIGINS` stays empty when the SPA is served through the web container.
 

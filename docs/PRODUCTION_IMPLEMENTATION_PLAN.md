@@ -332,7 +332,7 @@ Documentation (`docs/ARCHITECTURE.md`, `API.md`, `DATABASE.md`, `AI_ARCHITECTURE
 |---|---|---|---|---|
 | D-01 | Repository access (GitHub `owner/repo`, zip, or linked computer) | **Pending — blocks repo analysis and Phase 1** | None; no code is written without it | Before Phase 1 |
 | D-02 | Official product name | **Pending** | Keep existing names; flag inconsistencies | Before public release |
-| D-03 | LLM provider / model(s) / key ownership / budget | **Pending** | Provider-neutral interface; "AI not configured" state | Phase 2 verification |
+| D-03 | LLM provider / model(s) / key ownership / budget | **Decided 2026-10-12: OpenAI** (model, key ownership and budget still open) | Provider-neutral interface; "AI not configured" state | Phase 2 verification |
 | D-04 | User model: single-org users, multi-tenant orgs, or consumer accounts; roles; SSO | **Pending** | Owner-scoped via `AccessPolicy` seam; no org tables | Before any sharing/team feature |
 | D-05 | Approved job sources (any scraping/API/partner access) | **Pending** | Manual paste + file upload only | Phase 3 extension |
 | D-06 | Deployment target, hosting, object storage | **Pending** | Provider-neutral containers + env config | Phase 9 |

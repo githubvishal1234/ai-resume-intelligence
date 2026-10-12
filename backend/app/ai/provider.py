@@ -1,10 +1,12 @@
 """LLM provider abstraction.
 
-No vendor is selected (Decision Register D-03). Nothing outside `app/ai/providers/<name>.py`
-may import a vendor SDK. Concrete adapters are added only once the company names its provider.
+Concrete adapters live in `app/ai/providers/<name>.py`; nothing else may import a vendor SDK
+or call a vendor API. They register themselves in `app/ai/registry.py`.
 
-Contract notes for future adapters:
+Contract notes for adapters:
 - Return data validated against the caller's Pydantic schema; raise `LLMOutputInvalid` otherwise.
+- Raise `AiProviderFailed` for transport, auth, quota or server errors, with a message that never
+  contains the API key, prompt or response text.
 - Resume / job-description text is DATA: callers pass it in `LLMMessage(role="user")` content
   fields, never concatenated into the system prompt.
 """
@@ -16,6 +18,8 @@ from dataclasses import dataclass
 from typing import Literal, TypeVar
 
 from pydantic import BaseModel
+
+from app.core.errors import AiOutputInvalid
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -47,7 +51,7 @@ class StructuredResult[T: BaseModel]:
     latency_ms: float
 
 
-class LLMOutputInvalid(Exception):
+class LLMOutputInvalid(AiOutputInvalid):
     """Provider output failed schema validation. Callers retry (bounded) or fail safely."""
 
 

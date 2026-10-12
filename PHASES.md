@@ -393,6 +393,25 @@ frontend UI kit, app shell, API client and session hooks.
 
 ---
 
+## Follow-ups after Phase 9
+
+**Unicode PDF fonts (2026-10-12)**: templates embed bundled DejaVu fonts, so Latin, Greek,
+Cyrillic and common symbols render. Scripts DejaVu does not cover are reported by the ATS check.
+
+**OpenAI provider (D-03 decided 2026-10-12)**
+- [x] `app/ai/providers/openai.py`: Chat Completions with a JSON-schema response format, answer
+      validated against the caller's schema, bounded retries on 408/409/429/5xx and network
+      errors, no retry on a rejected key, nothing sensitive in logs or errors.
+- [x] Counts as configured only when `LLM_PROVIDER=openai`, `LLM_MODEL` and `LLM_API_KEY` are
+      all set. The tailoring summary rewrite and interview feedback use it unchanged.
+- [x] `tests/test_openai_provider.py` runs the adapter and the interview feedback endpoint
+      against a local stand-in for the OpenAI API.
+- [ ] Verify against the real OpenAI API once a key and model are chosen (the model, key
+      owner and budget are still open under D-03).
+- [ ] Then, as separate steps: LLM rewrites of individual bullets and factual-check layer 2.
+
+---
+
 ## Progress log
 
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
@@ -404,3 +423,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 7 completed and verified. Phase 8 started.
 - 2026-10-12: Phase 8 completed and verified. Phase 9 started.
 - 2026-10-12: Phase 9 completed and verified. All nine phases are done; the remaining work waits on the open decisions (D-02 to D-11).
+- 2026-10-12: Unicode PDF fonts embedded. D-03 decided (OpenAI) and the OpenAI adapter added.
