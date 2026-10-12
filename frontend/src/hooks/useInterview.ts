@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forgetDeleted } from "@/lib/forgetDeleted";
 import { interviewService, type AnswerInput, type PracticeSession, type PrepDetail } from "@/services/interviewService";
 
 export const interviewKeys = {
@@ -36,7 +37,7 @@ export function useDeletePrep(id: string) {
   return useMutation({
     mutationFn: () => interviewService.remove(id),
     onSuccess: () => {
-      client.removeQueries({ queryKey: interviewKeys.prep(id) });
+      forgetDeleted(client, interviewKeys.prep(id));
       void client.invalidateQueries({ queryKey: interviewKeys.list() });
     },
   });

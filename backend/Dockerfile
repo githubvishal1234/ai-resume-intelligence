@@ -2,9 +2,12 @@ FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 
+# Pinned runtime dependencies first (cached layer), then the app itself without re-resolving.
+COPY requirements.lock ./
+RUN pip install -r requirements.lock
 COPY pyproject.toml ./
 COPY app ./app
-RUN pip install .
+RUN pip install --no-deps .
 
 COPY alembic.ini ./
 COPY migrations ./migrations

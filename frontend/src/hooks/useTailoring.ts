@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forgetDeleted } from "@/lib/forgetDeleted";
 import { tailoringService, type Decision, type Session } from "@/services/tailoringService";
 import { resumeKeys } from "./useResumes";
 
@@ -63,7 +64,7 @@ export function useDiscardTailoring(id: string) {
   return useMutation({
     mutationFn: () => tailoringService.discard(id),
     onSuccess: () => {
-      client.removeQueries({ queryKey: tailoringKeys.detail(id) });
+      forgetDeleted(client, tailoringKeys.detail(id));
       void client.invalidateQueries({ queryKey: tailoringKeys.list() });
     },
   });

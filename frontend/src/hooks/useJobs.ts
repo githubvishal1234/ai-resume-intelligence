@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forgetDeleted } from "@/lib/forgetDeleted";
 import { jobService, type JobDetail, type JobMeta } from "@/services/jobService";
 
 export const jobKeys = {
@@ -60,7 +61,7 @@ export function useDeleteJob(id: string) {
   return useMutation({
     mutationFn: () => jobService.remove(id),
     onSuccess: () => {
-      client.removeQueries({ queryKey: jobKeys.detail(id) });
+      forgetDeleted(client, jobKeys.detail(id));
       void client.invalidateQueries({ queryKey: jobKeys.list() });
     },
   });

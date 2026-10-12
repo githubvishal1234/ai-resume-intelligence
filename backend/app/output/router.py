@@ -10,6 +10,7 @@ from fastapi import APIRouter, Query, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.auth.deps import CurrentAuth
 from app.core.errors import AppError
 from app.jobs.analyzer import JobAnalysis
 from app.models import Job, Resume, TailoringSession
@@ -62,7 +63,8 @@ TemplateQuery = Annotated[str, Query(max_length=40)]
 
 
 @router.get("/output/templates", response_model=list[TemplateOut])
-def list_templates() -> list[TemplateOut]:
+def list_templates(auth: CurrentAuth) -> list[TemplateOut]:
+    del auth  # signed-in users only, like every other app route
     return [
         TemplateOut(id=t.id, name=t.name, description=t.description) for t in TEMPLATES.values()
     ]

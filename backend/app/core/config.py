@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     storage_local_root: str = "./var/storage"
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
 
+    # Requests slower than this are logged at WARNING as "slow_request" (0 disables).
+    slow_request_ms: int = Field(default=1000, ge=0)
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:

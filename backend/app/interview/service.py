@@ -12,7 +12,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.ai.provider import LLMMessage
 from app.ai.registry import get_llm_provider
@@ -148,6 +148,7 @@ class InterviewService:
             self.db.scalars(
                 select(InterviewPrep)
                 .where(InterviewPrep.owner_id == self.actor.user_id)
+                .options(selectinload(InterviewPrep.sessions).load_only(PracticeSession.id))
                 .order_by(InterviewPrep.created_at.desc())
             )
         )

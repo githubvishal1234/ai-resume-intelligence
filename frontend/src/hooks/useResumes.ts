@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forgetDeleted } from "@/lib/forgetDeleted";
 import { resumeService, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
 
 export const resumeKeys = {
@@ -126,7 +127,7 @@ export function useDeleteResume(id: string) {
   return useMutation({
     mutationFn: () => resumeService.remove(id),
     onSuccess: () => {
-      client.removeQueries({ queryKey: resumeKeys.detail(id) });
+      forgetDeleted(client, resumeKeys.detail(id));
       void client.invalidateQueries({ queryKey: resumeKeys.list() });
     },
   });

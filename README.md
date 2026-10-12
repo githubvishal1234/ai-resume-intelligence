@@ -7,6 +7,7 @@ change is checked against the master. The product name is pending (decision D-02
 - **Phase status:** [`PHASES.md`](PHASES.md)
 - **Architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - **Security notes:** [`docs/SECURITY.md`](docs/SECURITY.md)
+- **Deployment, backups and monitoring:** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 - **Design system:** [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
 
 ## Stack
@@ -37,7 +38,7 @@ createdb -O resume_app resume_intel_test
 cd backend
 python -m venv ../.venv
 # macOS/Linux: source ../.venv/bin/activate     Windows: ..\.venv\Scripts\activate
-pip install -e ".[dev]"
+pip install -r requirements.lock -e ".[dev]"
 cp ../.env.example .env              # adjust if needed
 alembic upgrade head
 uvicorn app.main:app --reload        # http://localhost:8000/api/docs

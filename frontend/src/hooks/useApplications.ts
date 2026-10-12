@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { forgetDeleted } from "@/lib/forgetDeleted";
 import {
   applicationService,
   notificationService,
@@ -65,7 +66,7 @@ export function useDeleteApplication(id: string) {
   return useMutation({
     mutationFn: () => applicationService.remove(id),
     onSuccess: () => {
-      client.removeQueries({ queryKey: applicationKeys.detail(id) });
+      forgetDeleted(client, applicationKeys.detail(id));
       void client.invalidateQueries({ queryKey: applicationKeys.list() });
       void client.invalidateQueries({ queryKey: notificationKeys.all });
     },

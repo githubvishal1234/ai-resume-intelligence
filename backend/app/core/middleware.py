@@ -28,8 +28,9 @@ _SECURITY_HEADERS = {
 
 
 class RequestContextMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, slow_request_ms: int = 0) -> None:
         self.app = app
+        self.slow_request_ms = slow_request_ms
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -77,13 +78,14 @@ class RequestContextMiddleware:
                 )
                 await send_wrapper({"type": "http.response.body", "body": body})
         finally:
-            logger.info(
-                "request",
-                extra={
-                    "method": scope["method"],
-                    "path": scope["path"],  # path only; query strings may contain tokens
-                    "status": status,
-                    "duration_ms": round((time.perf_counter() - started) * 1000, 1),
-                },
-            )
+            duration_ms = round((time.perf_counter() - started) * 1000, 1)
+            fields = {
+                "method": scope["method"],
+                "path": scope["path"],  # path only; query strings may contain tokens
+                "status": status,
+                "duration_ms": duration_ms,
+            }
+            logger.info("request", extra=fields)
+            if self.slow_request_ms and duration_ms >= self.slow_request_ms:
+                logger.warning("slow_request", extra=fields)
             request_id_var.reset(token)

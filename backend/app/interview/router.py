@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Request, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentAuth
@@ -56,23 +58,51 @@ def _session_summary(s: PracticeSession) -> PracticeSessionSummaryOut:
     )
 
 
-def _prep_summary(service: InterviewService, prep: InterviewPrep) -> PrepSummaryOut:
-    job = service.db.get(Job, prep.job_id)
-    resume = service.db.get(Resume, prep.resume_id) if prep.resume_id else None
-    assert job is not None
+def _prep_summary(
+    service: InterviewService, prep: InterviewPrep, names: _Names | None = None
+) -> PrepSummaryOut:
+    names = names or _names(service, [prep])
+    job_title, company = names.jobs[prep.job_id]
     return PrepSummaryOut(
         id=prep.id,
-        job_id=job.id,
-        job_title=job.title,
-        company=job.company,
+        job_id=prep.job_id,
+        job_title=job_title,
+        company=company,
         resume_id=prep.resume_id,
-        resume_title=resume.title if resume else None,
+        resume_title=names.resumes.get(prep.resume_id) if prep.resume_id else None,
         resume_version=prep.resume_version,
         method_version=prep.method_version,
         question_count=len(prep.questions),
         session_count=len(prep.sessions),
         created_at=prep.created_at,
     )
+
+
+@dataclass
+class _Names:
+    jobs: dict[uuid.UUID, tuple[str, str | None]]
+    resumes: dict[uuid.UUID, str]
+
+
+def _names(service: InterviewService, preps: list[InterviewPrep]) -> _Names:
+    """Job and resume names for many preps in two queries instead of two per prep."""
+    job_ids = {p.job_id for p in preps}
+    resume_ids = {p.resume_id for p in preps if p.resume_id}
+    jobs = {
+        r.id: (r.title, r.company)
+        for r in service.db.execute(
+            select(Job.id, Job.title, Job.company).where(Job.id.in_(job_ids))
+        )
+    }
+    resumes: dict[uuid.UUID, str] = {}
+    if resume_ids:
+        resumes = {
+            r.id: r.title
+            for r in service.db.execute(
+                select(Resume.id, Resume.title).where(Resume.id.in_(resume_ids))
+            )
+        }
+    return _Names(jobs, resumes)
 
 
 def _prep_detail(service: InterviewService, prep: InterviewPrep) -> PrepDetailOut:
@@ -108,7 +138,9 @@ def _session(service: InterviewService, s: PracticeSession) -> PracticeSessionOu
 
 @router.get("/preps", response_model=list[PrepSummaryOut])
 def list_preps(service: Service) -> list[PrepSummaryOut]:
-    return [_prep_summary(service, p) for p in service.list_preps()]
+    preps = service.list_preps()
+    names = _names(service, preps)
+    return [_prep_summary(service, p, names) for p in preps]
 
 
 @router.post("/preps", response_model=PrepDetailOut, status_code=status.HTTP_201_CREATED)

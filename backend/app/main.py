@@ -38,7 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_headers=["Content-Type", "X-CSRF-Token", "X-Request-ID"],
         )
     # Added last => outermost: sees every request and converts unexpected errors to a safe 500.
-    application.add_middleware(RequestContextMiddleware)
+    application.add_middleware(RequestContextMiddleware, slow_request_ms=settings.slow_request_ms)
     logger.info("app_started", extra={"env": settings.app_env})
     return application
 

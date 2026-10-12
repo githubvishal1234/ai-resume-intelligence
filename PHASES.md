@@ -24,7 +24,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 6 | Resume Output (ATS + PDF) | ✅ |
 | 7 | Applications | ✅ |
 | 8 | Interview Prep | ✅ |
-| 9 | Hardening | 🚧 |
+| 9 | Hardening | ✅ |
 
 ---
 
@@ -349,8 +349,47 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 9: Hardening
 
-- Security review, dependency audit, performance checks, observability, deployment
-  contract (`docs/DEPLOYMENT.md`), backups.
+**Delivered**
+- [x] Security review (`docs/SECURITY.md`). A route sweep test calls every API operation
+      without a session (must be 401) and every write without the CSRF header (must be 403),
+      against an explicit public allowlist, so new routes are covered automatically.
+      Found and fixed: the template list answered without a session.
+- [x] Dependency audit: `pip-audit` and `npm audit` found no known vulnerabilities and now
+      run in CI. Python runtime dependencies are pinned in `backend/requirements.lock`, and
+      the image installs from it (built and smoke-tested on Python 3.12).
+- [x] Performance: the frontend loads each screen on first visit. The main bundle went from
+      636 kB to 374 kB (187 → 116 kB gzip), with a loading bar between screens. A seeded
+      timing run (40 jobs, 80 applications, 15 question sets) put every endpoint under 50 ms
+      median. Two fixes came out of it: the question-set list now uses 3 queries instead of
+      3 per set, and reading notifications no longer re-inserts existing reminders.
+- [x] Observability: readiness now also fails (503, `"migrations": "pending"`) when the
+      database is behind this build's migrations. Requests over `SLOW_REQUEST_MS` log a
+      `slow_request` warning. Logs, request ids and suggested alerts are documented.
+- [x] Deployment contract: `docs/DEPLOYMENT.md` covers what runs, the production settings,
+      the release and rollback procedure, observability, backups, dependencies and scaling.
+- [x] Backups: `scripts/backup.sh` (database dump, upload files, checksums, retention) and
+      `scripts/restore.sh` (verifies checksums, refuses non-empty targets). A restore drill
+      was run.
+
+**Not done here, by decision**
+- Sandboxed file extraction and a shared rate-limit store need worker and hosting choices
+  (D-06). Both limits are documented in SECURITY.md and DEPLOYMENT.md.
+
+**Verified 2026-10-12**
+- 168 backend tests pass (8 new: route sweep for sessions and CSRF, public allowlist,
+  security headers on success, error and 404 responses, readiness with pending migrations,
+  slow-request logging). ruff, format and mypy are clean.
+- 63 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Restore drill: three backups with `BACKUP_KEEP=2` (oldest removed) → restore into a new
+  database → row counts of all 18 tables and SHA-256 of all 21 files match → the immutable
+  resume-version trigger still holds → an API on the restored database reports ready →
+  a second restore is refused.
+- Regression: the browser runs for Phases 2–8 were rerun against the code-split build and
+  all pass, with no overflow and no console errors beyond the expected ones (signed-out
+  401, refused job link 422).
+- Fixed during verification: deleting a job, application, question set, resume or tailoring
+  session made its page fetch the deleted item once more (a 404) before leaving. The cached
+  item is now dropped only after the page closes.
 
 ---
 
@@ -364,3 +403,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 6 completed and verified. Phase 7 started.
 - 2026-10-12: Phase 7 completed and verified. Phase 8 started.
 - 2026-10-12: Phase 8 completed and verified. Phase 9 started.
+- 2026-10-12: Phase 9 completed and verified. All nine phases are done; the remaining work waits on the open decisions (D-02 to D-11).

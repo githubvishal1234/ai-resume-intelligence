@@ -50,8 +50,36 @@
   is deleted.
 - Every resume and import route checks ownership through `ensure_access`. Other users' items
   return 404. Tests cover all 12 endpoints.
-- Text is extracted in-process with pure-Python libraries, without shelling out. Moving
-  extraction to a sandboxed worker is planned for Phase 9.
+- Text is extracted in-process with pure-Python libraries, without shelling out. A sandboxed
+  extraction worker was considered in Phase 9 and deferred. It needs worker infrastructure,
+  which depends on hosting (D-06). The size, page, archive-size and macro limits above bound
+  the work a single upload can cause.
+
+## AI providers
+- No provider is configured (D-03). Every AI action goes through `get_llm_provider`, which
+  returns `503 AI_PROVIDER_NOT_CONFIGURED` until one is.
+- Resume, job, question and answer text is passed to the model as data in user messages,
+  never in the system prompt. Tests check this for tailoring rewrites and interview feedback.
+- Model output that changes a resume goes through the same factual check as user edits.
+
+## Security review (Phase 9, 2026-10-12)
+- **Route sweep** (`tests/test_security_sweep.py`): every operation in the OpenAPI schema is
+  called without a session and must answer `401 AUTH_REQUIRED` with a request id. Every unsafe
+  method is called with a session but no CSRF header and must answer `403 CSRF_INVALID`.
+  Only the routes on an explicit allowlist (health, capabilities, register, login, logout)
+  are public. New routes are covered automatically.
+  - Found and fixed: `GET /output/templates` answered without a session. It returned only
+    template names, but it now needs a session like every other app route.
+- **Ownership:** every resource module has IDOR tests in which a second user tries every
+  endpoint and gets 404: resumes, jobs, matches, tailoring, output, applications,
+  notifications and interview prep.
+- **Dependencies:** `pip-audit` (runtime lock) and `npm audit` (all dependencies) found no
+  known vulnerabilities. Both run in CI.
+- **Headers:** the API sends `nosniff`, `DENY` framing, `no-referrer`, `no-store` and a
+  `default-src 'none'` CSP on every response, including errors and 404s (tested). nginx sends
+  the SPA's CSP. HSTS belongs at the TLS terminator (see DEPLOYMENT.md).
+- **Still open, by decision:** the in-process rate limiter (single-process limit), the
+  register enumeration trade-off, and the in-process file extraction described above.
 
 ## Production configuration guards
 With `APP_ENV=production`, the app refuses to start when:

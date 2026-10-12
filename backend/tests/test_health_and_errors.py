@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -15,7 +18,7 @@ def test_liveness(client: TestClient) -> None:
 def test_readiness_checks_database(client: TestClient) -> None:
     response = client.get("/api/v1/health/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "database": "up"}
+    assert response.json() == {"status": "ok", "database": "up", "migrations": "current"}
 
 
 def test_readiness_reports_unavailable_without_leaking(app: FastAPI, client: TestClient) -> None:
@@ -33,6 +36,40 @@ def test_readiness_reports_unavailable_without_leaking(app: FastAPI, client: Tes
     response = client.get("/api/v1/health/ready")
     assert response.status_code == 503
     assert "hunter2" not in response.text and "10.0.0.5" not in response.text
+
+
+def test_readiness_fails_when_migrations_are_pending(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.v1 import health
+
+    monkeypatch.setattr(health, "migration_heads", lambda: frozenset({"not-applied-yet"}))
+    response = client.get("/api/v1/health/ready")
+    assert response.status_code == 503
+    assert response.json()["migrations"] == "pending"
+
+
+def test_slow_requests_are_logged(caplog: pytest.LogCaptureFixture) -> None:
+    from starlette.applications import Starlette
+    from starlette.responses import PlainTextResponse
+    from starlette.routing import Route
+
+    from app.core.middleware import RequestContextMiddleware
+
+    async def slow(_: object) -> PlainTextResponse:
+        await asyncio.sleep(0.03)
+        return PlainTextResponse("ok")
+
+    async def quick(_: object) -> PlainTextResponse:
+        return PlainTextResponse("ok")
+
+    inner = Starlette(routes=[Route("/slow", slow), Route("/quick", quick)])
+    client = TestClient(RequestContextMiddleware(inner, slow_request_ms=20))
+    with caplog.at_level("WARNING", logger="app.request"):
+        client.get("/quick")
+        client.get("/slow")
+    slow_logs = [r for r in caplog.records if r.message == "slow_request"]
+    assert [getattr(r, "path", None) for r in slow_logs] == ["/slow"]
 
 
 def test_request_id_generated_and_security_headers(client: TestClient) -> None:

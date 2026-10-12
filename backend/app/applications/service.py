@@ -288,6 +288,14 @@ class NotificationService:
                 Application.status.not_in(CLOSED_STATUSES),
             )
         ).all()
+        existing = set(
+            self.db.scalars(
+                select(Notification.dedupe_key).where(
+                    Notification.owner_id == self.actor.user_id,
+                    Notification.kind == "follow_up_due",
+                )
+            )
+        )
         rows = [
             {
                 "id": uuid.uuid4(),
@@ -303,8 +311,9 @@ class NotificationService:
                 "link": f"/applications/{a.id}",
             }
             for a in due
+            if f"follow_up:{a.id}:{a.follow_up_on}" not in existing
         ]
-        if rows:
+        if rows:  # ON CONFLICT still guards against two requests racing
             self.db.execute(
                 insert(Notification)
                 .values(rows)

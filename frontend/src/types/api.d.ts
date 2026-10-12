@@ -33,7 +33,10 @@ export interface paths {
         };
         /**
          * Ready
-         * @description Dependencies reachable. Returns 503 without leaking error details.
+         * @description Dependencies reachable and the schema migrated. Returns 503 without leaking details.
+         *
+         *     A deploy that skipped `alembic upgrade head` reports `"migrations": "pending"`, so a load
+         *     balancer keeps traffic on the previous version instead of serving errors.
          */
         get: operations["ready_api_v1_health_ready_get"];
         put?: never;

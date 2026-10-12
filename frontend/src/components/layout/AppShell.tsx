@@ -1,6 +1,6 @@
 import { LogOut, Menu, Search } from "lucide-react";
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigation } from "react-router-dom";
 import { useLogout, useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/Button";
 import { BrandMark, BrandIcon } from "./BrandMark";
@@ -25,9 +25,15 @@ export function AppShell() {
   const session = useSession();
   const logout = useLogout();
   const user = session.data?.user;
+  const navigating = useNavigation().state === "loading";
 
   return (
     <div className="min-h-dvh bg-surface">
+      {navigating ? (
+        <div role="progressbar" aria-label="Loading page" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-primary-fixed">
+          <div className="h-full w-1/3 animate-pulse bg-primary" />
+        </div>
+      ) : null}
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-primary focus:px-3 focus:py-2 focus:text-on-primary"

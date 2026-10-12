@@ -11,3 +11,6 @@ __pycache__/
 .env
 backend/var/
 coverage/
+
+# setuptools build output
+build/

@@ -17,7 +17,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 
 | Package | Responsibility |
 |---|---|
-| `api/v1` | Router composition: health (`/health/live`, `/health/ready`) and `/system/capabilities` |
+| `api/v1` | Router composition: health (`/health/live`; `/health/ready` checks the database and that migrations are at head) and `/system/capabilities` |
 | `auth` | routes → `AuthService` → repositories. Covers register, login, logout and me. |
 | `core` | settings and production guards, error envelope, JSON logging, request-context middleware, rate limiter, password and token helpers, `AccessPolicy` |
 | `db` | Declarative base with deterministic constraint names; engine and session dependency |
@@ -54,6 +54,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 - Exports are generated on request from a stored version and never stored themselves.
 - Notifications are generated on read until a background worker exists; the dedupe key makes
   that idempotent.
+- Every route needs a session except an explicit allowlist; `tests/test_security_sweep.py`
+  enforces this and CSRF for all routes, including new ones.
 - Schema changes go through Alembic only. The test suite builds the schema by running the
   migrations.
 
@@ -61,7 +63,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 
 | Folder | Responsibility |
 |---|---|
-| `app/` | `App` providers, route table (`router.tsx`), route guards, query client |
+| `app/` | `App` providers, route table (`router.tsx`, each screen lazy-loaded), route guards, query client |
 | `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail), `match/` (Job Match, Skill Gap Matrix), `tailor/` (start, review, finalize), `builder/` (template, ATS check, PDF download), `applications/` (tracker, detail and history, notifications), `interview/` (question sets, practice, review) |
 | `components/resume` | `ResumeEditor` (structured editor that keeps entity ids), `ResumeView`, `FileDrop`, `ConfidenceBadge` |
 | `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md), notification bell |
@@ -74,3 +76,11 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 - `GET /auth/me` returns the user and the CSRF token. The token is kept in memory and sent as
   `X-CSRF-Token` on unsafe methods.
 - A 401 from any query marks the session as signed out, and the guards redirect to `/login`.
+
+**Data on the client**
+- Deleting an item drops its cached query only after its page closes (`lib/forgetDeleted.ts`),
+  so a deleted item is never fetched again.
+
+## Operations
+
+Deployment, backups, monitoring and dependency pinning are in [`DEPLOYMENT.md`](DEPLOYMENT.md).
