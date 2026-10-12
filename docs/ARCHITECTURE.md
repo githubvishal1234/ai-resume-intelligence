@@ -27,6 +27,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `jobs` | `analyzer.py` is the deterministic job-description analyzer (`jd-rules-v1`). `service.py` and `router.py` serve `/jobs` (paste, upload, link, list, detail, edit, re-analyze, delete). `sources.py` is the job-source adapter registry, empty until a source is approved (D-05). |
 | `matching` | `matcher.py` is the rule-based matcher (`match-rules-v1`): per-requirement evidence that points at resume entity ids, a skill gap matrix and weighted subscores (weights pending D-11). `service.py` stores each run as an immutable `JobMatch` snapshot; `router.py` serves `/jobs/{id}/matches` and `/matches`. |
 | `tailoring` | `proposer.py` makes deterministic proposals (`tailor-rules-v1`: reorder skills, bullets and projects; add skills the experience shows; one summary sentence) and applies accepted ones. `factcheck.py` is factual-consistency layer 1. `service.py` runs review, the optional LLM rewrite (only through `get_llm_provider`) and finalize; `router.py` serves `/tailoring`. |
+| `output` | `templates.py` holds the ATS-safe templates (pending D-10). `pdf.py` renders resume content to a text PDF with reportlab. `ats.py` (`ats-rules-v1`) reads the PDF back with pypdf and runs the ATS checks. `router.py` serves `/output/templates`, `/resumes/{id}/export.pdf` and `/resumes/{id}/ats`. |
 | `ai`, `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 
 **Conventions**
@@ -48,6 +49,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 - Tailoring never writes to the master resume. Finalizing creates a separate `tailored`
   resume whose version 1 has `source = 'tailoring'`. Accepted text must pass the factual
   check: numbers, years, technologies and names that the master does not contain are refused.
+- Exports are generated on request from a stored version and never stored themselves.
 - Schema changes go through Alembic only. The test suite builds the schema by running the
   migrations.
 
@@ -56,7 +58,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | Folder | Responsibility |
 |---|---|
 | `app/` | `App` providers, route table (`router.tsx`), route guards, query client |
-| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail), `match/` (Job Match, Skill Gap Matrix), `tailor/` (start, review, finalize) |
+| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail), `match/` (Job Match, Skill Gap Matrix), `tailor/` (start, review, finalize), `builder/` (template, ATS check, PDF download) |
 | `components/resume` | `ResumeEditor` (structured editor that keeps entity ids), `ResumeView`, `FileDrop`, `ConfidenceBadge` |
 | `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md) |
 | `components/ui` | UI kit (Button, Card, Field, Notice, Pill, Score, StatTile, States, Tabs) |

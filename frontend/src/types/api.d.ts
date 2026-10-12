@@ -581,6 +581,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/output/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Templates */
+        get: operations["list_templates_api_v1_output_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/export.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Pdf */
+        get: operations["export_pdf_api_v1_resumes__resume_id__export_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/resumes/{resume_id}/ats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ats Report */
+        get: operations["ats_report_api_v1_resumes__resume_id__ats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -618,6 +669,38 @@ export interface components {
             method_version: string;
             /** Checks */
             checks: components["schemas"]["CheckOut"][];
+        };
+        /** AtsCheck */
+        AtsCheck: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pass" | "warn" | "fail" | "skip";
+            /** Detail */
+            detail: string;
+        };
+        /** AtsReport */
+        AtsReport: {
+            /**
+             * Method Version
+             * @default ats-rules-v1
+             */
+            method_version: string;
+            /** Template */
+            template: string;
+            /** Pages */
+            pages: number;
+            /** Score */
+            score: number;
+            /** Checks */
+            checks: components["schemas"]["AtsCheck"][];
+            /** Extracted Preview */
+            extracted_preview: string;
         };
         /** BenchmarkCapability */
         BenchmarkCapability: {
@@ -1594,6 +1677,15 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** TemplateOut */
+        TemplateOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
         };
         /** UpdateContentIn */
         UpdateContentIn: {
@@ -2855,6 +2947,91 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_templates_api_v1_output_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"][];
+                };
+            };
+        };
+    };
+    export_pdf_api_v1_resumes__resume_id__export_pdf_get: {
+        parameters: {
+            query?: {
+                template?: string;
+                version?: number | null;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ats_report_api_v1_resumes__resume_id__ats_get: {
+        parameters: {
+            query?: {
+                template?: string;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AtsReport"];
+                };
             };
             /** @description Validation Error */
             422: {

@@ -1,4 +1,4 @@
-import { History, PenLine, ScanSearch, Trash2, UploadCloud } from "lucide-react";
+import { Download, History, PenLine, ScanSearch, Trash2, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
@@ -37,6 +37,7 @@ export function ResumeDetailPage() {
             <ButtonLink to={`/resumes/${r.id}/edit`} variant="primary"><PenLine className="size-4" aria-hidden /> Edit</ButtonLink>
             <ButtonLink to={`/resumes/${r.id}/analysis`}><ScanSearch className="size-4" aria-hidden /> Analysis</ButtonLink>
             <ButtonLink to={`/resumes/${r.id}/versions`}><History className="size-4" aria-hidden /> Versions</ButtonLink>
+            <ButtonLink to={`/builder?resume=${r.id}`}><Download className="size-4" aria-hidden /> PDF &amp; ATS check</ButtonLink>
             {r.kind === "master" ? (
               <ButtonLink to="/resumes/upload"><UploadCloud className="size-4" aria-hidden /> Upload new version</ButtonLink>
             ) : null}

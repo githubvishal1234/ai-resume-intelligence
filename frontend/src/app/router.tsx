@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/pages/auth/AuthLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { BuilderPage } from "@/pages/builder/BuilderPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { JobDetailPage } from "@/pages/jobs/JobDetailPage";
 import { JobNewPage } from "@/pages/jobs/JobNewPage";
@@ -59,6 +60,7 @@ export const routes: RouteObject[] = [
           { path: "/match", element: <MatchIndexPage /> },
           { path: "/skill-gaps", element: <GapIndexPage /> },
           { path: "/tailor", element: <TailorIndexPage /> },
+          { path: "/builder", element: <BuilderPage /> },
           { path: "/tailor/:sessionId", element: <TailorReviewPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],

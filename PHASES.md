@@ -21,8 +21,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 3 | Job Intelligence | ✅ |
 | 4 | Matching & Skill Gaps | ✅ |
 | 5 | Tailoring | ✅ |
-| 6 | Resume Output (ATS + PDF) | 🚧 |
-| 7 | Applications | ⏳ |
+| 6 | Resume Output (ATS + PDF) | ✅ |
+| 7 | Applications | 🚧 |
 | 8 | Interview Prep | ⏳ |
 | 9 | Hardening | ⏳ |
 
@@ -241,9 +241,35 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 6: Resume Output
 
-- ATS checks on the tailored resume.
-- A small set of ATS-safe templates (D-10).
-- Text-extractable PDF export and download through an authenticated endpoint.
+**Delivered**
+- [x] Three ATS-safe templates (`classic`, `compact`, `serif`): one column, standard fonts,
+      standard section headings, real text (no images, tables or text boxes). The final set
+      is still to be approved (D-10); templates are data in `output/templates.py`.
+- [x] PDF export of any resume version (master or tailored) through an authenticated
+      endpoint: `GET /resumes/{id}/export.pdf?template=&version=`, sent as a download.
+- [x] ATS check (`ats-rules-v1`) that renders the PDF and reads it back with a PDF text
+      extractor, the way screening software does. Checks: name and email readable, section
+      order, every role readable, unsupported characters, one date format, page count, and
+      (for a tailored resume) the job's required skills present in the extracted text.
+      The page shows what was extracted, so the user can see what a parser sees.
+- [x] Resume Builder page: pick a resume and template, see the ATS checks, download the PDF.
+      Linked from each resume ("PDF & ATS check") and enabled in the navigation.
+
+**Not done here, by decision**
+- Final template designs wait on D-10.
+- The built-in PDF fonts cover Western European characters only (cp1252). Others (₹ becomes
+  "INR", the rest are reported by the "All characters can be shown" check). Embedding a
+  Unicode font is a small change once the template fonts are chosen.
+
+**Verified 2026-10-12**
+- 141 backend tests pass (7 new: templates listed, PDF is real text in every template,
+  tailored resume checked against its job's required skills, a specific version exports,
+  unknown template refused, unsupported characters reported, IDOR on export and ATS).
+  ruff, format and mypy are clean.
+- 54 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: upload master → PDF & ATS check → 100/100 with the job check skipped →
+  switch to Serif → Download PDF gives `Master-resume.pdf`, a 1-page PDF whose extracted text
+  matches the resume, set in Times. No overflow at 1440, 768 or 390.
 
 ## Phase 7: Applications
 
@@ -271,3 +297,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 3 completed and verified. Phase 4 started.
 - 2026-10-12: Phase 4 completed and verified. Phase 5 started.
 - 2026-10-12: Phase 5 completed and verified. Phase 6 started.
+- 2026-10-12: Phase 6 completed and verified. Phase 7 started.
