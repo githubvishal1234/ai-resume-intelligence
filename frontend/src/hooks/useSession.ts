@@ -37,14 +37,23 @@ export function useRegister() {
   });
 }
 
+function signOutLocally(client: ReturnType<typeof useQueryClient>) {
+  // Mark the session as signed out, then drop every other cached user-specific query.
+  // (clear() would also remove the session query and make mounted guards refetch /auth/me.)
+  void client.cancelQueries({ queryKey: SESSION_KEY });
+  client.setQueryData(SESSION_KEY, null);
+  client.removeQueries({ predicate: (query) => query.queryKey[0] !== SESSION_KEY[0] });
+}
+
 export function useLogout() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: () => authService.logout(),
-    onSettled: () => {
-      // Drop every cached user-specific query, then mark the session as signed out.
-      client.clear();
-      client.setQueryData(SESSION_KEY, null);
+    // Only show "signed out" once the server confirmed it (or the session was already gone);
+    // otherwise the server session would stay valid while the UI claims it ended.
+    onSuccess: () => signOutLocally(client),
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 401) signOutLocally(client);
     },
   });
 }

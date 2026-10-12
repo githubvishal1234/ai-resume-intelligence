@@ -18,7 +18,7 @@ export function MobileTabBar() {
           const body = (
             <>
               <Icon className="size-5" aria-hidden />
-              <span className="text-label-sm">{item.label.replace("My ", "")}</span>
+              <span className="text-label-sm">{item.shortLabel ?? item.label}</span>
             </>
           );
           return (

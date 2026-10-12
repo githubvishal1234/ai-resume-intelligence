@@ -5,10 +5,14 @@ from collections.abc import Iterator
 
 # Must be set before the app imports settings.
 os.environ["APP_ENV"] = "test"
-os.environ.setdefault(
-    "DATABASE_URL",
+# Tests drop and truncate tables, so they only ever use TEST_DATABASE_URL (never DATABASE_URL)
+# and refuse to run unless the database name ends in "_test".
+os.environ["DATABASE_URL"] = os.environ.get(
+    "TEST_DATABASE_URL",
     "postgresql+psycopg://resume_app:dev_only_password@localhost:5432/resume_intel_test",
 )
+if not os.environ["DATABASE_URL"].rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
+    raise RuntimeError("Refusing to run tests: the test database name must end in '_test'.")
 os.environ["LLM_PROVIDER"] = ""
 os.environ["EMAIL_PROVIDER"] = ""
 

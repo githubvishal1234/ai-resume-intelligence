@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 
 afterEach(() => cleanup());
 
@@ -14,3 +14,7 @@ if (typeof HTMLDialogElement !== "undefined") {
     this.dispatchEvent(new Event("close"));
   };
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});

@@ -92,8 +92,8 @@ export function AppShell() {
               onClick={() => logout.mutate()}
               icon={<LogOut className="size-4" aria-hidden />}
             >
-              <span className="hidden sm:inline">Sign out</span>
-              <span className="sr-only sm:hidden">Sign out</span>
+              {/* One label: visually hidden on mobile, so the accessible name is never doubled. */}
+              <span className="sr-only sm:not-sr-only">Sign out</span>
             </Button>
           </div>
         </header>

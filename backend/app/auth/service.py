@@ -101,6 +101,7 @@ class AuthService:
             user.password_hash = hash_password(password)
         user.last_login_at = datetime.now(UTC)
         issued = self._open_session(user, user_agent)
+        self.sessions.delete_expired(datetime.now(UTC))  # cheap housekeeping on each login
         self._audit("auth.login", "success", user.id, {})
         self.db.commit()
         return issued

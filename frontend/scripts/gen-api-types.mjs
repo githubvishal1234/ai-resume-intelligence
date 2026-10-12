@@ -13,8 +13,11 @@ const backend = path.resolve(root, "../backend");
 const target = path.join(root, "src/types/api.d.ts");
 const check = process.argv.includes("--check");
 
-const venvPython = path.resolve(root, "../.venv/bin/python");
-const python = process.env.PYTHON ?? (existsSync(venvPython) ? venvPython : "python3");
+const isWindows = process.platform === "win32";
+const venvPython = isWindows
+  ? path.resolve(root, "../.venv/Scripts/python.exe")
+  : path.resolve(root, "../.venv/bin/python");
+const python = process.env.PYTHON ?? (existsSync(venvPython) ? venvPython : isWindows ? "python" : "python3");
 
 const tmp = mkdtempSync(path.join(tmpdir(), "openapi-"));
 const schemaFile = path.join(tmp, "openapi.json");
@@ -29,7 +32,9 @@ execFileSync(
   ],
   { cwd: backend, env: { ...process.env, APP_ENV: "test" }, stdio: ["ignore", "ignore", "inherit"] },
 );
-execFileSync("npx", ["openapi-typescript", schemaFile, "-o", outFile], { cwd: root, stdio: "pipe" });
+// Call the local CLI through node directly: avoids `npx`, which is `npx.cmd` on Windows.
+const cli = path.join(root, "node_modules/openapi-typescript/bin/cli.js");
+execFileSync(process.execPath, [cli, schemaFile, "-o", outFile], { cwd: root, stdio: "pipe" });
 
 const generated = readFileSync(outFile, "utf8");
 if (check) {

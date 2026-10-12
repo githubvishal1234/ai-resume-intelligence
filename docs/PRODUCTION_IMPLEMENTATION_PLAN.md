@@ -1,3 +1,5 @@
+> **Historical document (2026-10-06).** Written before any code existed. D-01 was later resolved as *greenfield* (see `ROADMAP.md`), so the "reuse the existing repository" policy and §0/§1 no longer apply. Current status lives in `../PHASES.md`; architecture as built is in `ARCHITECTURE.md`.
+
 # AI Resume Intelligence Platform — Production Implementation Plan
 
 Status: **DRAFT rev 2 for approval** · Date: 2026-10-06 · Scope of this document: analysis and plan only. No application code has been written, and nothing has been changed or rewritten.

@@ -16,6 +16,8 @@ import {
 export type NavItem = {
   id: string;
   label: string;
+  /** Shorter label for the mobile tab bar. Falls back to `label`. */
+  shortLabel?: string;
   icon: LucideIcon;
   /** Route path when the screen exists; undefined while the feature is not built yet. */
   to?: string;
@@ -32,7 +34,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/", phase: 1, phaseNote: "" },
-      { id: "resumes", label: "My Resumes", icon: FileText, phase: 2, phaseNote: "Master Resume" },
+      { id: "resumes", label: "My Resumes", shortLabel: "Resumes", icon: FileText, phase: 2, phaseNote: "Master Resume" },
     ],
   },
   {
@@ -49,7 +51,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "automation",
     label: "AI Automation",
     items: [
-      { id: "tailor", label: "Tailor Resume", icon: Sparkles, phase: 5, phaseNote: "AI Tailoring" },
+      { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, phase: 5, phaseNote: "AI Tailoring" },
       { id: "builder", label: "Resume Builder", icon: PenLine, phase: 6, phaseNote: "Resume Output" },
       { id: "interview", label: "Interview Prep", icon: MessagesSquare, phase: 8, phaseNote: "Interview" },
     ],

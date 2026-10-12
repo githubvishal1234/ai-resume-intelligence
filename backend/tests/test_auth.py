@@ -183,3 +183,18 @@ def test_password_hash_roundtrip_and_dummy_verification() -> None:
 
 def test_app_factory_independent(settings: Settings) -> None:
     assert create_app(settings) is not create_app(settings)
+
+
+def test_login_purges_expired_sessions(client: TestClient) -> None:
+    register(client)
+    with get_sessionmaker()() as db:
+        db.execute(update(UserSession).values(expires_at=datetime.now(UTC) - timedelta(days=1)))
+        db.commit()
+    client.cookies.clear()
+    response = client.post(
+        "/api/v1/auth/login", json={"email": "ada@example.com", "password": STRONG_PASSWORD}
+    )
+    assert response.status_code == 200
+    with get_sessionmaker()() as db:
+        sessions = list(db.scalars(select(UserSession)))
+        assert len(sessions) == 1 and sessions[0].expires_at > datetime.now(UTC)

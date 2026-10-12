@@ -66,7 +66,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 
   if (response.status === 204) return undefined as T;
 
-  let payload: unknown = null;
+  let payload: unknown;
   try {
     payload = await response.json();
   } catch {
