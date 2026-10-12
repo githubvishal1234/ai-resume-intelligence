@@ -54,6 +54,8 @@ function useSettle() {
     void client.invalidateQueries({ queryKey: resumeKeys.list() });
     void client.invalidateQueries({ queryKey: resumeKeys.versions(resume.id) });
     void client.invalidateQueries({ queryKey: resumeKeys.analysis(resume.id) });
+    // Saved matches may now be out of date.
+    void client.invalidateQueries({ queryKey: ["matches"] });
   };
 }
 

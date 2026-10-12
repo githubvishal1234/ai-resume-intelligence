@@ -23,7 +23,7 @@ export function mockApi(routes: MockRoute[]) {
     const route = routes.find((r) => r.path === path && (r.method ?? "GET") === method);
     if (!route) throw new Error(`Unmocked request: ${method} ${path}`);
     const status = route.status ?? 200;
-    return new Response(status === 204 ? null : JSON.stringify(route.body ?? {}), {
+    return new Response(status === 204 ? null : JSON.stringify(route.body === undefined ? {} : route.body), {
       status,
       headers: { "content-type": "application/json", "x-request-id": "req-test-123" },
     });

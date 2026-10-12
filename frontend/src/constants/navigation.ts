@@ -43,8 +43,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "analysis", label: "Resume Analysis", icon: ScanSearch, to: "/analysis", phase: 2, phaseNote: "Master Resume" },
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, to: "/jobs", phase: 3, phaseNote: "Job Intelligence" },
-      { id: "job-match", label: "Job Match", icon: GitCompareArrows, phase: 4, phaseNote: "Matching" },
-      { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, phase: 4, phaseNote: "Matching" },
+      { id: "job-match", label: "Job Match", icon: GitCompareArrows, to: "/match", phase: 4, phaseNote: "Matching" },
+      { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, to: "/skill-gaps", phase: 4, phaseNote: "Matching" },
     ],
   },
   {

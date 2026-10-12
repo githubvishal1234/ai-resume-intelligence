@@ -1,10 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenLine, RefreshCw, Trash2 } from "lucide-react";
+import { GitCompareArrows, PenLine, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -45,6 +45,9 @@ export function JobDetailPage() {
         back={{ to: "/jobs", label: "Jobs" }}
         actions={
           <>
+            <ButtonLink to={`/jobs/${j.id}/match`} variant="primary">
+              <GitCompareArrows className="size-4" aria-hidden /> Match my resume
+            </ButtonLink>
             <Button variant="secondary" icon={<PenLine className="size-4" aria-hidden />} onClick={() => setEditing(true)}>
               Edit details
             </Button>

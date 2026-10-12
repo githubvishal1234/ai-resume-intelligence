@@ -7,6 +7,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { JobDetailPage } from "@/pages/jobs/JobDetailPage";
 import { JobNewPage } from "@/pages/jobs/JobNewPage";
 import { JobsPage } from "@/pages/jobs/JobsPage";
+import { GapIndexPage, GapPage, MatchIndexPage, MatchPage } from "@/pages/match/MatchPages";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AnalysisPage, AnalysisRedirect } from "@/pages/resumes/AnalysisPage";
@@ -51,6 +52,10 @@ export const routes: RouteObject[] = [
           { path: "/jobs", element: <JobsPage /> },
           { path: "/jobs/new", element: <JobNewPage /> },
           { path: "/jobs/:jobId", element: <JobDetailPage /> },
+          { path: "/jobs/:jobId/match", element: <MatchPage /> },
+          { path: "/jobs/:jobId/gaps", element: <GapPage /> },
+          { path: "/match", element: <MatchIndexPage /> },
+          { path: "/skill-gaps", element: <GapIndexPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

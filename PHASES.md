@@ -19,8 +19,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 1 | Foundation | ✅ |
 | 2 | Master Resume | ✅ |
 | 3 | Job Intelligence | ✅ |
-| 4 | Matching & Skill Gaps | 🚧 |
-| 5 | Tailoring | ⏳ |
+| 4 | Matching & Skill Gaps | ✅ |
+| 5 | Tailoring | 🚧 |
 | 6 | Resume Output (ATS + PDF) | ⏳ |
 | 7 | Applications | ⏳ |
 | 8 | Interview Prep | ⏳ |
@@ -155,10 +155,46 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 4: Matching & Skill Gaps
 
-- A versioned, rule-based match score over extracted requirements, with subscores for Skills,
-  Experience, Keywords, Education and ATS. The weights are an engineering default (D-11).
-- Per-requirement evidence (strong / partial / missing) that links to master resume entities.
-- A skill gap matrix with four severities.
+**Delivered**
+- [x] Rule-based matcher (`match-rules-v1`) between the master resume's current version and a
+      job's analysis. It only reads both; a test proves the master is unchanged.
+- [x] Evidence per requirement: strong / partial / missing, with a plain reason and quotes
+      from the resume entities behind it (by entity id).
+  - Skills are **strong** when a role or project shows them, **partial** when they are only
+    listed. "A or B" requirements are met by either.
+  - Years are computed from dated roles (overlaps counted once; undated roles reported).
+  - Education compares degree levels; certifications look for a matching listed one.
+  - Requirements without a known skill fall back to word overlap, and say so.
+- [x] Subscores with explanations: Skills (required 3×, preferred 2×), Experience, Keywords,
+      Education, and Resume quality (the Phase 2 checks). Weights 40/20/15/10/15 are an
+      engineering default (D-11). Parts that don't apply to a job are left out and the rest
+      renormalized, instead of scoring zero.
+- [x] Skill gap matrix with four severities: critical (required, missing), high (preferred,
+      missing), medium (required, only listed), low (nice-to-have, preferred-but-listed, or met
+      by an alternative).
+- [x] Each run is stored as a snapshot with the resume version and method versions. It is
+      marked "out of date" when the resume gets a new version or the rules change.
+- [x] Pages: Job Match (jobs with their latest score), match detail (score, breakdown,
+      requirements by tier with evidence, missing frequent terms), Skill Gap Matrix. Both nav
+      items are enabled, the job page has "Match my resume", and the dashboard links to it.
+
+**Not done here, by decision**
+- Semantic (embedding or LLM) matching waits on D-03. The matcher output is a plain model, so
+  a provider-backed matcher can add to it.
+- Scoring weights stay a default until D-11 is decided; they live in one table (`WEIGHTS`).
+
+**Verified 2026-10-12**
+- 119 backend tests pass (13 new: date parsing, overlap counting, evidence statuses, evidence
+  ids point at real entities, severities and alternatives, renormalized subscores, empty
+  resume, master-required, snapshot + master unchanged, stale after edit, IDOR including
+  matching someone else's resume, cascade on job delete). ruff, format and mypy are clean.
+- 47 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: job without a resume → "add your master resume first" → upload master →
+  Job Match → run (84/100; required 4 of 5 met) → Skill gaps (1 medium, 4 low, 4 no gap) →
+  edit the resume → match shows "out of date" → re-run (85/100). No console errors besides the
+  expected 401 before sign-up, and no overflow at 1440, 1024, 768 or 390.
+- Fixed during verification: a never-matched job produced a 404 in the console (the endpoint
+  now returns null), and the gap table scrolled sideways on phones.
 
 ## Phase 5: Tailoring
 
@@ -202,3 +238,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
 - 2026-10-12: Phase 2 completed and verified. Phase 3 started.
 - 2026-10-12: Phase 3 completed and verified. Phase 4 started.
+- 2026-10-12: Phase 4 completed and verified. Phase 5 started.
