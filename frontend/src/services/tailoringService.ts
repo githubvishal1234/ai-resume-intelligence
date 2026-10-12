@@ -10,6 +10,7 @@ export type FactFlag = S["FactFlag"];
 export type SessionSummary = S["TailoringSessionSummaryOut"];
 export type Session = Omit<S["TailoringSessionOut"], "preview"> & { preview: ResumeDoc };
 export type Decision = TailoringChange["decision"];
+export type Bullet = S["BulletOut"];
 
 const withDoc = (s: S["TailoringSessionOut"]): Session => ({ ...s, preview: normalizeContent(s.preview) });
 
@@ -35,6 +36,13 @@ export const tailoringService = {
     ),
   rewrite: async (id: string, changeId: string) =>
     withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/changes/${changeId}/rewrite`)),
+  rewriteBullet: async (id: string, experienceId: string, bulletIndex: number) =>
+    withDoc(
+      await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/bullets/rewrite`, {
+        experience_id: experienceId,
+        bullet_index: bulletIndex,
+      }),
+    ),
   finalize: async (id: string, title?: string) =>
     withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/finalize`, title ? { title } : {})),
   discard: (id: string) => api.post<void>(`/tailoring/${id}/discard`),

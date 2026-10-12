@@ -8,10 +8,17 @@ import { Input, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
-import { useDecide, useDiscardTailoring, useFinalize, useRewrite, useTailoringSession } from "@/hooks/useTailoring";
+import {
+  useDecide,
+  useDiscardTailoring,
+  useFinalize,
+  useRewrite,
+  useRewriteBullet,
+  useTailoringSession,
+} from "@/hooks/useTailoring";
 import { ApiError } from "@/services/apiClient";
 import { TIER_LABEL, type Tier } from "@/services/jobService";
-import { items, text, type Session, type TailoringChange } from "@/services/tailoringService";
+import { items, text, type Bullet, type Session, type TailoringChange } from "@/services/tailoringService";
 import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
 
@@ -52,13 +59,16 @@ function Review({ session: s }: { session: Session }) {
         </Notice>
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
-        <ol className="space-y-4" aria-label="Proposed changes">
-          {s.changes.map((c, i) => (
-            <li key={c.id}>
-              <ChangeCard session={s} change={c} index={i + 1} />
-            </li>
-          ))}
-        </ol>
+        <div className="space-y-4">
+          <ol className="space-y-4" aria-label="Proposed changes">
+            {s.changes.map((c, i) => (
+              <li key={c.id} id={`change-${c.id}`}>
+                <ChangeCard session={s} change={c} index={i + 1} />
+              </li>
+            ))}
+          </ol>
+          {draft && s.bullets.length ? <BulletRewrites session={s} /> : null}
+        </div>
         <div className="space-y-6">
           {draft ? <Finish session={s} accepted={accepted} /> : null}
           <Card aria-labelledby="preview-title">
@@ -211,7 +221,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
 }
 
 function Diff({ change: c }: { change: TailoringChange }) {
-  if (c.kind === "summary") {
+  if (c.kind === "summary" || c.kind === "rewrite_bullet") {
     return (
       <div className="grid gap-3 md:grid-cols-2">
         <Block label="Now">{text(c.original)}</Block>
@@ -240,6 +250,89 @@ function Diff({ change: c }: { change: TailoringChange }) {
         <OrderedList values={after.map((i) => i.text)} moved={after.map((i, n) => before[n]?.text !== i.text)} />
       </Block>
     </div>
+  );
+}
+
+function BulletRewrites({ session: s }: { session: Session }) {
+  const rewrite = useRewriteBullet(s.id);
+  const id = useId();
+  const roles: { role: string; bullets: Bullet[] }[] = [];
+  for (const b of s.bullets) {
+    const last = roles[roles.length - 1];
+    if (last && last.bullets[0]?.experience_id === b.experience_id) last.bullets.push(b);
+    else roles.push({ role: b.role, bullets: [b] });
+  }
+  const position = new Map(s.changes.map((c, i) => [c.id, i + 1]));
+  return (
+    <Card aria-labelledby={`${id}-title`}>
+      <CardHeader
+        id={`${id}-title`}
+        title="Reword a bullet with AI"
+        description="Pick a bullet from your master resume. The new wording is added above as a change to review, and it is checked against your master resume like every other change."
+      />
+      {!s.ai.configured ? (
+        <Notice tone="info" title="AI rewriting is not set up yet" className="mb-4">
+          An administrator has to connect an AI provider before bullets can be reworded.
+        </Notice>
+      ) : null}
+      {rewrite.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-4">
+          {rewrite.error instanceof ApiError ? rewrite.error.message : "Something went wrong. Please try again."}
+        </Notice>
+      ) : null}
+      <div className="space-y-4">
+        {roles.map((r) => (
+          <section key={r.bullets[0]?.experience_id} aria-label={r.role}>
+            <h3 className="text-label-md text-on-surface">{r.role}</h3>
+            <ul className="mt-2 space-y-2">
+              {r.bullets.map((b) => {
+                const n = b.change_id ? position.get(b.change_id) : undefined;
+                const pending =
+                  rewrite.isPending &&
+                  rewrite.variables?.experienceId === b.experience_id &&
+                  rewrite.variables.index === b.index;
+                return (
+                  <li
+                    key={b.index}
+                    className="flex flex-col gap-2 rounded-control border border-hairline p-3 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0 text-body-md text-on-surface">
+                      <p id={`${id}-b-${b.experience_id}-${b.index}`} className="break-words">{b.text}</p>
+                      {n ? <p className="mt-1 text-body-sm text-on-surface-variant">Reworded as change {n}.</p> : null}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="shrink-0"
+                      loading={pending}
+                      disabled={rewrite.isPending && !pending}
+                      disabledReason={s.ai.configured ? undefined : "AI rewriting is not set up yet"}
+                      icon={<Sparkles className="size-4" aria-hidden />}
+                      aria-describedby={`${id}-b-${b.experience_id}-${b.index}`}
+                      onClick={() =>
+                        rewrite.mutate(
+                          { experienceId: b.experience_id, index: b.index },
+                          {
+                            onSuccess: (next) => {
+                              const changeId = next.bullets.find(
+                                (x) => x.experience_id === b.experience_id && x.index === b.index,
+                              )?.change_id;
+                              if (changeId) document.getElementById(`change-${changeId}`)?.scrollIntoView?.({ block: "start" });
+                            },
+                          },
+                        )
+                      }
+                    >
+                      {b.change_id ? "Rewrite again" : "Rewrite with AI"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </Card>
   );
 }
 

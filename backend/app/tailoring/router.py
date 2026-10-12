@@ -15,11 +15,13 @@ from app.models import Job, Resume, TailoringSession
 from app.tailoring.proposer import EDITABLE_KINDS
 from app.tailoring.schemas import (
     AiStatusOut,
+    BulletOut,
     ChangeOut,
     CreateTailoringIn,
     DecisionIn,
     FinalizeIn,
     RequirementRef,
+    RewriteBulletIn,
     TailoringSessionOut,
     TailoringSessionSummaryOut,
 )
@@ -90,12 +92,30 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
         )
         for c in row.changes
     ]
+    master_content = service.base_content(row)
+    rewrites = {
+        (c.target_id, c.original.get("text")): c.id
+        for c in row.changes
+        if c.kind == "rewrite_bullet"
+    }
+    bullets = [
+        BulletOut(
+            experience_id=e.id,
+            role=" at ".join(p for p in (e.title, e.company) if p) or "Experience",
+            index=i,
+            text=b,
+            change_id=rewrites.get((e.id, b)),
+        )
+        for e in master_content.experience
+        for i, b in enumerate(e.bullets)
+    ]
     return TailoringSessionOut(
         **_summary(service, row).model_dump(),
         method_version=row.method_version,
         master_current_version=master.current_version,
         changes=changes,
         preview=service.preview(row),
+        bullets=bullets,
         ai=AiStatusOut(configured=configured, reason=reason),
     )
 
@@ -125,6 +145,13 @@ def decide(
 @router.post("/{session_id}/changes/{change_id}/rewrite", response_model=TailoringSessionOut)
 def rewrite(session_id: uuid.UUID, change_id: uuid.UUID, service: Service) -> TailoringSessionOut:
     return _out(service, service.rewrite(session_id, change_id))
+
+
+@router.post("/{session_id}/bullets/rewrite", response_model=TailoringSessionOut)
+def rewrite_bullet(
+    session_id: uuid.UUID, body: RewriteBulletIn, service: Service
+) -> TailoringSessionOut:
+    return _out(service, service.rewrite_bullet(session_id, body.experience_id, body.bullet_index))
 
 
 @router.post("/{session_id}/finalize", response_model=TailoringSessionOut)

@@ -47,6 +47,15 @@ export function useRewrite(id: string) {
   return useMutation({ mutationFn: (changeId: string) => tailoringService.rewrite(id, changeId), onSuccess: settle });
 }
 
+export function useRewriteBullet(id: string) {
+  const settle = useSettle();
+  return useMutation({
+    mutationFn: ({ experienceId, index }: { experienceId: string; index: number }) =>
+      tailoringService.rewriteBullet(id, experienceId, index),
+    onSuccess: settle,
+  });
+}
+
 export function useFinalize(id: string) {
   const settle = useSettle();
   const client = useQueryClient();

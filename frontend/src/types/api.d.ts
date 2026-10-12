@@ -550,6 +550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring/{session_id}/bullets/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rewrite Bullet */
+        post: operations["rewrite_bullet_api_v1_tailoring__session_id__bullets_rewrite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tailoring/{session_id}/finalize": {
         parameters: {
             query?: never;
@@ -1099,6 +1116,22 @@ export interface components {
              * @description PDF, DOCX or TXT resume
              */
             file: string;
+        };
+        /**
+         * BulletOut
+         * @description A bullet of the master resume that can be reworded with the LLM.
+         */
+        BulletOut: {
+            /** Experience Id */
+            experience_id: string;
+            /** Role */
+            role: string;
+            /** Index */
+            index: number;
+            /** Text */
+            text: string;
+            /** Change Id */
+            change_id: string | null;
         };
         /**
          * CapabilitiesOut
@@ -2142,6 +2175,13 @@ export interface components {
              */
             updated_at: string;
         };
+        /** RewriteBulletIn */
+        RewriteBulletIn: {
+            /** Experience Id */
+            experience_id: string;
+            /** Bullet Index */
+            bullet_index: number;
+        };
         /** SaveAnswerIn */
         SaveAnswerIn: {
             /**
@@ -2291,6 +2331,8 @@ export interface components {
             /** Changes */
             changes: components["schemas"]["ChangeOut"][];
             preview: components["schemas"]["ResumeContent"];
+            /** Bullets */
+            bullets: components["schemas"]["BulletOut"][];
             ai: components["schemas"]["AiStatusOut"];
         };
         /** TailoringSessionSummaryOut */
@@ -3560,6 +3602,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rewrite_bullet_api_v1_tailoring__session_id__bullets_rewrite_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RewriteBulletIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

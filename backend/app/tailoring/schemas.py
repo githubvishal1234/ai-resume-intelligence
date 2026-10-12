@@ -21,6 +21,11 @@ class DecisionIn(BaseModel):
     edited_text: str | None = Field(default=None, max_length=5000)
 
 
+class RewriteBulletIn(BaseModel):
+    experience_id: str = Field(min_length=1, max_length=64)
+    bullet_index: int = Field(ge=0, le=200)
+
+
 class FinalizeIn(BaseModel):
     title: str | None = Field(default=None, max_length=200)
 
@@ -68,10 +73,21 @@ class TailoringSessionSummaryOut(BaseModel):
     created_at: datetime
 
 
+class BulletOut(BaseModel):
+    """A bullet of the master resume that can be reworded with the LLM."""
+
+    experience_id: str
+    role: str
+    index: int
+    text: str
+    change_id: uuid.UUID | None  # the rewrite change for this bullet, once one exists
+
+
 class TailoringSessionOut(TailoringSessionSummaryOut):
     method_version: str
     # The master moved on since these proposals were computed (they still apply to base_version).
     master_current_version: int
     changes: list[ChangeOut]
     preview: ResumeContent
+    bullets: list[BulletOut]
     ai: AiStatusOut

@@ -17,7 +17,7 @@ from app.matching.matcher import match
 from app.resumes.content import ResumeContent, Skill
 from app.resumes.parser import parse_resume
 from app.tailoring.factcheck import check_text
-from app.tailoring.proposer import ChangeNotApplicable, apply, propose
+from app.tailoring.proposer import ChangeNotApplicable, Proposal, apply, apply_order, propose
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
 from tests.test_jobs import JD
@@ -206,6 +206,7 @@ class _Rewrite(BaseModel):
 class _FakeProvider(LLMProvider):
     name = "fake"
     seen: list[LLMMessage] = []
+    reply = "Python backend engineer who scaled APIs 10x at Google."
 
     @property
     def model(self) -> str:
@@ -217,7 +218,7 @@ class _FakeProvider(LLMProvider):
 
     def generate_structured(self, schema, messages, *, max_output_tokens=None):  # type: ignore[no-untyped-def]
         _FakeProvider.seen = messages
-        parsed = schema(text="Python backend engineer who scaled APIs 10x at Google.")
+        parsed = schema(text=_FakeProvider.reply)
         return StructuredResult(
             parsed=parsed, usage=LLMUsage(), provider="fake", model="fake-1", latency_ms=1.0
         )
@@ -231,6 +232,7 @@ def fake_ai(app: FastAPI, settings: Settings) -> Iterator[None]:
     )
     yield
     unregister_provider("fake")
+    _FakeProvider.reply = "Python backend engineer who scaled APIs 10x at Google."
 
 
 def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: None) -> None:
@@ -311,9 +313,117 @@ def test_other_users_cannot_touch_a_session(app: FastAPI, user_client: TestClien
         other.get(base),
         other.post(f"{base}/changes/{change['id']}/decision", json={"decision": "accepted"}),
         other.post(f"{base}/changes/{change['id']}/rewrite"),
+        other.post(f"{base}/bullets/rewrite", json={"experience_id": "x", "bullet_index": 0}),
         other.post(f"{base}/finalize", json={}),
         other.post(f"{base}/discard"),
         other.post(API, json={"job_id": session["job_id"]}),
     ]
     assert [r.status_code for r in attempts] == [404] * len(attempts)
     assert other.get(API).json() == []
+
+
+# ---- bullet rewrites -------------------------------------------------------------------
+def _bullet_url(session: dict[str, Any]) -> str:
+    return f"{API}/{session['id']}/bullets/rewrite"
+
+
+def test_session_lists_master_bullets(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    bullets = session["bullets"]
+    assert [b["index"] for b in bullets[:2]] == [0, 1]
+    assert bullets[0]["role"].endswith("at Acme Analytics")
+    assert bullets[0]["text"].startswith("Led migration of the reporting pipeline")
+    assert all(b["change_id"] is None for b in bullets)
+
+
+def test_bullet_rewrite_needs_a_configured_provider(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    b = session["bullets"][0]
+    body = {"experience_id": b["experience_id"], "bullet_index": 0}
+    response = user_client.post(_bullet_url(session), json=body)
+    assert response.status_code == 503
+    assert response.json()["code"] == "AI_PROVIDER_NOT_CONFIGURED"
+    assert len(user_client.get(f"{API}/{session['id']}").json()["changes"]) == len(
+        session["changes"]
+    )
+
+
+def test_bullet_rewrite_is_a_fact_checked_editable_change(
+    user_client: TestClient, fake_ai: None
+) -> None:
+    master, session = _session(user_client)
+    b = session["bullets"][1]  # "Designed a FastAPI service handling 2M requests/day ..."
+    body = {"experience_id": b["experience_id"], "bullet_index": b["index"]}
+
+    _FakeProvider.reply = "Designed a FastAPI service for 3M requests/day at Google."
+    response = user_client.post(_bullet_url(session), json=body)
+    assert response.status_code == 200, response.text
+    updated = response.json()
+    change = _change(updated, "rewrite_bullet")
+    assert change["source"] == "llm" and change["editable"] is True
+    assert change["original"] == {"text": b["text"]}
+    assert {f["value"] for f in change["flags"]} >= {"3M", "Google"}
+    assert updated["bullets"][1]["change_id"] == change["id"]
+    assert len(updated["changes"]) == len(session["changes"]) + 1
+    # The bullet is passed as data, never in the system prompt.
+    system = [m for m in _FakeProvider.seen if m.role == "system"]
+    assert len(system) == 1 and b["text"] not in system[0].content
+    assert any(b["text"] in m.content for m in _FakeProvider.seen if m.role == "user")
+    assert _decide(user_client, updated, change, decision="accepted").status_code == 422
+
+    # Asking again regenerates the same change instead of adding another.
+    _FakeProvider.reply = "Built a FastAPI service handling 2M requests/day with 99.95% uptime."
+    again = user_client.post(_bullet_url(session), json=body).json()
+    assert len(again["changes"]) == len(updated["changes"])
+    change = _change(again, "rewrite_bullet")
+    assert change["flags"] == [] and change["decision"] == "pending"
+    accepted = _decide(user_client, again, change, decision="accepted")
+    assert accepted.status_code == 200, accepted.text
+    roles = accepted.json()["preview"]["experience"]
+    assert roles[0]["bullets"][1] == _FakeProvider.reply
+
+    # The user may reword it, still under the factual check.
+    edited = _decide(
+        user_client, again, change, decision="accepted", edited_text="Ran it at Netflix."
+    )
+    assert edited.status_code == 422
+    assert user_client.get(f"/api/v1/resumes/{master['id']}").json()["current_version"] == 1
+
+
+def test_bullet_rewrite_rejects_unknown_bullets(user_client: TestClient, fake_ai: None) -> None:
+    _, session = _session(user_client)
+    b = session["bullets"][0]
+    for body in (
+        {"experience_id": b["experience_id"], "bullet_index": 99},
+        {"experience_id": "not-a-role", "bullet_index": 0},
+    ):
+        response = user_client.post(_bullet_url(session), json=body)
+        assert response.status_code == 422
+        assert response.json()["code"] == "BULLET_NOT_FOUND"
+
+
+def test_bullet_rewrite_applies_after_a_reorder_of_the_same_role() -> None:
+    master = _master()
+    exp = master.experience[0]
+    first, second = exp.bullets
+    reorder = Proposal(
+        kind="reorder_bullets",
+        target_id=exp.id,
+        title="",
+        original={},
+        proposed={"items": [{"id": None, "text": t} for t in (second, first)]},
+        reason="",
+    )
+    rewrite = Proposal(
+        kind="rewrite_bullet",
+        target_id=exp.id,
+        title="",
+        original={"text": first},
+        proposed={"text": "Moved reporting to PostgreSQL, cutting query latency by 40%."},
+        reason="",
+    )
+    content = master
+    for p in sorted([rewrite, reorder], key=lambda p: apply_order(p.kind)):
+        content = apply(content, p, p.proposed)
+    assert content.experience[0].bullets == [second, rewrite.proposed["text"]]
+    assert master.experience[0].bullets == [first, second]  # the master is untouched

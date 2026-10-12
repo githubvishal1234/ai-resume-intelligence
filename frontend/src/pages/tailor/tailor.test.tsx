@@ -54,6 +54,7 @@ const SESSION_BODY = {
   method_version: "tailor-rules-v1",
   ai: { configured: false, reason: "LLM_PROVIDER is not set." },
   preview: PREVIEW,
+  bullets: [] as { experience_id: string; role: string; index: number; text: string; change_id: string | null }[],
   changes: [
     {
       ...SUMMARY_CHANGE,
@@ -176,6 +177,61 @@ describe("Tailoring review", () => {
     await user.click(await screen.findByRole("button", { name: "Create tailored resume" }));
     expect(await screen.findByRole("heading", { name: "Backend Engineer (Acme)" })).toBeInTheDocument();
     expect(calls.find((c) => c.path.endsWith("/finalize"))?.body).toEqual({ title: "Backend Engineer (Acme)" });
+  });
+});
+
+describe("Bullet rewrites", () => {
+  const BULLET = { experience_id: "e1", role: "Engineer at Acme", index: 0, text: "Built ETL jobs in Python.", change_id: null };
+  const withBullets = { ...SESSION_BODY, bullets: [BULLET] };
+
+  it("is visibly unavailable until AI is set up", async () => {
+    mockApi([me, { path: `/tailoring/${SID}`, body: withBullets }]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: "Reword a bullet with AI" });
+    expect(within(card).getByText("AI rewriting is not set up yet")).toBeInTheDocument();
+    const button = within(card).getByRole("button", { name: /Rewrite with AI/ });
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAccessibleDescription("Built ETL jobs in Python.");
+  });
+
+  it("adds the AI wording as a change to review", async () => {
+    const user = userEvent.setup();
+    const ready = { ...withBullets, ai: { configured: true, reason: null } };
+    const rewritten = {
+      ...ready,
+      bullets: [{ ...BULLET, change_id: "c3" }],
+      changes: [
+        ...ready.changes,
+        {
+          ...SUMMARY_CHANGE,
+          id: "c3",
+          position: 2,
+          kind: "rewrite_bullet",
+          source: "llm",
+          target_id: "e1",
+          title: "Reword a bullet at Acme",
+          reason: "Rewritten by openai (gpt-test). Check every fact before accepting.",
+          original: { text: "Built ETL jobs in Python." },
+          proposed: { text: "Built Python ETL jobs for the reporting team." },
+          requirements: [],
+        },
+      ],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: ready },
+      { method: "POST", path: `/tailoring/${SID}/bullets/rewrite`, body: rewritten },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: "Reword a bullet with AI" });
+    await user.click(within(card).getByRole("button", { name: "Rewrite with AI" }));
+    const change = await screen.findByRole("region", { name: /Reword a bullet at Acme/ });
+    expect(within(change).getByText("Built Python ETL jobs for the reporting team.")).toBeInTheDocument();
+    expect(within(change).getByText("AI rewrite")).toBeInTheDocument();
+    expect(within(card).getByText("Reworded as change 3.")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Rewrite again" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ experience_id: "e1", bullet_index: 0 });
   });
 });
 

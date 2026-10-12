@@ -408,7 +408,13 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
       against a local stand-in for the OpenAI API.
 - [ ] Verify against the real OpenAI API once a key and model are chosen (the model, key
       owner and budget are still open under D-03).
-- [ ] Then, as separate steps: LLM rewrites of individual bullets and factual-check layer 2.
+- [x] LLM rewrites of individual experience bullets (2026-10-12): "Reword a bullet with AI"
+      on the tailoring review page lists the master's bullets. Each rewrite becomes a
+      reviewable, editable `rewrite_bullet` change that goes through the factual check, and
+      asking again regenerates the same change. Rewrites apply after reorders, matched by the
+      bullet's text. Verified with 5 new backend tests, 2 new frontend tests and a browser run
+      against a local stand-in for OpenAI (no overflow at 1440/1024/768/390).
+- [ ] Factual-check layer 2 (LLM-based) is still to do.
 
 ---
 
@@ -424,3 +430,4 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
 - 2026-10-12: Phase 8 completed and verified. Phase 9 started.
 - 2026-10-12: Phase 9 completed and verified. All nine phases are done; the remaining work waits on the open decisions (D-02 to D-11).
 - 2026-10-12: Unicode PDF fonts embedded. D-03 decided (OpenAI) and the OpenAI adapter added.
+- 2026-10-12: AI rewrites of individual bullets added to tailoring.

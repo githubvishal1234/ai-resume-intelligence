@@ -21,9 +21,16 @@ from app.skills.vocabulary import canonical, find_skills
 
 METHOD_VERSION = "tailor-rules-v1"
 ChangeKind = Literal[
-    "reorder_skills", "reorder_bullets", "reorder_projects", "add_skills", "summary"
+    "reorder_skills",
+    "reorder_bullets",
+    "reorder_projects",
+    "add_skills",
+    "summary",
+    "rewrite_bullet",  # created on request by the LLM rewrite, never by these rules
 ]
-EDITABLE_KINDS: frozenset[str] = frozenset({"summary"})
+EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet"})
+# Kinds whose text is new wording, so it goes through the factual check.
+TEXT_KINDS: frozenset[str] = EDITABLE_KINDS
 
 
 class Proposal(BaseModel):
@@ -51,7 +58,7 @@ def _relevance(text: str, weights: dict[str, int], keywords: list[str]) -> int:
     return score + sum(1 for k in keywords if k in lowered)
 
 
-def _reqs_for(job: JobAnalysis, skills: set[str]) -> list[str]:
+def requirements_for(job: JobAnalysis, skills: set[str]) -> list[str]:
     return [r.id for r in job.requirements if skills & set(r.skills)]
 
 
@@ -95,7 +102,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
                     f"The posting asks for {_join(moved[:5])}; "
                     "readers and screeners look at the top first."
                 ),
-                requirement_ids=_reqs_for(job, set(moved)),
+                requirement_ids=requirements_for(job, set(moved)),
             )
         )
 
@@ -125,7 +132,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
                     if skills
                     else "This bullet uses more of the posting's terms."
                 ),
-                requirement_ids=_reqs_for(job, set(skills)),
+                requirement_ids=requirements_for(job, set(skills)),
                 evidence=[
                     EvidenceRef(kind="experience", entity_id=exp.id, label=label, excerpt=top[:160])
                 ],
@@ -157,7 +164,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
                         if skills
                         else f"“{projects[0].name}” matches more of the posting's terms."
                     ),
-                    requirement_ids=_reqs_for(job, set(skills)),
+                    requirement_ids=requirements_for(job, set(skills)),
                 )
             )
 
@@ -177,7 +184,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
                     f"Your experience shows {_join(names)}, "
                     "but your skills list does not name them."
                 ),
-                requirement_ids=_reqs_for(job, set(names)),
+                requirement_ids=requirements_for(job, set(names)),
                 evidence=[e for g in shown for e in g.evidence[:1]],
             )
         )
@@ -204,7 +211,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
                     f"Your roles or projects show {_join(names)}; "
                     "your summary does not mention them yet."
                 ),
-                requirement_ids=_reqs_for(job, set(names)),
+                requirement_ids=requirements_for(job, set(names)),
                 evidence=[e for g in strong for e in g.evidence[:1]],
             )
         )
@@ -244,4 +251,16 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
                 doc.skills.append(Skill(id=item.get("id") or new_id(), name=name, category=""))
     elif change.kind == "summary":
         doc.summary = str(value["text"]).strip()
+    elif change.kind == "rewrite_bullet":
+        # Matched by text, so it still applies after the role's bullets were reordered.
+        exp = next((e for e in doc.experience if e.id == change.target_id), None)
+        old = str(change.original["text"])
+        if exp is None or old not in exp.bullets:
+            raise ChangeNotApplicable()
+        exp.bullets[exp.bullets.index(old)] = str(value["text"]).strip()
     return doc
+
+
+def apply_order(kind: str) -> int:
+    """Rewrites go last so reorders see the master's own bullet text."""
+    return 1 if kind == "rewrite_bullet" else 0
