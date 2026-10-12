@@ -1,0 +1,319 @@
+from __future__ import annotations
+
+from collections.abc import Iterator
+from datetime import date
+from typing import Any
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from pydantic import BaseModel
+
+from app.ai.provider import LLMCapabilities, LLMMessage, LLMProvider, LLMUsage, StructuredResult
+from app.ai.registry import register_provider, unregister_provider
+from app.core.config import Settings, get_settings
+from app.jobs.analyzer import analyze_job
+from app.matching.matcher import match
+from app.resumes.content import ResumeContent, Skill
+from app.resumes.parser import parse_resume
+from app.tailoring.factcheck import check_text
+from app.tailoring.proposer import ChangeNotApplicable, apply, propose
+from tests.conftest import login_as
+from tests.fixtures import SAMPLE_TEXT
+from tests.test_jobs import JD
+from tests.test_resumes import import_and_confirm
+
+API = "/api/v1/tailoring"
+
+
+def _master() -> ResumeContent:
+    return parse_resume(SAMPLE_TEXT).content
+
+
+def _proposals(master: ResumeContent | None = None) -> dict[str, Any]:
+    master = master or _master()
+    job = analyze_job(JD)
+    return {p.kind: p for p in propose(master, job, match(master, job, date(2026, 10, 12)))}
+
+
+# ---- factual check ---------------------------------------------------------------------
+def test_factual_check_accepts_facts_from_the_master() -> None:
+    master = _master()
+    assert check_text("Cut query latency by 40% on 2M requests/day with Python.", master) == []
+    assert check_text("Engineer at Acme Analytics working with Kubernetes.", master) == []
+
+
+def test_factual_check_flags_invented_facts() -> None:
+    flags = {
+        (f.kind, f.value)
+        for f in check_text("Cut costs by 55% at Google with Rust since 2012.", _master())
+    }
+    assert ("number", "55%") in flags
+    assert ("date", "2012") in flags
+    assert ("technology", "Rust") in flags
+    assert ("name", "Google") in flags
+
+
+# ---- proposals -------------------------------------------------------------------------
+def test_proposals_only_reuse_master_content() -> None:
+    proposals = _proposals()
+    assert set(proposals) >= {"reorder_skills", "add_skills", "summary"}
+    reorder = proposals["reorder_skills"]
+    assert sorted(i["id"] for i in reorder.proposed["items"]) == sorted(
+        i["id"] for i in reorder.original["items"]
+    )
+    assert reorder.proposed["items"][0]["text"] == "Python"
+    assert reorder.requirement_ids  # tied to the requirements it serves
+    # Skills shown in experience but not listed are surfaced, with evidence.
+    added = [i["text"] for i in proposals["add_skills"].proposed["items"]]
+    assert added == ["FastAPI", "PostgreSQL"]
+    assert all(e.kind == "experience" for e in proposals["add_skills"].evidence)
+    summary = proposals["summary"].proposed["text"]
+    assert summary.startswith(_master().summary)
+    assert check_text(summary, _master()) == []
+
+
+def test_reorder_keeps_skill_groups_together() -> None:
+    master = ResumeContent(
+        skills=[
+            Skill(name="Git", category="Tools"),
+            Skill(name="Go", category="Languages"),
+            Skill(name="Python", category="Languages"),
+        ]
+    )
+    job = analyze_job("Requirements\n- Strong experience with Python.")
+    proposal = next(
+        p for p in propose(master, job, match(master, job)) if p.kind == "reorder_skills"
+    )
+    assert [i["text"] for i in proposal.proposed["items"]] == ["Python", "Go", "Git"]
+
+
+def test_apply_rejects_changes_that_do_not_fit() -> None:
+    master = _master()
+    reorder = _proposals(master)["reorder_skills"]
+    applied = apply(master, reorder, reorder.proposed)
+    assert [s.name for s in applied.skills][0] == "Python"
+    assert [s.name for s in master.skills] == [s.name for s in _master().skills]  # not mutated
+    broken = {"items": reorder.proposed["items"][:-1]}
+    with pytest.raises(ChangeNotApplicable):
+        apply(master, reorder, broken)
+
+
+# ---- API -------------------------------------------------------------------------------
+def _job(client: TestClient) -> dict[str, Any]:
+    response = client.post("/api/v1/jobs", json={"text": JD, "company": "Acme Analytics"})
+    assert response.status_code == 201
+    body: dict[str, Any] = response.json()
+    return body
+
+
+def _session(client: TestClient) -> tuple[dict[str, Any], dict[str, Any]]:
+    master = import_and_confirm(client)
+    job = _job(client)
+    response = client.post(API, json={"job_id": job["id"]})
+    assert response.status_code == 201, response.text
+    body: dict[str, Any] = response.json()
+    return master, body
+
+
+def _change(session: dict[str, Any], kind: str) -> dict[str, Any]:
+    found: dict[str, Any] = next(c for c in session["changes"] if c["kind"] == kind)
+    return found
+
+
+def _decide(client: TestClient, session: dict[str, Any], change: dict[str, Any], **body: Any):  # type: ignore[no-untyped-def]
+    return client.post(f"{API}/{session['id']}/changes/{change['id']}/decision", json=body)
+
+
+def test_tailoring_requires_a_master(user_client: TestClient) -> None:
+    job = _job(user_client)
+    response = user_client.post(API, json={"job_id": job["id"]})
+    assert response.status_code == 422
+    assert response.json()["code"] == "MASTER_RESUME_REQUIRED"
+
+
+def test_session_lists_changes_with_reasons_requirements_and_ai_status(
+    user_client: TestClient,
+) -> None:
+    _, session = _session(user_client)
+    assert session["status"] == "draft"
+    assert session["base_version"] == 1
+    assert session["ai"]["configured"] is False
+    for change in session["changes"]:
+        assert change["decision"] == "pending"
+        assert change["reason"] and change["title"]
+        assert change["source"] == "rules"
+    summary = _change(session, "summary")
+    assert summary["editable"] is True
+    assert summary["requirements"] and summary["requirements"][0]["text"]
+    # Nothing accepted yet: the preview is the master as it is.
+    master = user_client.get(f"/api/v1/resumes/{session['master_resume_id']}").json()
+    assert session["preview"] == master["content"]
+
+
+def test_accept_edit_and_factual_check(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    summary = _change(session, "summary")
+    invented = _decide(
+        user_client,
+        session,
+        summary,
+        decision="accepted",
+        edited_text="Backend engineer who grew revenue 300% at Google.",
+    )
+    assert invented.status_code == 422
+    body = invented.json()
+    assert body["code"] == "FACTUAL_CHECK_FAILED"
+    assert any("Google" in d["message"] for d in body["details"])
+    stored = _change(user_client.get(f"{API}/{session['id']}").json(), "summary")
+    assert stored["decision"] == "pending"
+    assert {f["value"] for f in stored["flags"]} >= {"300%", "Google"}
+
+    fixed = _decide(
+        user_client,
+        session,
+        summary,
+        decision="accepted",
+        edited_text="Backend engineer building Python services with FastAPI and PostgreSQL.",
+    )
+    assert fixed.status_code == 200, fixed.text
+    updated = fixed.json()
+    change = _change(updated, "summary")
+    assert change["decision"] == "accepted" and change["flags"] == []
+    assert updated["preview"]["summary"].startswith("Backend engineer building Python")
+
+
+def test_only_the_summary_is_editable(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    reorder = _change(session, "reorder_skills")
+    response = _decide(user_client, session, reorder, decision="accepted", edited_text="x")
+    assert response.status_code == 422
+    assert response.json()["code"] == "CHANGE_NOT_EDITABLE"
+
+
+def test_ai_rewrite_needs_a_configured_provider(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    summary = _change(session, "summary")
+    response = user_client.post(f"{API}/{session['id']}/changes/{summary['id']}/rewrite")
+    assert response.status_code == 503
+    assert response.json()["code"] == "AI_PROVIDER_NOT_CONFIGURED"
+
+
+class _Rewrite(BaseModel):
+    text: str
+
+
+class _FakeProvider(LLMProvider):
+    name = "fake"
+    seen: list[LLMMessage] = []
+
+    @property
+    def model(self) -> str:
+        return "fake-1"
+
+    @property
+    def capabilities(self) -> LLMCapabilities:
+        return LLMCapabilities(structured_output=True)
+
+    def generate_structured(self, schema, messages, *, max_output_tokens=None):  # type: ignore[no-untyped-def]
+        _FakeProvider.seen = messages
+        parsed = schema(text="Python backend engineer who scaled APIs 10x at Google.")
+        return StructuredResult(
+            parsed=parsed, usage=LLMUsage(), provider="fake", model="fake-1", latency_ms=1.0
+        )
+
+
+@pytest.fixture
+def fake_ai(app: FastAPI, settings: Settings) -> Iterator[None]:
+    register_provider("fake", lambda s: _FakeProvider())
+    app.dependency_overrides[get_settings] = lambda: settings.model_copy(
+        update={"llm_provider": "fake", "llm_model": "fake-1"}
+    )
+    yield
+    unregister_provider("fake")
+
+
+def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: None) -> None:
+    _, session = _session(user_client)
+    assert session["ai"]["configured"] is True
+    summary = _change(session, "summary")
+    response = user_client.post(f"{API}/{session['id']}/changes/{summary['id']}/rewrite")
+    assert response.status_code == 200, response.text
+    change = _change(response.json(), "summary")
+    assert change["source"] == "llm"
+    assert "fake" in change["reason"]
+    assert {f["value"] for f in change["flags"]} >= {"10x", "Google"}
+    # Resume text is passed as data in user messages, never in the system prompt.
+    system = [m for m in _FakeProvider.seen if m.role == "system"]
+    assert len(system) == 1 and "Priya" not in system[0].content
+    blocked = _decide(user_client, session, change, decision="accepted")
+    assert blocked.status_code == 422
+
+
+def test_finalize_creates_tailored_resume_and_master_is_unchanged(user_client: TestClient) -> None:
+    master, session = _session(user_client)
+    before = user_client.get(f"/api/v1/resumes/{master['id']}").json()
+    versions_before = user_client.get(f"/api/v1/resumes/{master['id']}/versions").json()
+
+    nothing = user_client.post(f"{API}/{session['id']}/finalize", json={})
+    assert nothing.status_code == 422 and nothing.json()["code"] == "NOTHING_ACCEPTED"
+
+    for kind in ("reorder_skills", "add_skills", "summary"):
+        assert (
+            _decide(user_client, session, _change(session, kind), decision="accepted").status_code
+            == 200
+        )
+    done = user_client.post(f"{API}/{session['id']}/finalize", json={"title": "Acme backend"})
+    assert done.status_code == 200, done.text
+    final = done.json()
+    assert final["status"] == "finalized"
+
+    tailored = user_client.get(f"/api/v1/resumes/{final['result_resume_id']}").json()
+    assert tailored["kind"] == "tailored"
+    assert tailored["master_resume_id"] == master["id"]
+    assert tailored["title"] == "Acme backend"
+    assert tailored["content"]["skills"][0]["name"] == "Python"
+    assert {"FastAPI", "PostgreSQL"} <= {s["name"] for s in tailored["content"]["skills"]}
+    assert tailored["content"] == final["preview"]
+    tailored_versions = user_client.get(f"/api/v1/resumes/{tailored['id']}/versions").json()
+    assert [v["source"] for v in tailored_versions] == ["tailoring"]
+
+    # The invariant: the master resume is exactly as it was.
+    assert user_client.get(f"/api/v1/resumes/{master['id']}").json() == before
+    assert user_client.get(f"/api/v1/resumes/{master['id']}/versions").json() == versions_before
+
+    again = user_client.post(f"{API}/{session['id']}/finalize", json={})
+    assert again.status_code == 409 and again.json()["code"] == "TAILORING_NOT_DRAFT"
+    listed = user_client.get(API).json()
+    assert listed[0]["status"] == "finalized" and listed[0]["accepted"] == 3
+
+
+def test_rejected_changes_are_not_applied(user_client: TestClient) -> None:
+    master, session = _session(user_client)
+    _decide(user_client, session, _change(session, "summary"), decision="accepted")
+    response = _decide(user_client, session, _change(session, "summary"), decision="rejected")
+    assert response.json()["preview"]["summary"] == master["content"]["summary"]
+
+
+def test_discard(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    assert user_client.post(f"{API}/{session['id']}/discard").status_code == 204
+    assert user_client.get(API).json() == []
+    assert user_client.post(f"{API}/{session['id']}/discard").status_code == 409
+
+
+def test_other_users_cannot_touch_a_session(app: FastAPI, user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    change = session["changes"][0]
+    other = login_as(app, "mallory@example.com")
+    base = f"{API}/{session['id']}"
+    attempts = [
+        other.get(base),
+        other.post(f"{base}/changes/{change['id']}/decision", json={"decision": "accepted"}),
+        other.post(f"{base}/changes/{change['id']}/rewrite"),
+        other.post(f"{base}/finalize", json={}),
+        other.post(f"{base}/discard"),
+        other.post(API, json={"job_id": session["job_id"]}),
+    ]
+    assert [r.status_code for r in attempts] == [404] * len(attempts)
+    assert other.get(API).json() == []

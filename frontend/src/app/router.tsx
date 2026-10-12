@@ -7,6 +7,8 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { JobDetailPage } from "@/pages/jobs/JobDetailPage";
 import { JobNewPage } from "@/pages/jobs/JobNewPage";
 import { JobsPage } from "@/pages/jobs/JobsPage";
+import { TailorIndexPage } from "@/pages/tailor/TailorIndexPage";
+import { TailorReviewPage } from "@/pages/tailor/TailorReviewPage";
 import { GapIndexPage, GapPage, MatchIndexPage, MatchPage } from "@/pages/match/MatchPages";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -56,6 +58,8 @@ export const routes: RouteObject[] = [
           { path: "/jobs/:jobId/gaps", element: <GapPage /> },
           { path: "/match", element: <MatchIndexPage /> },
           { path: "/skill-gaps", element: <GapIndexPage /> },
+          { path: "/tailor", element: <TailorIndexPage /> },
+          { path: "/tailor/:sessionId", element: <TailorReviewPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

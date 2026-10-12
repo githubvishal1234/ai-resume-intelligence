@@ -20,8 +20,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 2 | Master Resume | ✅ |
 | 3 | Job Intelligence | ✅ |
 | 4 | Matching & Skill Gaps | ✅ |
-| 5 | Tailoring | 🚧 |
-| 6 | Resume Output (ATS + PDF) | ⏳ |
+| 5 | Tailoring | ✅ |
+| 6 | Resume Output (ATS + PDF) | 🚧 |
 | 7 | Applications | ⏳ |
 | 8 | Interview Prep | ⏳ |
 | 9 | Hardening | ⏳ |
@@ -198,15 +198,46 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 5: Tailoring
 
-- Tailoring sessions with proposed changes. Each change records the original text, the
-  proposal, the reason, the requirement it serves and the evidence behind it.
-- Deterministic tailoring operations that need no LLM: reorder skills and bullets by
-  relevance, and surface keywords that already exist in the master.
-- LLM rewrites run only when a provider is configured (D-03).
-- Factual-consistency layer 1 (deterministic): unsupported numbers, technologies, employers
-  and dates are flagged.
-- An Accept / Reject / Edit review flow. Finalizing creates a tailored resume, and an
-  invariant test proves the master is unchanged.
+**Delivered**
+- [x] Tailoring sessions for one job, computed from the master's current version. Each
+      proposed change records the original, the proposal, the reason, the requirements it
+      serves and the evidence behind it.
+- [x] Deterministic operations (`tailor-rules-v1`), no LLM needed:
+  - put the job's skills first (skill groups stay together),
+  - lead each role with its most relevant bullet, and show the most relevant project first,
+  - add skills the experience already shows but the skills list leaves out,
+  - add one summary sentence naming job skills the roles or projects already show.
+- [x] LLM rewrite of the summary runs only when a provider is configured (D-03). Otherwise the
+      API returns `AI_PROVIDER_NOT_CONFIGURED` and the button is disabled with the reason.
+      Resume and job text go to the model as data in user messages, never in the system
+      prompt, and the output goes through the same factual check (tested with a fake provider).
+- [x] Factual-consistency layer 1: numbers, years, technologies and capitalized names that the
+      master does not contain are flagged. A flagged change cannot be accepted; the user's
+      edit and its flags are kept so it can be fixed in place.
+- [x] Review flow: accept, reject, or edit (summary) each change, with a live preview of the
+      result. Finalizing creates a separate tailored resume (version 1, source "tailoring")
+      and needs at least one accepted change. An invariant test proves the master resume and
+      its versions are unchanged.
+- [x] Pages: Tailor Resume (start a session, list sessions) and the review page. My Resumes
+      lists tailored resumes. Tailor is enabled in the navigation and on the dashboard.
+
+**Not done here, by decision**
+- LLM rewrites of individual bullets wait on D-03; the same rewrite path can serve them.
+- Layer 2 of the factual check (semantic, LLM-based) waits on D-03.
+
+**Verified 2026-10-12**
+- 134 backend tests pass (15 new: factual check accepts master facts and flags invented
+  ones, proposals only reuse master content, skill groups stay together, apply refuses
+  changes that don't fit, review and edit, factual refusal keeps the flags, only the summary
+  is editable, AI not configured, fake-provider rewrite is fact-checked and keeps resume text
+  out of the system prompt, finalize + master unchanged, rejected changes not applied,
+  discard, IDOR on all session endpoints). ruff, format and mypy are clean.
+- 52 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: upload master → analyze job → Tailor → 2 proposals → accept "add skills" →
+  edit the summary to "grew revenue 300% at Google" (refused, both facts flagged) → fix it in
+  place → accepted → create tailored resume (has the new summary) → master page identical to
+  before. No overflow at 1440, 1024, 768 or 390.
+- Fixed during verification: a factual refusal showed two messages for the same problem.
 
 ## Phase 6: Resume Output
 
@@ -239,3 +270,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 2 completed and verified. Phase 3 started.
 - 2026-10-12: Phase 3 completed and verified. Phase 4 started.
 - 2026-10-12: Phase 4 completed and verified. Phase 5 started.
+- 2026-10-12: Phase 5 completed and verified. Phase 6 started.

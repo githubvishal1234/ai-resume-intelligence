@@ -64,8 +64,8 @@ describe("NavList", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/");
-    const tailor = screen.getByText("Tailor Resume").closest("[role=link]");
-    expect(tailor).toHaveAttribute("aria-disabled", "true");
-    expect(tailor).not.toHaveAttribute("href");
+    const applications = screen.getByText("Applications").closest("[role=link]");
+    expect(applications).toHaveAttribute("aria-disabled", "true");
+    expect(applications).not.toHaveAttribute("href");
   });
 });

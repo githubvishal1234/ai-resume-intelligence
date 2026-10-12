@@ -478,6 +478,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_api_v1_tailoring_get"];
+        put?: never;
+        /** Create Session */
+        post: operations["create_session_api_v1_tailoring_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_tailoring__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/changes/{change_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decide */
+        post: operations["decide_api_v1_tailoring__session_id__changes__change_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/changes/{change_id}/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rewrite */
+        post: operations["rewrite_api_v1_tailoring__session_id__changes__change_id__rewrite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize */
+        post: operations["finalize_api_v1_tailoring__session_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard */
+        post: operations["discard_api_v1_tailoring__session_id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -490,6 +593,13 @@ export interface components {
             provider: string | null;
             /** Model */
             model: string | null;
+            /** Reason */
+            reason: string | null;
+        };
+        /** AiStatusOut */
+        AiStatusOut: {
+            /** Configured */
+            configured: boolean;
             /** Reason */
             reason: string | null;
         };
@@ -561,6 +671,54 @@ export interface components {
              * @default
              */
             date: string;
+        };
+        /** ChangeOut */
+        ChangeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Position */
+            position: number;
+            /** Kind */
+            kind: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "rules" | "llm";
+            /** Target Id */
+            target_id: string | null;
+            /** Title */
+            title: string;
+            /** Reason */
+            reason: string;
+            /** Original */
+            original: {
+                [key: string]: unknown;
+            };
+            /** Proposed */
+            proposed: {
+                [key: string]: unknown;
+            };
+            /** Edited */
+            edited: {
+                [key: string]: unknown;
+            } | null;
+            /** Editable */
+            editable: boolean;
+            /** Requirements */
+            requirements: components["schemas"]["RequirementRef"][];
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceRef"][];
+            /** Flags */
+            flags: components["schemas"]["FactFlag"][];
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "accepted" | "rejected";
         };
         /** CheckOut */
         CheckOut: {
@@ -637,6 +795,24 @@ export interface components {
              */
             title: string;
             content?: components["schemas"]["ResumeContent"];
+        };
+        /** CreateTailoringIn */
+        CreateTailoringIn: {
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "pending" | "accepted" | "rejected";
+            /** Edited Text */
+            edited_text?: string | null;
         };
         /** Education */
         Education: {
@@ -725,6 +901,23 @@ export interface components {
             current: boolean;
             /** Bullets */
             bullets?: string[];
+        };
+        /** FactFlag */
+        FactFlag: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "number" | "date" | "technology" | "name";
+            /** Value */
+            value: string;
+            /** Message */
+            message: string;
+        };
+        /** FinalizeIn */
+        FinalizeIn: {
+            /** Title */
+            title?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1130,6 +1323,15 @@ export interface components {
             /** Evidence */
             evidence?: components["schemas"]["EvidenceRef"][];
         };
+        /** RequirementRef */
+        RequirementRef: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Tier */
+            tier: string;
+        };
         /** RestoreIn */
         RestoreIn: {
             /** Base Version */
@@ -1304,6 +1506,94 @@ export interface components {
             weight: number;
             /** Explanation */
             explanation: string;
+        };
+        /** TailoringSessionOut */
+        TailoringSessionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Job Title */
+            job_title: string;
+            /** Job Company */
+            job_company: string | null;
+            /**
+             * Master Resume Id
+             * Format: uuid
+             */
+            master_resume_id: string;
+            /** Base Version */
+            base_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "finalized" | "discarded";
+            /** Result Resume Id */
+            result_resume_id: string | null;
+            /** Accepted */
+            accepted: number;
+            /** Total */
+            total: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Method Version */
+            method_version: string;
+            /** Master Current Version */
+            master_current_version: number;
+            /** Changes */
+            changes: components["schemas"]["ChangeOut"][];
+            preview: components["schemas"]["ResumeContent"];
+            ai: components["schemas"]["AiStatusOut"];
+        };
+        /** TailoringSessionSummaryOut */
+        TailoringSessionSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Job Title */
+            job_title: string;
+            /** Job Company */
+            job_company: string | null;
+            /**
+             * Master Resume Id
+             * Format: uuid
+             */
+            master_resume_id: string;
+            /** Base Version */
+            base_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "finalized" | "discarded";
+            /** Result Resume Id */
+            result_resume_id: string | null;
+            /** Accepted */
+            accepted: number;
+            /** Total */
+            total: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** UpdateContentIn */
         UpdateContentIn: {
@@ -2349,6 +2639,222 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MatchOut"] | null;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_tailoring_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionSummaryOut"][];
+                };
+            };
+        };
+    };
+    create_session_api_v1_tailoring_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTailoringIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_tailoring__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_tailoring__session_id__changes__change_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rewrite_api_v1_tailoring__session_id__changes__change_id__rewrite_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                change_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finalize_api_v1_tailoring__session_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_api_v1_tailoring__session_id__discard_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

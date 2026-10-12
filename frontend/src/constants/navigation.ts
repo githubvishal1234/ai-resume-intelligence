@@ -51,7 +51,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "automation",
     label: "AI Automation",
     items: [
-      { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, phase: 5, phaseNote: "AI Tailoring" },
+      { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
       { id: "builder", label: "Resume Builder", icon: PenLine, phase: 6, phaseNote: "Resume Output" },
       { id: "interview", label: "Interview Prep", icon: MessagesSquare, phase: 8, phaseNote: "Interview" },
     ],

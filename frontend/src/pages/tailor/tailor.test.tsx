@@ -1,0 +1,199 @@
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import { mockApi, renderApp, SESSION } from "@/test/utils";
+
+const SID = "55555555-5555-4555-8555-555555555555";
+const JOB_ID = "33333333-3333-4333-8333-333333333333";
+const RESUME_ID = "11111111-1111-4111-8111-111111111111";
+const TAILORED_ID = "66666666-6666-4666-8666-666666666666";
+const me = { path: "/auth/me", body: SESSION };
+
+const PREVIEW = {
+  contact: { full_name: "Priya Raman", email: "", phone: "", location: "", links: [] },
+  summary: "Backend engineer.",
+  experience: [],
+  education: [],
+  skills: [{ id: "s1", name: "Python", category: "" }],
+  projects: [],
+  certifications: [],
+  other: [],
+};
+
+const SUMMARY_CHANGE = {
+  id: "c2",
+  position: 1,
+  kind: "summary",
+  source: "rules",
+  target_id: null,
+  title: "Name the job's key skills in your summary",
+  reason: "Your roles show FastAPI.",
+  original: { text: "Backend engineer." },
+  proposed: { text: "Backend engineer. Hands-on experience with FastAPI." },
+  edited: null,
+  editable: true,
+  requirements: [{ id: "r1", text: "Strong experience with FastAPI.", tier: "required" }],
+  evidence: [],
+  flags: [],
+  decision: "pending",
+};
+
+const SESSION_BODY = {
+  id: SID,
+  job_id: JOB_ID,
+  job_title: "Backend Engineer",
+  job_company: "Acme",
+  master_resume_id: RESUME_ID,
+  base_version: 1,
+  master_current_version: 1,
+  status: "draft",
+  result_resume_id: null,
+  accepted: 0,
+  total: 2,
+  created_at: "2026-10-12T06:00:00Z",
+  method_version: "tailor-rules-v1",
+  ai: { configured: false, reason: "LLM_PROVIDER is not set." },
+  preview: PREVIEW,
+  changes: [
+    {
+      ...SUMMARY_CHANGE,
+      id: "c1",
+      position: 0,
+      kind: "reorder_skills",
+      title: "Put the job's skills first in your skills list",
+      reason: "The posting asks for Python.",
+      original: { items: [{ id: "s2", text: "Go" }, { id: "s1", text: "Python" }] },
+      proposed: { items: [{ id: "s1", text: "Python" }, { id: "s2", text: "Go" }] },
+      editable: false,
+    },
+    SUMMARY_CHANGE,
+  ],
+};
+
+const flagged = {
+  status: 422,
+  body: {
+    code: "FACTUAL_CHECK_FAILED",
+    message: "This change mentions facts your master resume does not contain. Edit it to remove them, or reject it.",
+    request_id: "r",
+    details: [{ field: "edited_text", message: "“Google” does not appear in your master resume." }],
+  },
+};
+
+describe("Tailoring review", () => {
+  it("shows each change with its reason, requirement and before/after", async () => {
+    mockApi([me, { path: `/tailoring/${SID}`, body: SESSION_BODY }]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: /Put the job's skills first/ });
+    expect(within(card).getByText("The posting asks for Python.")).toBeInTheDocument();
+    expect(within(card).getByText("Proposed order")).toBeInTheDocument();
+    const summary = screen.getByRole("region", { name: /Name the job's key skills/ });
+    expect(within(summary).getByText("Strong experience with FastAPI.")).toBeInTheDocument();
+    // AI rewriting is visibly unavailable, with the reason.
+    expect(within(summary).getByRole("button", { name: /Rewrite with AI/ })).toHaveAttribute("aria-disabled", "true");
+    // Nothing accepted: finishing is blocked with an explanation.
+    expect(screen.getByRole("button", { name: /Create tailored resume/ })).toHaveAccessibleName(/Accept at least one change first/);
+  });
+
+  it("accepts a change", async () => {
+    const user = userEvent.setup();
+    const accepted = {
+      ...SESSION_BODY,
+      accepted: 1,
+      changes: [{ ...SESSION_BODY.changes[0], decision: "accepted" }, SUMMARY_CHANGE],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+      { method: "POST", path: `/tailoring/${SID}/changes/c1/decision`, body: accepted },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: /Put the job's skills first/ });
+    await user.click(within(card).getByRole("button", { name: "Accept" }));
+    expect(await within(card).findByText("Accepted")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ decision: "accepted" });
+  });
+
+  it("shows the factual check when an edit adds facts", async () => {
+    const user = userEvent.setup();
+    const withFlags = {
+      ...SESSION_BODY,
+      changes: [
+        SESSION_BODY.changes[0],
+        {
+          ...SUMMARY_CHANGE,
+          edited: { text: "Engineer at Google." },
+          flags: [{ kind: "name", value: "Google", message: "“Google” does not appear in your master resume." }],
+        },
+      ],
+    };
+    const { calls, fetchMock } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+      { method: "POST", path: `/tailoring/${SID}/changes/c2/decision`, ...flagged },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const summary = await screen.findByRole("region", { name: /Name the job's key skills/ });
+    await user.click(within(summary).getByRole("button", { name: "Edit" }));
+    const box = within(summary).getByLabelText("Your wording");
+    await user.clear(box);
+    await user.type(box, "Engineer at Google.");
+    // After the refusal the page reloads the session, which now carries the flags.
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      calls.push({ method, path: url.replace(/^\/api\/v1/, ""), headers: {}, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (method === "POST") return new Response(JSON.stringify(flagged.body), { status: 422, headers: { "content-type": "application/json" } });
+      if (url.endsWith(`/tailoring/${SID}`)) return new Response(JSON.stringify(withFlags), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify(SESSION), { headers: { "content-type": "application/json" } });
+    });
+    await user.click(within(summary).getByRole("button", { name: /Save and accept/ }));
+    await waitFor(() => expect(within(summary).getByText("Not in your master resume")).toBeInTheDocument());
+    expect(within(summary).getByText("“Google” does not appear in your master resume.")).toBeInTheDocument();
+    expect(within(summary).queryByText("That didn't work")).not.toBeInTheDocument();
+    // The edit box stays open so the text can be fixed in place.
+    expect(within(summary).getByLabelText("Your wording")).toHaveValue("Engineer at Google.");
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ decision: "accepted", edited_text: "Engineer at Google." });
+  });
+
+  it("creates the tailored resume and opens it", async () => {
+    const user = userEvent.setup();
+    const ready = { ...SESSION_BODY, accepted: 1, changes: [{ ...SESSION_BODY.changes[0], decision: "accepted" }, SUMMARY_CHANGE] };
+    const done = { ...ready, status: "finalized", result_resume_id: TAILORED_ID };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: ready },
+      { method: "POST", path: `/tailoring/${SID}/finalize`, body: done },
+      { path: "/tailoring", body: [] },
+      { path: "/resumes", body: [] },
+      {
+        path: `/resumes/${TAILORED_ID}`,
+        body: { id: TAILORED_ID, kind: "tailored", status: "active", title: "Backend Engineer (Acme)", current_version: 1, master_resume_id: RESUME_ID, created_at: "2026-10-12T06:00:00Z", updated_at: "2026-10-12T06:00:00Z", content: PREVIEW },
+      },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    await user.click(await screen.findByRole("button", { name: "Create tailored resume" }));
+    expect(await screen.findByRole("heading", { name: "Backend Engineer (Acme)" })).toBeInTheDocument();
+    expect(calls.find((c) => c.path.endsWith("/finalize"))?.body).toEqual({ title: "Backend Engineer (Acme)" });
+  });
+});
+
+describe("Tailor index", () => {
+  it("starts a session for the chosen job", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/tailoring", body: [] },
+      { path: "/jobs", body: [{ id: JOB_ID, source: "paste", title: "Backend Engineer", company: "Acme", location: null, created_at: "2026-10-12T05:00:00Z", updated_at: "2026-10-12T05:00:00Z", required_count: 1, skill_count: 1 }] },
+      { path: "/resumes", body: [{ id: RESUME_ID, kind: "master", status: "active", title: "Master resume", current_version: 1, master_resume_id: null, created_at: "2026-10-12T05:00:00Z", updated_at: "2026-10-12T05:00:00Z" }] },
+      { method: "POST", path: "/tailoring", status: 201, body: SESSION_BODY },
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+    ]);
+    renderApp("/tailor");
+    expect(await screen.findByLabelText("Job")).toHaveValue(JOB_ID);
+    await user.click(screen.getByRole("button", { name: /Propose changes/ }));
+    expect(await screen.findByRole("heading", { name: "Tailor for Backend Engineer" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ job_id: JOB_ID });
+  });
+});

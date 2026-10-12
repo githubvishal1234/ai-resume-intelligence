@@ -10,7 +10,7 @@ const NEXT_STEPS: { icon: typeof FileText; title: string; body: string; phase: n
   { icon: FileText, title: "Upload your master resume", body: "Your verified source of truth for every tailored version.", phase: 2, to: "/resumes/upload" },
   { icon: ScanSearch, title: "Analyze a job description", body: "Paste or upload a posting to extract its requirements.", phase: 3, to: "/jobs/new" },
   { icon: GitCompareArrows, title: "Match your resume to a job", body: "See which requirements your resume shows evidence for, and where the gaps are.", phase: 4, to: "/match" },
-  { icon: Sparkles, title: "Tailor with evidence", body: "Every proposed change is checked against your master resume.", phase: 5 },
+  { icon: Sparkles, title: "Tailor with evidence", body: "Every proposed change is checked against your master resume.", phase: 5, to: "/tailor" },
 ];
 
 export function DashboardPage() {

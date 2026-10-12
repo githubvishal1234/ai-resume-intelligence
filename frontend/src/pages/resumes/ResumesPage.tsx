@@ -1,4 +1,5 @@
 import { FilePlus2, FileText, UploadCloud } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
@@ -68,13 +69,22 @@ export function ResumesPage() {
       <section className="mt-8" aria-labelledby="tailored-title">
         <h2 id="tailored-title" className="mb-3 font-display text-headline-sm text-on-surface">Tailored versions</h2>
         {tailored.length === 0 ? (
-          <p className="text-body-md text-on-surface-variant">Tailored resumes will appear here once tailoring is available (Phase 5).</p>
+          <p className="text-body-md text-on-surface-variant">
+            None yet. <Link to="/tailor" className="font-medium text-primary hover:underline">Tailor your master resume</Link> for a job to create one.
+          </p>
         ) : (
           <ul className="space-y-2">
             {tailored.map((t) => (
               <li key={t.id}>
-                <Card>
-                  <p className="text-label-md">{t.title}</p>
+                <Card className="relative hover:border-primary">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Link to={`/resumes/${t.id}`} className="text-label-md text-on-surface after:absolute after:inset-0 hover:text-primary">
+                      {t.title}
+                    </Link>
+                    <span className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+                      <Pill tone="info">Tailored</Pill> updated {formatDate(t.updated_at)}
+                    </span>
+                  </div>
                 </Card>
               </li>
             ))}
