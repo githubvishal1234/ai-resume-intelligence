@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 const ROW =
   "flex items-center gap-3 rounded-control px-3 py-2 text-body-md transition-colors";
 
-function Row({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
+export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
   if (item.to) {
     return (
@@ -56,7 +56,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
           <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.id}>
-                <Row item={item} onNavigate={onNavigate} />
+                <NavRow item={item} onNavigate={onNavigate} />
               </li>
             ))}
           </ul>

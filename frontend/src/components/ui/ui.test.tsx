@@ -1,9 +1,10 @@
+import { Settings } from "lucide-react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { NavList } from "@/components/layout/NavList";
+import { NavList, NavRow } from "@/components/layout/NavList";
 import { Button } from "./Button";
 import { ScoreBar, ScoreRing } from "./Score";
 import { Tabs } from "./Tabs";
@@ -57,15 +58,25 @@ describe("Tabs", () => {
 });
 
 describe("NavList", () => {
-  it("renders unbuilt destinations as disabled, not as links", () => {
+  it("links every destination once all phases are built", () => {
     render(
       <MemoryRouter>
         <NavList />
       </MemoryRouter>,
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/");
-    const interview = screen.getByText("Interview Prep").closest("[role=link]");
-    expect(interview).toHaveAttribute("aria-disabled", "true");
-    expect(interview).not.toHaveAttribute("href");
+    expect(screen.getByRole("link", { name: /Interview Prep/ })).toHaveAttribute("href", "/interview");
+    expect(document.querySelector("[aria-disabled=true]")).toBeNull();
+  });
+
+  it("renders an unbuilt destination as disabled, not as a link", () => {
+    render(
+      <MemoryRouter>
+        <NavRow item={{ id: "later", label: "Later feature", icon: Settings, phase: 10, phaseNote: "Later" }} />
+      </MemoryRouter>,
+    );
+    const row = screen.getByText("Later feature").closest("[role=link]");
+    expect(row).toHaveAttribute("aria-disabled", "true");
+    expect(row).not.toHaveAttribute("href");
   });
 });

@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { BuilderPage } from "@/pages/builder/BuilderPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { InterviewIndexPage, PracticePage, PrepPage } from "@/pages/interview/InterviewPages";
 import { JobDetailPage } from "@/pages/jobs/JobDetailPage";
 import { JobNewPage } from "@/pages/jobs/JobNewPage";
 import { JobsPage } from "@/pages/jobs/JobsPage";
@@ -68,6 +69,9 @@ export const routes: RouteObject[] = [
           { path: "/applications/new", element: <ApplicationNewPage /> },
           { path: "/applications/:applicationId", element: <ApplicationDetailPage /> },
           { path: "/notifications", element: <NotificationsPage /> },
+          { path: "/interview", element: <InterviewIndexPage /> },
+          { path: "/interview/:prepId", element: <PrepPage /> },
+          { path: "/interview/sessions/:sessionId", element: <PracticePage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

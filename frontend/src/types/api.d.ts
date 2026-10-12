@@ -754,6 +754,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interview/preps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Preps */
+        get: operations["list_preps_api_v1_interview_preps_get"];
+        put?: never;
+        /** Create Prep */
+        post: operations["create_prep_api_v1_interview_preps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/preps/{prep_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Prep */
+        get: operations["get_prep_api_v1_interview_preps__prep_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Prep */
+        delete: operations["delete_prep_api_v1_interview_preps__prep_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/preps/{prep_id}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Practice */
+        post: operations["start_practice_api_v1_interview_preps__prep_id__sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_interview_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/sessions/{session_id}/answers/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Answer */
+        put: operations["save_answer_api_v1_interview_sessions__session_id__answers__question_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/sessions/{session_id}/answers/{question_id}/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate Answer */
+        post: operations["evaluate_answer_api_v1_interview_sessions__session_id__answers__question_id__evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interview/sessions/{session_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Practice */
+        post: operations["complete_practice_api_v1_interview_sessions__session_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1156,6 +1277,19 @@ export interface components {
             /** Resume Id */
             resume_id?: string | null;
         };
+        /**
+         * CreatePrepIn
+         * @description Without `resume_id`, the newest tailored resume for the job is used, else the master.
+         */
+        CreatePrepIn: {
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Resume Id */
+            resume_id?: string | null;
+        };
         /** CreateResumeIn */
         CreateResumeIn: {
             /**
@@ -1282,6 +1416,17 @@ export interface components {
             value: string;
             /** Message */
             message: string;
+        };
+        /** FeedbackOut */
+        FeedbackOut: {
+            /** Score */
+            score: number;
+            /** Strengths */
+            strengths?: string[];
+            /** Improvements */
+            improvements?: string[];
+            /** Source */
+            source: string;
         };
         /** FinalizeIn */
         FinalizeIn: {
@@ -1633,6 +1778,158 @@ export interface components {
             /** Lines */
             lines?: string[];
         };
+        /** PracticeAnswerOut */
+        PracticeAnswerOut: {
+            /** Question Id */
+            question_id: string;
+            /** Answer */
+            answer: string;
+            /** Self Rating */
+            self_rating: number | null;
+            /** Notes */
+            notes: string;
+            feedback: components["schemas"]["FeedbackOut"] | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PracticeSessionOut */
+        PracticeSessionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Question Count */
+            question_count: number;
+            /** Answered Count */
+            answered_count: number;
+            /** Average Rating */
+            average_rating: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Prep Id
+             * Format: uuid
+             */
+            prep_id: string;
+            /** Job Title */
+            job_title: string;
+            /** Questions */
+            questions: components["schemas"]["Question"][];
+            /** Answers */
+            answers: components["schemas"]["PracticeAnswerOut"][];
+        };
+        /** PracticeSessionSummaryOut */
+        PracticeSessionSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "in_progress" | "completed";
+            /** Question Count */
+            question_count: number;
+            /** Answered Count */
+            answered_count: number;
+            /** Average Rating */
+            average_rating: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** PrepDetailOut */
+        PrepDetailOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Job Title */
+            job_title: string;
+            /** Company */
+            company: string | null;
+            /** Resume Id */
+            resume_id: string | null;
+            /** Resume Title */
+            resume_title: string | null;
+            /** Resume Version */
+            resume_version: number;
+            /** Method Version */
+            method_version: string;
+            /** Question Count */
+            question_count: number;
+            /** Session Count */
+            session_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Questions */
+            questions: components["schemas"]["Question"][];
+            /** Sessions */
+            sessions: components["schemas"]["PracticeSessionSummaryOut"][];
+        };
+        /** PrepSummaryOut */
+        PrepSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Job Title */
+            job_title: string;
+            /** Company */
+            company: string | null;
+            /** Resume Id */
+            resume_id: string | null;
+            /** Resume Title */
+            resume_title: string | null;
+            /** Resume Version */
+            resume_version: number;
+            /** Method Version */
+            method_version: string;
+            /** Question Count */
+            question_count: number;
+            /** Session Count */
+            session_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** Project */
         Project: {
             /** Id */
@@ -1656,6 +1953,26 @@ export interface components {
             technologies?: string[];
             /** Bullets */
             bullets?: string[];
+        };
+        /** Question */
+        Question: {
+            /** Id */
+            id: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "opening" | "experience" | "technical" | "gap" | "role" | "behavioral";
+            /** Text */
+            text: string;
+            /** Why */
+            why: string;
+            /** Requirement Ids */
+            requirement_ids?: string[];
+            /** Evidence */
+            evidence?: components["schemas"]["EvidenceRef"][];
+            /** Tips */
+            tips?: string[];
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -1822,6 +2139,21 @@ export interface components {
              */
             updated_at: string;
         };
+        /** SaveAnswerIn */
+        SaveAnswerIn: {
+            /**
+             * Answer
+             * @default
+             */
+            answer: string;
+            /** Self Rating */
+            self_rating?: number | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
         /** SectionReportOut */
         SectionReportOut: {
             /** Section */
@@ -1880,6 +2212,14 @@ export interface components {
             covered_by_alternative: boolean;
             /** Evidence */
             evidence?: components["schemas"]["EvidenceRef"][];
+        };
+        /**
+         * StartPracticeIn
+         * @description Without `question_ids`, every question in the prep is practiced, in order.
+         */
+        StartPracticeIn: {
+            /** Question Ids */
+            question_ids?: string[] | null;
         };
         /** StorageCapability */
         StorageCapability: {
@@ -3667,6 +4007,284 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_preps_api_v1_interview_preps_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepSummaryOut"][];
+                };
+            };
+        };
+    };
+    create_prep_api_v1_interview_preps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePrepIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_prep_api_v1_interview_preps__prep_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prep_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_prep_api_v1_interview_preps__prep_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prep_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_practice_api_v1_interview_preps__prep_id__sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prep_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartPracticeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_interview_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_answer_api_v1_interview_sessions__session_id__answers__question_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_answer_api_v1_interview_sessions__session_id__answers__question_id__evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_practice_api_v1_interview_sessions__session_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

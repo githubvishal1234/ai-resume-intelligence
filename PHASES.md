@@ -23,8 +23,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 5 | Tailoring | ✅ |
 | 6 | Resume Output (ATS + PDF) | ✅ |
 | 7 | Applications | ✅ |
-| 8 | Interview Prep | 🚧 |
-| 9 | Hardening | ⏳ |
+| 8 | Interview Prep | ✅ |
+| 9 | Hardening | 🚧 |
 
 ---
 
@@ -310,10 +310,42 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 8: Interview Prep
 
-- Question banks built from the job requirements, the tailored resume and skill gaps
-  (deterministic templates).
-- A practice-session flow with notes.
-- LLM answer evaluation only when a provider is configured.
+**Delivered**
+- [x] Deterministic question bank (`interview-rules-v1`) for one job and one resume version:
+      an opening question, questions on requirements the resume has evidence for, technical
+      depth on job skills the resume shows, honest-answer prep for skill gaps, the role's
+      responsibilities, and common behavioral questions. Every question says why it was asked,
+      quotes the resume evidence behind it and gives answering tips. Ids are stable.
+- [x] By default it uses the newest tailored resume for that job, else the master. The job
+      and the resume are only read.
+- [x] Practice sessions over all or selected questions: answer, a 1–5 readiness rating and
+      notes per question, saved as you move on; finishing locks the session for review.
+- [x] Optional AI feedback (score, strengths, improvements) only when a provider is configured
+      (D-03); otherwise the button is disabled with the reason. The question, job and answer
+      go to the model as data in user messages, never in the system prompt (tested with a fake
+      provider). Changing an answer clears feedback about the old one.
+- [x] Pages: Interview Prep (build a set, list sets), question set (grouped questions,
+      practice all or selected, past sessions, delete) and the practice page with a review
+      view. Enabled in the navigation and on the dashboard.
+
+**Not done here, by decision**
+- AI feedback waits on D-03. LLM-generated questions are not added; the rule-based bank is
+  the baseline any future generator must beat.
+
+**Verified 2026-10-12**
+- 160 backend tests pass (10 new: every question source is present and evidence is only
+  quoted from the resume, stable unique ids, prep from the master, master required, practice
+  flow with save/re-save/rating range/foreign question/completed lock, unknown questions
+  refused, AI not configured and answer required, fake-provider feedback keeps the answer out
+  of the system prompt, IDOR on every endpoint, deleting a set removes its sessions).
+  ruff, format and mypy are clean.
+- 63 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: upload master → analyze job → Build questions (17 in 6 groups) → practice 2
+  selected → answer, rate 4, add a note (AI button disabled with the reason) → next → back,
+  answer kept → finish → review "1 of 2 answered, your rating 4/5" → the question set shows
+  the finished session. No overflow at 1440, 768 or 390.
+- Fixed during verification: the question set briefly showed a finished session as in
+  progress; the session's new state is now written to the set straight away.
 
 ## Phase 9: Hardening
 
@@ -331,3 +363,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 5 completed and verified. Phase 6 started.
 - 2026-10-12: Phase 6 completed and verified. Phase 7 started.
 - 2026-10-12: Phase 7 completed and verified. Phase 8 started.
+- 2026-10-12: Phase 8 completed and verified. Phase 9 started.
