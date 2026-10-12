@@ -8,7 +8,7 @@ import { useSession } from "@/hooks/useSession";
 
 const NEXT_STEPS: { icon: typeof FileText; title: string; body: string; phase: number; to?: string }[] = [
   { icon: FileText, title: "Upload your master resume", body: "Your verified source of truth for every tailored version.", phase: 2, to: "/resumes/upload" },
-  { icon: ScanSearch, title: "Analyze a job description", body: "Paste or upload a posting to extract its requirements.", phase: 3 },
+  { icon: ScanSearch, title: "Analyze a job description", body: "Paste or upload a posting to extract its requirements.", phase: 3, to: "/jobs/new" },
   { icon: Sparkles, title: "Tailor with evidence", body: "Every proposed change is checked against your master resume.", phase: 5 },
 ];
 

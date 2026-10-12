@@ -96,10 +96,20 @@ class ResumeContent(_Strict):
     @model_validator(mode="after")
     def _unique_ids(self) -> ResumeContent:
         seen: set[str] = set()
-        groups: list[list[Experience] | list[Education] | list[Skill] | list[Project]
-                     | list[Certification] | list[OtherSection]] = [
-            self.experience, self.education, self.skills, self.projects,
-            self.certifications, self.other,
+        groups: list[
+            list[Experience]
+            | list[Education]
+            | list[Skill]
+            | list[Project]
+            | list[Certification]
+            | list[OtherSection]
+        ] = [
+            self.experience,
+            self.education,
+            self.skills,
+            self.projects,
+            self.certifications,
+            self.other,
         ]
         for group in groups:
             for entity in group:

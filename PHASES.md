@@ -18,8 +18,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 |---|---|---|
 | 1 | Foundation | ✅ |
 | 2 | Master Resume | ✅ |
-| 3 | Job Intelligence | 🚧 |
-| 4 | Matching & Skill Gaps | ⏳ |
+| 3 | Job Intelligence | ✅ |
+| 4 | Matching & Skill Gaps | 🚧 |
 | 5 | Tailoring | ⏳ |
 | 6 | Resume Output (ATS + PDF) | ⏳ |
 | 7 | Applications | ⏳ |
@@ -109,11 +109,49 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 3: Job Intelligence
 
-- Paste a job description or upload a JD file. URLs from unapproved sources return
-  `JOB_SOURCE_NOT_SUPPORTED` with a paste fallback (D-05).
-- Deterministic analysis: title and company hints, requirements split into
-  required / preferred / nice-to-have, a skills vocabulary, and years of experience.
-- Job list and detail pages.
+**Delivered**
+- [x] Add a job by pasting text (50 to 50,000 characters) or uploading a PDF / DOCX / TXT file.
+      Uploads reuse the Phase 2 file checks. Title, company and location are optional; the title
+      is taken from the posting when left empty.
+- [x] Links: `POST /jobs/from-url` goes through the job-source adapter registry. No source is
+      approved yet (D-05), so every link returns `JOB_SOURCE_NOT_SUPPORTED`. The UI then offers
+      to paste the description instead and keeps the link with the saved job.
+- [x] Deterministic analysis (`jd-rules-v1`):
+  - Requirements split into required / preferred / nice-to-have, using the posting's own
+    section headings and wording ("preferred", "a plus"). Without headings it works sentence
+    by sentence and says so.
+  - Each requirement has a category (skill, experience, education, certification) and the
+    skills it mentions. Responsibilities, "about us" and benefits are kept out of requirements.
+  - Key facts only when stated: minimum years, education level, seniority, employment type,
+    work mode, salary.
+  - Frequent terms, leaving out skills and the company's own name.
+  - Requirement ids come from the requirement text, so they are stable across re-analysis
+    (Phase 4 evidence will point at them).
+- [x] Skills vocabulary (`app/skills/vocabulary.py`): about 200 canonical skills with
+      categories and aliases (Postgres → PostgreSQL, k8s → Kubernetes). Names that are also
+      English words (Go, R, Spring, Express…) only count when correctly cased.
+- [x] Job Analyzer pages: list, "Analyze a job" (Paste / Upload / Link tabs), and a job detail
+      page with facts, requirements by tier, skills by tier, responsibilities, the source and the
+      original text. Details can be edited, analysis re-run and the job deleted.
+- [x] Job Analyzer is enabled in the navigation, and the dashboard step links to it.
+
+**Not done here, by decision**
+- Fetching postings from job sites waits on D-05 (which sites, on what terms). Adding one is a
+  single `JobSourceAdapter` plus a registry entry.
+- AI-assisted requirement extraction waits on D-03. The analyzer output is a plain model, so a
+  provider-backed analyzer can produce the same shape.
+- Uploaded JD files are not stored; only their extracted text is kept.
+
+**Verified 2026-10-12**
+- 106 backend tests pass (20 new: vocabulary, tiers and facts, no invented facts, stable ids,
+  paste/upload/link, validation, edit, re-analyze, delete, auth and CSRF, IDOR on all job
+  endpoints). ruff, `ruff format --check` (now in CI) and mypy are clean.
+- 42 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: dashboard → Analyze a job → link refused → paste fallback (link kept) →
+  analysis (5 required, 3 nice-to-have, Senior, 5+ years, Bachelor's, Full-time, Hybrid,
+  ₹35-45 LPA) → edit details → re-run → list → upload a .txt JD → delete. No console errors
+  besides the expected 422, and no overflow at 1440, 1024, 768 or 390.
+- Fixed during verification: the company's name showed up as a "frequent term".
 
 ## Phase 4: Matching & Skill Gaps
 
@@ -163,3 +201,4 @@ frontend UI kit, app shell, API client and session hooks.
 
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
 - 2026-10-12: Phase 2 completed and verified. Phase 3 started.
+- 2026-10-12: Phase 3 completed and verified. Phase 4 started.

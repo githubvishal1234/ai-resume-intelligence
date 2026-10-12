@@ -347,10 +347,14 @@ def test_analysis_endpoint_scores_current_version(user_client: TestClient) -> No
 
 
 def test_analysis_flags_gaps() -> None:
-    score, checks = analyze(ResumeContent.model_validate({
-        "contact": {"full_name": "A B"},
-        "experience": [{"title": "Dev", "bullets": ["I did some work on things"]}],
-    }))
+    score, checks = analyze(
+        ResumeContent.model_validate(
+            {
+                "contact": {"full_name": "A B"},
+                "experience": [{"title": "Dev", "bullets": ["I did some work on things"]}],
+            }
+        )
+    )
     status = {c.id: c.status for c in checks}
     assert status["contact.email"] == "fail"
     assert status["experience.dates"] == "fail"

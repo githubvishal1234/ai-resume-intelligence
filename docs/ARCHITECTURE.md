@@ -21,9 +21,11 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `auth` | routes → `AuthService` → repositories. Covers register, login, logout and me. |
 | `core` | settings and production guards, error envelope, JSON logging, request-context middleware, rate limiter, password and token helpers, `AccessPolicy` |
 | `db` | Declarative base with deterministic constraint names; engine and session dependency |
-| `models` | `User`, `UserSession`, `AuditLog`, `Resume`, `ResumeVersion`, `ResumeFile`, `ResumeImport` |
+| `models` | `User`, `UserSession`, `AuditLog`, `Resume`, `ResumeVersion`, `ResumeFile`, `ResumeImport`, `Job` |
 | `resumes` | `content.py` holds the structured resume document. `extraction.py` validates uploads and extracts text. `parser.py` is the heuristic section parser. `analysis.py` holds the rule-based checks. `service.py` holds the master resume rules. `router.py` serves `/resumes`. |
-| `ai`, `mail`, `storage`, `jobs`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
+| `skills` | `vocabulary.py`: a fixed skills vocabulary (canonical names, categories, aliases) shared by job analysis and, from Phase 4, matching. Short names that are also English words (Go, R, Spring…) must be correctly cased in prose to count. |
+| `jobs` | `analyzer.py` is the deterministic job-description analyzer (`jd-rules-v1`). `service.py` and `router.py` serve `/jobs` (paste, upload, link, list, detail, edit, re-analyze, delete). `sources.py` is the job-source adapter registry, empty until a source is approved (D-05). |
+| `ai`, `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 
 **Conventions**
 - Handlers stay thin, and business rules live in services.
@@ -37,6 +39,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
   latest one. Edits send `base_version`, and a stale base returns `409 VERSION_CONFLICT`.
 - Uploads become a `ResumeImport` (pending review). Only `confirm` creates a master resume or
   a new master version, using the content the user reviewed.
+- A saved job keeps its raw text, so analysis can be re-run when the analyzer improves.
+  Requirement ids are derived from the requirement text, so they stay the same on re-analysis.
 - Schema changes go through Alembic only. The test suite builds the schema by running the
   migrations.
 
@@ -45,7 +49,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | Folder | Responsibility |
 |---|---|
 | `app/` | `App` providers, route table (`router.tsx`), route guards, query client |
-| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis) |
+| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail) |
 | `components/resume` | `ResumeEditor` (structured editor that keeps entity ids), `ResumeView`, `FileDrop`, `ConfidenceBadge` |
 | `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md) |
 | `components/ui` | UI kit (Button, Card, Field, Notice, Pill, Score, StatTile, States, Tabs) |

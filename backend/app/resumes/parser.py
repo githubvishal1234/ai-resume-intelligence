@@ -32,34 +32,93 @@ SectionKey = Literal[
 _HEADINGS: dict[str, SectionKey] = {}
 for _key, _aliases in {
     "summary": [
-        "summary", "professional summary", "career summary", "profile", "professional profile",
-        "objective", "career objective", "about", "about me", "overview",
+        "summary",
+        "professional summary",
+        "career summary",
+        "profile",
+        "professional profile",
+        "objective",
+        "career objective",
+        "about",
+        "about me",
+        "overview",
     ],
     "experience": [
-        "experience", "work experience", "professional experience", "employment",
-        "employment history", "work history", "career history", "relevant experience",
-        "internships", "internship experience",
+        "experience",
+        "work experience",
+        "professional experience",
+        "employment",
+        "employment history",
+        "work history",
+        "career history",
+        "relevant experience",
+        "internships",
+        "internship experience",
     ],
-    "education": ["education", "academic background", "academics", "education and training",
-                  "educational background", "qualifications"],
-    "skills": ["skills", "technical skills", "core skills", "key skills", "core competencies",
-               "competencies", "skills and tools", "technologies", "tech stack", "tools",
-               "skills & tools", "technical proficiencies"],
-    "projects": ["projects", "personal projects", "key projects", "selected projects",
-                 "academic projects", "side projects"],
-    "certifications": ["certifications", "certificates", "licenses and certifications",
-                       "licenses & certifications", "certifications and licenses",
-                       "certification"],
-    "other": ["achievements", "awards", "honors", "honours", "awards and honors",
-              "publications", "languages", "volunteer", "volunteering",
-              "volunteer experience", "interests", "hobbies", "activities",
-              "leadership", "extracurricular activities", "references"],
+    "education": [
+        "education",
+        "academic background",
+        "academics",
+        "education and training",
+        "educational background",
+        "qualifications",
+    ],
+    "skills": [
+        "skills",
+        "technical skills",
+        "core skills",
+        "key skills",
+        "core competencies",
+        "competencies",
+        "skills and tools",
+        "technologies",
+        "tech stack",
+        "tools",
+        "skills & tools",
+        "technical proficiencies",
+    ],
+    "projects": [
+        "projects",
+        "personal projects",
+        "key projects",
+        "selected projects",
+        "academic projects",
+        "side projects",
+    ],
+    "certifications": [
+        "certifications",
+        "certificates",
+        "licenses and certifications",
+        "licenses & certifications",
+        "certifications and licenses",
+        "certification",
+    ],
+    "other": [
+        "achievements",
+        "awards",
+        "honors",
+        "honours",
+        "awards and honors",
+        "publications",
+        "languages",
+        "volunteer",
+        "volunteering",
+        "volunteer experience",
+        "interests",
+        "hobbies",
+        "activities",
+        "leadership",
+        "extracurricular activities",
+        "references",
+    ],
 }.items():
     for _alias in _aliases:
         _HEADINGS[_alias] = _key  # type: ignore[assignment]
 
-_MONTH = (r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|"
-          r"sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?")
+_MONTH = (
+    r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|"
+    r"sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?"
+)
 _DATE = rf"(?:{_MONTH}\s*,?\s*\d{{4}}|\d{{1,2}}\s*/\s*\d{{4}}|\d{{4}}\s*-\s*\d{{2}}|\d{{4}})"
 _PRESENT = r"(?:present|current|currently|now|today|ongoing)"
 DATE_RANGE = re.compile(
@@ -81,8 +140,9 @@ SEPARATORS = re.compile(r"\s+(?:\||—|–|-|@|at)\s+|\s*\|\s*|\s*•\s*|\s*·\s
 LOCATION = re.compile(
     r"^(?:remote|hybrid|[A-Z][A-Za-z.' -]+,\s*[A-Z][A-Za-z.' -]+)(?:\s*\((?:remote|hybrid)\))?$"
 )
-INSTITUTION = re.compile(r"\b(university|college|institute|school|academy|polytechnic|iit|nit)\b",
-                         re.IGNORECASE)
+INSTITUTION = re.compile(
+    r"\b(university|college|institute|school|academy|polytechnic|iit|nit)\b", re.IGNORECASE
+)
 DEGREE = re.compile(
     r"\b(bachelor|master|doctor|ph\.?\s?d|mba|b\.?\s?s\.?c?|m\.?\s?s\.?c?|b\.?\s?a\.?|m\.?\s?a\.?|"
     r"b\.?\s?tech|m\.?\s?tech|b\.?\s?e\.?|m\.?\s?e\.?|associate|diploma|high school|bca|mca|"
@@ -143,7 +203,7 @@ def _find_range(text: str) -> tuple[str, str, bool, str]:
         return "", "", False, text
     start, end = match.group("start").strip(), match.group("end").strip()
     current = bool(PRESENT_RE.match(end))
-    rest = (text[: match.start()] + " " + text[match.end():]).strip(" ,|–—-()\t")
+    rest = (text[: match.start()] + " " + text[match.end() :]).strip(" ,|–—-()\t")
     return start, end, current, re.sub(r"\s{2,}", " ", rest)
 
 
@@ -198,8 +258,9 @@ def _looks_like_name(line: str) -> bool:
     return all(re.match(r"^[A-Za-zÀ-ÿ'’.\-]+$", w) for w in words)
 
 
-def _group_entries(lines: list[str], *, starts_entry: re.Pattern[str] | None = None
-                   ) -> list[tuple[list[str], list[str]]]:
+def _group_entries(
+    lines: list[str], *, starts_entry: re.Pattern[str] | None = None
+) -> list[tuple[list[str], list[str]]]:
     """Groups section lines into (header_lines, body_lines) entries."""
     entries: list[tuple[list[str], list[str]]] = []
     header: list[str] = []
@@ -217,10 +278,12 @@ def _group_entries(lines: list[str], *, starts_entry: re.Pattern[str] | None = N
         if _is_bullet(line):
             body.append(_strip_bullet(line))
             continue
-        upcoming = [ln for ln in lines[index + 1:index + 3] if ln]
-        signals_new = bool(DATE_RANGE.search(line)) or bool(
-            starts_entry and starts_entry.search(line)
-        ) or any(DATE_RANGE.search(u) and not _is_bullet(u) for u in upcoming[:1])
+        upcoming = [ln for ln in lines[index + 1 : index + 3] if ln]
+        signals_new = (
+            bool(DATE_RANGE.search(line))
+            or bool(starts_entry and starts_entry.search(line))
+            or any(DATE_RANGE.search(u) and not _is_bullet(u) for u in upcoming[:1])
+        )
         if body:
             dated_soon = any(DATE_RANGE.search(u) for u in upcoming)
             continues_bullet = body[-1].endswith((",", "and", "&"))
@@ -255,9 +318,17 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
         if not header and items:  # stray bullets: attach to the previous role
             items[-1].bullets.extend(bullets)
             continue
-        items.append(Experience(title=title[:200], company=company[:200], location=location[:200],
-                                start_date=start, end_date=end, current=current,
-                                bullets=[b[:1000] for b in bullets][:40]))
+        items.append(
+            Experience(
+                title=title[:200],
+                company=company[:200],
+                location=location[:200],
+                start_date=start,
+                end_date=end,
+                current=current,
+                bullets=[b[:1000] for b in bullets][:40],
+            )
+        )
     if not items:
         return [], SectionReport("experience", True, "low", ["No roles could be identified."])
     undated = sum(1 for i in items if not i.start_date)
@@ -270,8 +341,9 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
         if undated:
             report.notes.append(f"{undated} role(s) have no dates.")
         if no_company:
-            report.notes.append(f"{no_company} role(s) have no company; title and company "
-                                "may be swapped or merged.")
+            report.notes.append(
+                f"{no_company} role(s) have no company; title and company may be swapped or merged."
+            )
     return items, report
 
 
@@ -289,11 +361,13 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
                 end = single.group("date")
             elif single:
                 end = single.group("date")
-                rest = (line[: single.start()] + line[single.end():]).strip(" ,|–—-()")
+                rest = (line[: single.start()] + line[single.end() :]).strip(" ,|–—-()")
         is_institution = bool(INSTITUTION.search(rest))
         is_degree = bool(DEGREE.search(rest)) and not is_institution
-        new_entry = current is None or (is_institution and current.institution) or (
-            is_degree and current.degree
+        new_entry = (
+            current is None
+            or (is_institution and current.institution)
+            or (is_degree and current.degree)
         )
         if new_entry and (is_institution or is_degree or current is None):
             current = Education()
@@ -355,24 +429,32 @@ def parse_projects(lines: list[str]) -> tuple[list[Project], SectionReport]:
     items: list[Project] = []
     current: Project | None = None
     for raw in (ln for ln in lines if ln):
-        tech = re.match(r"^(?:tech(?:nologies)?|stack|tools|built with)\s*[:\-]\s*(.+)$",
-                        _strip_bullet(raw), re.IGNORECASE)
+        tech = re.match(
+            r"^(?:tech(?:nologies)?|stack|tools|built with)\s*[:\-]\s*(.+)$",
+            _strip_bullet(raw),
+            re.IGNORECASE,
+        )
         if tech and current is not None:
             current.technologies.extend(t for t in _SKILL_SPLIT.split(tech.group(1)) if t)
             continue
         if _is_bullet(raw) and current is not None:
             current.bullets.append(_strip_bullet(raw)[:1000])
             continue
-        if current is not None and (current.bullets or current.description) and not (
-            _looks_like_header(raw)
+        if (
+            current is not None
+            and (current.bullets or current.description)
+            and not (_looks_like_header(raw))
         ):
             if current.bullets:
                 current.bullets[-1] = f"{current.bullets[-1]} {raw}"[:1000]
             else:
                 current.description = f"{current.description} {raw}"[:5000]
             continue
-        if current is not None and not current.bullets and not current.description and not (
-            _looks_like_header(raw)
+        if (
+            current is not None
+            and not current.bullets
+            and not current.description
+            and not (_looks_like_header(raw))
         ):
             current.description = raw[:5000]
             continue
@@ -395,7 +477,7 @@ def parse_certifications(lines: list[str]) -> tuple[list[Certification], Section
         line = _strip_bullet(raw)
         date_match = SINGLE_DATE.search(line)
         date = date_match.group("date") if date_match else ""
-        rest = (line[: date_match.start()] + line[date_match.end():]) if date_match else line
+        rest = (line[: date_match.start()] + line[date_match.end() :]) if date_match else line
         rest = rest.strip(" ,|–—-()")
         # Split on commas/pipes first: dashes often belong to the name ("... – Associate").
         pieces = [p.strip() for p in re.split(r"\s*[,|]\s*", rest) if p.strip()]
@@ -403,9 +485,11 @@ def parse_certifications(lines: list[str]) -> tuple[list[Certification], Section
             pieces = [p.strip() for p in rest.split(" — ", 1)]
         if not pieces:
             continue
-        items.append(Certification(name=pieces[0][:200],
-                                   issuer=(pieces[1] if len(pieces) > 1 else "")[:200],
-                                   date=date))
+        items.append(
+            Certification(
+                name=pieces[0][:200], issuer=(pieces[1] if len(pieces) > 1 else "")[:200], date=date
+            )
+        )
     report = SectionReport("certifications", True, "high" if items else "low")
     return items[:50], report
 
@@ -434,20 +518,27 @@ def parse_resume(text: str) -> ParseResult:
     warnings: list[str] = []
 
     contact_conf: Confidence = (
-        "high" if contact.full_name and contact.email else
-        "medium" if contact.full_name or contact.email else "low"
+        "high"
+        if contact.full_name and contact.email
+        else "medium"
+        if contact.full_name or contact.email
+        else "low"
     )
-    reports["contact"] = SectionReport("contact", bool(contact.full_name or contact.email),
-                                       contact_conf)
+    reports["contact"] = SectionReport(
+        "contact", bool(contact.full_name or contact.email), contact_conf
+    )
     if not contact.email:
         reports["contact"].notes.append("No email address found.")
 
     summary_lines: list[str] = []
     if leftovers and not sections:
-        warnings.append("No section headings were recognized. The text was kept under "
-                        "'Unsorted' so nothing is lost; please organize it before saving.")
-        content.other.append(OtherSection(heading="Unsorted",
-                                          lines=[ln[:1000] for ln in leftovers][:50]))
+        warnings.append(
+            "No section headings were recognized. The text was kept under "
+            "'Unsorted' so nothing is lost; please organize it before saving."
+        )
+        content.other.append(
+            OtherSection(heading="Unsorted", lines=[ln[:1000] for ln in leftovers][:50])
+        )
     elif leftovers:
         summary_lines.extend(leftovers)  # unlabeled paragraph under the name = summary
 
@@ -488,8 +579,15 @@ def parse_resume(text: str) -> ParseResult:
         if key not in reports:
             reports[key] = SectionReport(key, False, "low", ["Section not found."])
 
-    ordered = ["contact", "summary", "experience", "education", "skills", "projects",
-               "certifications"]
+    ordered = [
+        "contact",
+        "summary",
+        "experience",
+        "education",
+        "skills",
+        "projects",
+        "certifications",
+    ]
     section_reports = [reports[k] for k in ordered if k in reports]
     return ParseResult(
         content=content,

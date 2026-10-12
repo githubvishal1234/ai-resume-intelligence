@@ -4,7 +4,17 @@ import { cn } from "@/lib/cn";
 
 const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
-export function FileDrop({ onFile, disabled }: { onFile: (file: File) => void; disabled?: boolean }) {
+export function FileDrop({
+  onFile,
+  disabled,
+  label = "Resume file",
+  prompt = "Drop your resume here, or choose a file",
+}: {
+  onFile: (file: File) => void;
+  disabled?: boolean;
+  label?: string;
+  prompt?: string;
+}) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -32,7 +42,7 @@ export function FileDrop({ onFile, disabled }: { onFile: (file: File) => void; d
       )}
     >
       <UploadCloud className="size-8 text-primary" aria-hidden />
-      <span className="text-label-md text-on-surface">Drop your resume here, or choose a file</span>
+      <span className="text-label-md text-on-surface">{prompt}</span>
       <span className="text-body-sm text-on-surface-variant">PDF, DOCX or TXT · up to 10 MB · 10 pages</span>
       <input
         ref={input}
@@ -41,7 +51,7 @@ export function FileDrop({ onFile, disabled }: { onFile: (file: File) => void; d
         accept={ACCEPT}
         className="sr-only"
         disabled={disabled}
-        aria-label="Resume file"
+        aria-label={label}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onFile(file);

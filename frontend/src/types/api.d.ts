@@ -336,6 +336,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Jobs */
+        get: operations["list_jobs_api_v1_jobs_get"];
+        put?: never;
+        /** Create Job */
+        post: operations["create_job_api_v1_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Job */
+        post: operations["upload_job_api_v1_jobs_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/from-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Job From Url */
+        post: operations["job_from_url_api_v1_jobs_from_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job */
+        get: operations["get_job_api_v1_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Job */
+        delete: operations["delete_job_api_v1_jobs__job_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Job */
+        patch: operations["update_job_api_v1_jobs__job_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/jobs/{job_id}/reanalyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reanalyze Job */
+        post: operations["reanalyze_job_api_v1_jobs__job_id__reanalyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -371,6 +459,14 @@ export interface components {
         BenchmarkCapability: {
             /** Available */
             available: boolean;
+        };
+        /** Body_upload_job_api_v1_jobs_upload_post */
+        Body_upload_job_api_v1_jobs_upload_post: {
+            /**
+             * File
+             * @description PDF, DOCX or TXT job description
+             */
+            file: string;
         };
         /** Body_upload_resume_api_v1_resumes_imports_post */
         Body_upload_resume_api_v1_resumes_imports_post: {
@@ -460,6 +556,19 @@ export interface components {
             location: string;
             /** Links */
             links?: string[];
+        };
+        /** CreateJobIn */
+        CreateJobIn: {
+            /** Title */
+            title?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Text */
+            text: string;
+            /** Source Url */
+            source_url?: string | null;
         };
         /** CreateResumeIn */
         CreateResumeIn: {
@@ -595,10 +704,149 @@ export interface components {
             /** Warnings */
             warnings: string[];
         };
+        /** JobAnalysis */
+        JobAnalysis: {
+            /**
+             * Analyzer Version
+             * @default jd-rules-v1
+             */
+            analyzer_version: string;
+            /** Requirements */
+            requirements?: components["schemas"]["Requirement"][];
+            /** Responsibilities */
+            responsibilities?: string[];
+            /** Skills */
+            skills?: components["schemas"]["JobSkill"][];
+            /** Keywords */
+            keywords?: string[];
+            /** Years Experience Min */
+            years_experience_min?: number | null;
+            /** Education Level */
+            education_level?: string | null;
+            /** Seniority */
+            seniority?: string | null;
+            /** Employment Type */
+            employment_type?: string | null;
+            /** Work Mode */
+            work_mode?: string | null;
+            /** Salary */
+            salary?: string | null;
+            /** Sections Found */
+            sections_found?: string[];
+            /** Warnings */
+            warnings?: string[];
+        };
+        /** JobDetailOut */
+        JobDetailOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "paste" | "upload" | "url";
+            /** Title */
+            title: string;
+            /** Company */
+            company: string | null;
+            /** Location */
+            location: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Required Count
+             * @default 0
+             */
+            required_count: number;
+            /**
+             * Skill Count
+             * @default 0
+             */
+            skill_count: number;
+            /** Source Url */
+            source_url: string | null;
+            /** Source Filename */
+            source_filename: string | null;
+            /** Raw Text */
+            raw_text: string;
+            analysis: components["schemas"]["JobAnalysis"];
+        };
+        /** JobFromUrlIn */
+        JobFromUrlIn: {
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+        };
+        /** JobSkill */
+        JobSkill: {
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "required" | "preferred" | "nice_to_have";
+            /** Mentions */
+            mentions: number;
+        };
         /** JobSourcesCapability */
         JobSourcesCapability: {
             /** External Adapters */
             external_adapters: string[];
+        };
+        /** JobSummaryOut */
+        JobSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "paste" | "upload" | "url";
+            /** Title */
+            title: string;
+            /** Company */
+            company: string | null;
+            /** Location */
+            location: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Required Count
+             * @default 0
+             */
+            required_count: number;
+            /**
+             * Skill Count
+             * @default 0
+             */
+            skill_count: number;
         };
         /** LiveOut */
         LiveOut: {
@@ -667,6 +915,27 @@ export interface components {
         RenameIn: {
             /** Title */
             title: string;
+        };
+        /** Requirement */
+        Requirement: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "required" | "preferred" | "nice_to_have";
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "skill" | "experience" | "education" | "certification" | "responsibility" | "other";
+            /** Skills */
+            skills?: string[];
+            /** Years */
+            years?: number | null;
         };
         /** RestoreIn */
         RestoreIn: {
@@ -810,6 +1079,15 @@ export interface components {
             content: components["schemas"]["ResumeContent"];
             /** Note */
             note?: string | null;
+        };
+        /** UpdateJobIn */
+        UpdateJobIn: {
+            /** Title */
+            title?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Location */
+            location?: string | null;
         };
         /** UserOut */
         UserOut: {
@@ -1506,6 +1784,251 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_v1_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSummaryOut"][];
+                };
+            };
+        };
+    };
+    create_job_api_v1_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJobIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_job_api_v1_jobs_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_job_api_v1_jobs_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    job_from_url_api_v1_jobs_from_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobFromUrlIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_v1_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_job_api_v1_jobs__job_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_job_api_v1_jobs__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateJobIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reanalyze_job_api_v1_jobs__job_id__reanalyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
                 };
             };
             /** @description Validation Error */

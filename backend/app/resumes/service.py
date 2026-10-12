@@ -162,8 +162,11 @@ class ResumeService:
                 "headings_found": parsed.headings_found,
                 "sections": [asdict(s) for s in parsed.sections],
                 "warnings": parsed.warnings
-                + (["The document was very long; only the first part was read."]
-                   if extracted.truncated else []),
+                + (
+                    ["The document was very long; only the first part was read."]
+                    if extracted.truncated
+                    else []
+                ),
             }
             item = ResumeImport(
                 owner_id=self.actor.user_id,
@@ -239,8 +242,9 @@ class ResumeService:
         self._commit_or_conflict()
         return resume, version
 
-    def restore(self, resume_id: uuid.UUID, version: int, base_version: int
-                ) -> tuple[Resume, ResumeVersion]:
+    def restore(
+        self, resume_id: uuid.UUID, version: int, base_version: int
+    ) -> tuple[Resume, ResumeVersion]:
         resume = self._owned_resume(resume_id)
         self._check_base(resume, base_version)
         source = self._version(resume, version)

@@ -76,93 +76,187 @@ def analyze(content: ResumeContent) -> tuple[int, list[Check]]:
         checks.append(Check(id_, title, section, status, detail, weight))
 
     c = content.contact
-    add("contact.name", "Name is present", "contact", "pass" if c.full_name else "fail",
+    add(
+        "contact.name",
+        "Name is present",
+        "contact",
+        "pass" if c.full_name else "fail",
         "Recruiters and applicant tracking systems need your name at the top."
-        if not c.full_name else "Found.", 3)
-    add("contact.email", "Email is present", "contact", "pass" if c.email else "fail",
-        "Add an email address so employers can reach you." if not c.email else "Found.", 3)
-    add("contact.phone", "Phone number is present", "contact", "pass" if c.phone else "warn",
+        if not c.full_name
+        else "Found.",
+        3,
+    )
+    add(
+        "contact.email",
+        "Email is present",
+        "contact",
+        "pass" if c.email else "fail",
+        "Add an email address so employers can reach you." if not c.email else "Found.",
+        3,
+    )
+    add(
+        "contact.phone",
+        "Phone number is present",
+        "contact",
+        "pass" if c.phone else "warn",
         "Many employers still call first; consider adding a phone number."
-        if not c.phone else "Found.", 1)
+        if not c.phone
+        else "Found.",
+        1,
+    )
 
     words = len(content.summary.split())
     if not content.summary:
-        add("summary.present", "Summary", "summary", "warn",
-            "A 2-4 sentence summary helps a reader place you quickly.", 2)
+        add(
+            "summary.present",
+            "Summary",
+            "summary",
+            "warn",
+            "A 2-4 sentence summary helps a reader place you quickly.",
+            2,
+        )
     elif words < 20 or words > 120:
-        add("summary.present", "Summary length", "summary", "warn",
-            f"Your summary has {words} words; 20-120 words is easier to scan.", 2)
+        add(
+            "summary.present",
+            "Summary length",
+            "summary",
+            "warn",
+            f"Your summary has {words} words; 20-120 words is easier to scan.",
+            2,
+        )
     else:
         add("summary.present", "Summary length", "summary", "pass", f"{words} words.", 2)
 
     roles = content.experience
     if not roles:
-        add("experience.present", "Work experience", "experience", "fail",
-            "No work experience entries. Add roles, internships or relevant projects.", 4)
+        add(
+            "experience.present",
+            "Work experience",
+            "experience",
+            "fail",
+            "No work experience entries. Add roles, internships or relevant projects.",
+            4,
+        )
     else:
-        add("experience.present", "Work experience", "experience", "pass",
-            _count(len(roles), "role") + ".", 4)
+        add(
+            "experience.present",
+            "Work experience",
+            "experience",
+            "pass",
+            _count(len(roles), "role") + ".",
+            4,
+        )
         undated = [r for r in roles if not r.start_date]
-        add("experience.dates", "Every role has dates", "experience",
+        add(
+            "experience.dates",
+            "Every role has dates",
+            "experience",
             "pass" if not undated else "fail",
-            "All roles are dated." if not undated else
-            f"{_count(len(undated), 'role')} without a start date. Dates let readers see your "
+            "All roles are dated."
+            if not undated
+            else f"{_count(len(undated), 'role')} without a start date. Dates let readers see your "
             "progression.",
-            3)
+            3,
+        )
         thin = [r for r in roles if len(r.bullets) < 2]
-        add("experience.bullets", "Roles describe what you did", "experience",
+        add(
+            "experience.bullets",
+            "Roles describe what you did",
+            "experience",
             "pass" if not thin else "warn",
-            "Each role has at least two bullet points." if not thin else
-            f"{_count(len(thin), 'role')} with fewer than two bullet points.", 3)
+            "Each role has at least two bullet points."
+            if not thin
+            else f"{_count(len(thin), 'role')} with fewer than two bullet points.",
+            3,
+        )
 
     bullets = _all_bullets(content)
     if bullets:
         quantified = sum(1 for b in bullets if NUMBER.search(b))
         share = quantified / len(bullets)
-        add("bullets.quantified", "Results are quantified", "experience",
+        add(
+            "bullets.quantified",
+            "Results are quantified",
+            "experience",
             "pass" if share >= 0.3 else "warn",
             f"{quantified} of {len(bullets)} bullet points include a number "
-            "(aim for at least 30%). Numbers make impact concrete.", 3)
+            "(aim for at least 30%). Numbers make impact concrete.",
+            3,
+        )
         verbs = sum(
-            1 for b in bullets
+            1
+            for b in bullets
             if (b.split()[0].lower().strip(".,;:") if b.split() else "") in ACTION_VERBS
         )
         vshare = verbs / len(bullets)
-        add("bullets.action_verbs", "Bullets start with action verbs", "experience",
+        add(
+            "bullets.action_verbs",
+            "Bullets start with action verbs",
+            "experience",
             "pass" if vshare >= 0.6 else "warn",
             f"{verbs} of {len(bullets)} bullet points start with a recognized action verb "
-            "(e.g. 'Led', 'Built', 'Reduced').", 2)
+            "(e.g. 'Led', 'Built', 'Reduced').",
+            2,
+        )
         long_ones = [b for b in bullets if len(b.split()) > 40]
-        add("bullets.length", "Bullets are concise", "experience",
+        add(
+            "bullets.length",
+            "Bullets are concise",
+            "experience",
             "pass" if not long_ones else "warn",
-            "All bullet points are 40 words or fewer." if not long_ones else
-            f"{_count(len(long_ones), 'bullet point')} longer than 40 words; split or tighten "
+            "All bullet points are 40 words or fewer."
+            if not long_ones
+            else f"{_count(len(long_ones), 'bullet point')} longer than 40 words; split or tighten "
             "them.",
-            1)
+            1,
+        )
 
     text = " ".join([content.summary, *bullets])
     first_person = FIRST_PERSON.findall(text)
-    add("style.first_person", "No first-person pronouns", "style",
+    add(
+        "style.first_person",
+        "No first-person pronouns",
+        "style",
         "pass" if not first_person else "warn",
-        "Resumes conventionally omit 'I' and 'my'." if first_person else "None found.", 1)
+        "Resumes conventionally omit 'I' and 'my'." if first_person else "None found.",
+        1,
+    )
 
-    add("education.present", "Education", "education", "pass" if content.education else "warn",
-        _count(len(content.education), "entry", "entries") + "." if content.education else
-        "No education entries. Add degrees, diplomas or relevant training if you have them.", 2)
+    add(
+        "education.present",
+        "Education",
+        "education",
+        "pass" if content.education else "warn",
+        _count(len(content.education), "entry", "entries") + "."
+        if content.education
+        else "No education entries. Add degrees, diplomas or relevant training if you have them.",
+        2,
+    )
 
     n_skills = len(content.skills)
-    add("skills.count", "Skills listed", "skills",
+    add(
+        "skills.count",
+        "Skills listed",
+        "skills",
         "pass" if n_skills >= 5 else "warn" if n_skills else "fail",
-        f"{_count(n_skills, 'skill')}. Listing at least 5 concrete skills helps keyword "
-        "matching.", 3)
+        f"{_count(n_skills, 'skill')}. Listing at least 5 concrete skills helps keyword matching.",
+        3,
+    )
 
     total = _word_count(content)
-    add("length.words", "Overall length", "style",
+    add(
+        "length.words",
+        "Overall length",
+        "style",
         "pass" if 250 <= total <= 1100 else "warn",
-        f"About {total} words. Most one-to-two page resumes fall between 250 and 1,100 words.", 1)
+        f"About {total} words. Most one-to-two page resumes fall between 250 and 1,100 words.",
+        1,
+    )
 
-    earned = sum(ch.weight * (1.0 if ch.status == "pass" else 0.5 if ch.status == "warn" else 0)
-                 for ch in checks)
+    earned = sum(
+        ch.weight * (1.0 if ch.status == "pass" else 0.5 if ch.status == "warn" else 0)
+        for ch in checks
+    )
     possible = sum(ch.weight for ch in checks)
     score = round(100 * earned / possible) if possible else 0
     return score, checks

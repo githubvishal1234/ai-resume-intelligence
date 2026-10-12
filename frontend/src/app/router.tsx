@@ -4,6 +4,9 @@ import { AuthLayout } from "@/pages/auth/AuthLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { JobDetailPage } from "@/pages/jobs/JobDetailPage";
+import { JobNewPage } from "@/pages/jobs/JobNewPage";
+import { JobsPage } from "@/pages/jobs/JobsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { AnalysisPage, AnalysisRedirect } from "@/pages/resumes/AnalysisPage";
@@ -45,6 +48,9 @@ export const routes: RouteObject[] = [
           { path: "/resumes/:resumeId/versions", element: <VersionsPage /> },
           { path: "/resumes/:resumeId/analysis", element: <AnalysisPage /> },
           { path: "/analysis", element: <AnalysisRedirect /> },
+          { path: "/jobs", element: <JobsPage /> },
+          { path: "/jobs/new", element: <JobNewPage /> },
+          { path: "/jobs/:jobId", element: <JobDetailPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },

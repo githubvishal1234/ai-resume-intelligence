@@ -114,7 +114,7 @@ def _extract_pdf(data: bytes) -> tuple[str, int]:
         raise UploadRejected("Password-protected PDFs are not accepted.")
     pages = len(reader.pages)
     if pages > MAX_PDF_PAGES:
-        raise UploadRejected(f"Resumes longer than {MAX_PDF_PAGES} pages are not accepted.")
+        raise UploadRejected(f"Documents longer than {MAX_PDF_PAGES} pages are not accepted.")
     parts: list[str] = []
     for page in reader.pages:
         try:

@@ -7,7 +7,7 @@ const apiTarget = process.env.VITE_API_PROXY ?? "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   server: { port: 5173, proxy: { "/api": { target: apiTarget, changeOrigin: false } } },
   preview: { port: 4173, proxy: { "/api": { target: apiTarget, changeOrigin: false } } },
   build: { sourcemap: false },
