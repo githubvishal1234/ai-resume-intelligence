@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GitCompareArrows, PenLine, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { BriefcaseBusiness, GitCompareArrows, PenLine, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
@@ -50,6 +50,9 @@ export function JobDetailPage() {
             </ButtonLink>
             <ButtonLink to="/tailor">
               <Sparkles className="size-4" aria-hidden /> Tailor
+            </ButtonLink>
+            <ButtonLink to={`/applications/new?job=${j.id}`}>
+              <BriefcaseBusiness className="size-4" aria-hidden /> Track application
             </ButtonLink>
             <Button variant="secondary" icon={<PenLine className="size-4" aria-hidden />} onClick={() => setEditing(true)}>
               Edit details

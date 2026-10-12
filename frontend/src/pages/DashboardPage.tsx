@@ -1,4 +1,4 @@
-import { FileText, GitCompareArrows, ScanSearch, Sparkles } from "lucide-react";
+import { BriefcaseBusiness, FileText, GitCompareArrows, ScanSearch, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CapabilitiesCard } from "@/components/system/CapabilitiesCard";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -11,6 +11,7 @@ const NEXT_STEPS: { icon: typeof FileText; title: string; body: string; phase: n
   { icon: ScanSearch, title: "Analyze a job description", body: "Paste or upload a posting to extract its requirements.", phase: 3, to: "/jobs/new" },
   { icon: GitCompareArrows, title: "Match your resume to a job", body: "See which requirements your resume shows evidence for, and where the gaps are.", phase: 4, to: "/match" },
   { icon: Sparkles, title: "Tailor with evidence", body: "Every proposed change is checked against your master resume.", phase: 5, to: "/tailor" },
+  { icon: BriefcaseBusiness, title: "Track your applications", body: "Record the resume version you sent and get follow-up reminders.", phase: 7, to: "/applications" },
 ];
 
 export function DashboardPage() {

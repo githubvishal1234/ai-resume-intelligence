@@ -1,4 +1,11 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type Ref, type TextareaHTMLAttributes } from "react";
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type Ref,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/cn";
 
 const CONTROL =
@@ -50,6 +57,17 @@ export function Textarea({ invalid, className, ...rest }: AreaProps) {
       {...rest}
       aria-invalid={invalid || undefined}
       className={cn(CONTROL, "min-h-32 py-2.5", invalid ? "border-critical" : "border-hairline", className)}
+    />
+  );
+}
+
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean; ref?: Ref<HTMLSelectElement> };
+export function Select({ invalid, className, ...rest }: SelectProps) {
+  return (
+    <select
+      {...rest}
+      aria-invalid={invalid || undefined}
+      className={cn(CONTROL, "h-10", invalid ? "border-critical" : "border-hairline", className)}
     />
   );
 }

@@ -22,8 +22,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 4 | Matching & Skill Gaps | ✅ |
 | 5 | Tailoring | ✅ |
 | 6 | Resume Output (ATS + PDF) | ✅ |
-| 7 | Applications | 🚧 |
-| 8 | Interview Prep | ⏳ |
+| 7 | Applications | ✅ |
+| 8 | Interview Prep | 🚧 |
 | 9 | Hardening | ⏳ |
 
 ---
@@ -273,8 +273,40 @@ frontend UI kit, app shell, API client and session hooks.
 
 ## Phase 7: Applications
 
-- An application tracker: company, role, URL, resume version, status and notes, with an
-  event history. CRUD, authorization tests and in-app notifications.
+**Delivered**
+- [x] Application tracker: company, role, posting link, status (saved, applied, screening,
+      interviewing, offer, accepted, rejected, withdrawn), applied date, follow-up date and
+      notes. An application can link to a saved job and to the exact resume version sent.
+      Linking a job fills in the company and role; deleting the job keeps the application.
+- [x] Append-only history: creation, every status move, which fields were edited, and notes.
+      The applied date is set automatically when the status first moves past "Saved".
+- [x] In-app notifications: a follow-up reminder appears on the follow-up date for open
+      applications. Reminders are generated when notifications are read (no background
+      worker yet) and are deduplicated, so each date produces exactly one reminder.
+      The header bell shows the unread count; reminders can be marked read one by one or all.
+- [x] Pages: Applications (open/all/by-status filters), Track an application (also from a job's
+      page via "Track application"), application detail (status, details, history, notes,
+      delete) and Notifications. Applications is enabled in the navigation, tab bar and
+      dashboard.
+
+**Not done here, by decision**
+- Email reminders wait on an email provider (D-07).
+
+**Verified 2026-10-12**
+- 150 backend tests pass (9 new: create from a job with the resume's current version,
+  company/role required, resume version must exist, status moves/edits/notes recorded in
+  order and no-op edits record nothing, status filter and delete, deleting the job keeps the
+  application, reminders created once and only for due open applications, auth and CSRF,
+  IDOR on every application and notification endpoint including linking another user's job
+  or resume). ruff, format and mypy are clean.
+- 59 frontend tests pass. Lint, types and the build are clean, and the API types are in sync.
+- Browser run: upload master → analyze job → Track application (company and role prefilled,
+  resume version 1) → status Applied with yesterday's follow-up → "Follow-up due" shown and
+  the bell shows 1 unread → move to Interviewing → add a note → history shows all three →
+  open the reminder from Notifications → bell clears → list filters → delete. No overflow at
+  1440, 768 or 390.
+- Fixed during verification: opening the form from a job didn't fill in the company and role,
+  because the job list loaded after the form; the form now waits for its lists.
 
 ## Phase 8: Interview Prep
 
@@ -298,3 +330,4 @@ frontend UI kit, app shell, API client and session hooks.
 - 2026-10-12: Phase 4 completed and verified. Phase 5 started.
 - 2026-10-12: Phase 5 completed and verified. Phase 6 started.
 - 2026-10-12: Phase 6 completed and verified. Phase 7 started.
+- 2026-10-12: Phase 7 completed and verified. Phase 8 started.

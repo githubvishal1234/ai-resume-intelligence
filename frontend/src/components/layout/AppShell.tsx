@@ -7,6 +7,7 @@ import { BrandMark, BrandIcon } from "./BrandMark";
 import { MobileTabBar } from "./MobileTabBar";
 import { NavDrawer } from "./NavDrawer";
 import { NavList } from "./NavList";
+import { NotificationBell } from "./NotificationBell";
 
 function initials(name: string): string {
   return (
@@ -71,6 +72,7 @@ export function AppShell() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
+            <NotificationBell />
             {user ? (
               <div className="hidden items-center gap-2.5 sm:flex">
                 <span

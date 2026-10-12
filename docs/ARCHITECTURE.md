@@ -21,13 +21,14 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `auth` | routes → `AuthService` → repositories. Covers register, login, logout and me. |
 | `core` | settings and production guards, error envelope, JSON logging, request-context middleware, rate limiter, password and token helpers, `AccessPolicy` |
 | `db` | Declarative base with deterministic constraint names; engine and session dependency |
-| `models` | `User`, `UserSession`, `AuditLog`, `Resume`, `ResumeVersion`, `ResumeFile`, `ResumeImport`, `Job`, `JobMatch`, `TailoringSession`, `TailoringChange` |
+| `models` | `User`, `UserSession`, `AuditLog`, `Resume`, `ResumeVersion`, `ResumeFile`, `ResumeImport`, `Job`, `JobMatch`, `TailoringSession`, `TailoringChange`, `Application`, `ApplicationEvent`, `Notification` |
 | `resumes` | `content.py` holds the structured resume document. `extraction.py` validates uploads and extracts text. `parser.py` is the heuristic section parser. `analysis.py` holds the rule-based checks. `service.py` holds the master resume rules. `router.py` serves `/resumes`. |
 | `skills` | `vocabulary.py`: a fixed skills vocabulary (canonical names, categories, aliases) shared by job analysis and, from Phase 4, matching. Short names that are also English words (Go, R, Spring…) must be correctly cased in prose to count. |
 | `jobs` | `analyzer.py` is the deterministic job-description analyzer (`jd-rules-v1`). `service.py` and `router.py` serve `/jobs` (paste, upload, link, list, detail, edit, re-analyze, delete). `sources.py` is the job-source adapter registry, empty until a source is approved (D-05). |
 | `matching` | `matcher.py` is the rule-based matcher (`match-rules-v1`): per-requirement evidence that points at resume entity ids, a skill gap matrix and weighted subscores (weights pending D-11). `service.py` stores each run as an immutable `JobMatch` snapshot; `router.py` serves `/jobs/{id}/matches` and `/matches`. |
 | `tailoring` | `proposer.py` makes deterministic proposals (`tailor-rules-v1`: reorder skills, bullets and projects; add skills the experience shows; one summary sentence) and applies accepted ones. `factcheck.py` is factual-consistency layer 1. `service.py` runs review, the optional LLM rewrite (only through `get_llm_provider`) and finalize; `router.py` serves `/tailoring`. |
 | `output` | `templates.py` holds the ATS-safe templates (pending D-10). `pdf.py` renders resume content to a text PDF with reportlab. `ats.py` (`ats-rules-v1`) reads the PDF back with pypdf and runs the ATS checks. `router.py` serves `/output/templates`, `/resumes/{id}/export.pdf` and `/resumes/{id}/ats`. |
+| `applications` | `service.py` holds the application tracker (append-only `ApplicationEvent` history) and `NotificationService` (follow-up reminders, deduplicated by `(owner_id, dedupe_key)`). `router.py` serves `/applications` and `/notifications`. |
 | `ai`, `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 
 **Conventions**
@@ -50,6 +51,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
   resume whose version 1 has `source = 'tailoring'`. Accepted text must pass the factual
   check: numbers, years, technologies and names that the master does not contain are refused.
 - Exports are generated on request from a stored version and never stored themselves.
+- Notifications are generated on read until a background worker exists; the dedupe key makes
+  that idempotent.
 - Schema changes go through Alembic only. The test suite builds the schema by running the
   migrations.
 
@@ -58,9 +61,9 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | Folder | Responsibility |
 |---|---|
 | `app/` | `App` providers, route table (`router.tsx`), route guards, query client |
-| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail), `match/` (Job Match, Skill Gap Matrix), `tailor/` (start, review, finalize), `builder/` (template, ATS check, PDF download) |
+| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis), `jobs/` (list, analyze, detail), `match/` (Job Match, Skill Gap Matrix), `tailor/` (start, review, finalize), `builder/` (template, ATS check, PDF download), `applications/` (tracker, detail and history, notifications) |
 | `components/resume` | `ResumeEditor` (structured editor that keeps entity ids), `ResumeView`, `FileDrop`, `ConfidenceBadge` |
-| `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md) |
+| `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md), notification bell |
 | `components/ui` | UI kit (Button, Card, Field, Notice, Pill, Score, StatTile, States, Tabs) |
 | `services/` | `apiClient` is the only place that calls `fetch`. Typed services sit on top of it. |
 | `hooks/` | React Query hooks (session, capabilities) |

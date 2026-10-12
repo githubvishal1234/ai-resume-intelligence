@@ -7,8 +7,12 @@ import { createTestRouter } from "@/app/router";
 
 export type MockRoute = { method?: string; path: string; status?: number; body?: unknown };
 
+/** Requests the app shell makes on every page; a test can override them by listing the path. */
+const SHELL_ROUTES: MockRoute[] = [{ path: "/notifications/unread-count", body: { unread: 0 } }];
+
 /** Replaces fetch with a tiny router over `/api/v1` paths. Unmatched calls fail loudly. */
-export function mockApi(routes: MockRoute[]) {
+export function mockApi(given: MockRoute[]) {
+  const routes = [...given, ...SHELL_ROUTES];
   const calls: { method: string; path: string; headers: Record<string, string>; body: unknown }[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input.toString();

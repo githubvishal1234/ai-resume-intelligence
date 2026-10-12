@@ -60,7 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "pipeline",
     label: "Pipeline",
     items: [
-      { id: "applications", label: "Applications", icon: BriefcaseBusiness, phase: 7, phaseNote: "Applications" },
+      { id: "applications", label: "Applications", icon: BriefcaseBusiness, to: "/applications", phase: 7, phaseNote: "Applications" },
     ],
   },
   {

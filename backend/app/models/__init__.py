@@ -1,3 +1,4 @@
+from app.models.application import Application, ApplicationEvent, Notification
 from app.models.audit import AuditLog
 from app.models.job import Job
 from app.models.match import JobMatch
@@ -7,9 +8,12 @@ from app.models.tailoring import TailoringChange, TailoringSession
 from app.models.user import User
 
 __all__ = [
+    "Application",
+    "ApplicationEvent",
     "AuditLog",
     "Job",
     "JobMatch",
+    "Notification",
     "Resume",
     "ResumeFile",
     "ResumeImport",

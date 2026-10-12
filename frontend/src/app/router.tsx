@@ -1,5 +1,7 @@
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
+import { ApplicationDetailPage, ApplicationNewPage, ApplicationsPage } from "@/pages/applications/ApplicationPages";
+import { NotificationsPage } from "@/pages/applications/NotificationsPage";
 import { AuthLayout } from "@/pages/auth/AuthLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
@@ -62,6 +64,10 @@ export const routes: RouteObject[] = [
           { path: "/tailor", element: <TailorIndexPage /> },
           { path: "/builder", element: <BuilderPage /> },
           { path: "/tailor/:sessionId", element: <TailorReviewPage /> },
+          { path: "/applications", element: <ApplicationsPage /> },
+          { path: "/applications/new", element: <ApplicationNewPage /> },
+          { path: "/applications/:applicationId", element: <ApplicationDetailPage /> },
+          { path: "/notifications", element: <NotificationsPage /> },
           { path: "*", element: <NotFoundPage /> },
         ],
       },
