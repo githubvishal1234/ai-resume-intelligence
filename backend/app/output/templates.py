@@ -1,7 +1,8 @@
 """ATS-safe resume templates (the final set is pending Decision Register D-10).
 
-Every template is single-column, uses a standard PDF font, standard section headings and real
-text (no images, tables or text boxes), so applicant tracking systems can read it in order.
+Every template is single-column, embeds a Unicode font (app/output/fonts), uses standard
+section headings and real text (no images, tables or text boxes), so applicant tracking
+systems can read it in order.
 """
 
 from __future__ import annotations
@@ -29,8 +30,8 @@ TEMPLATES: dict[str, Template] = {
         id="classic",
         name="Classic",
         description="Clean sans-serif, generous spacing, ruled section headings.",
-        font="Helvetica",
-        font_bold="Helvetica-Bold",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
         body_size=10.5,
         name_size=20,
         heading_size=11.5,
@@ -42,8 +43,8 @@ TEMPLATES: dict[str, Template] = {
         id="compact",
         name="Compact",
         description="Tighter spacing to fit more on a page; plain headings.",
-        font="Helvetica",
-        font_bold="Helvetica-Bold",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
         body_size=9.5,
         name_size=16,
         heading_size=10.5,
@@ -54,9 +55,9 @@ TEMPLATES: dict[str, Template] = {
     "serif": Template(
         id="serif",
         name="Serif",
-        description="Times for a traditional look, ruled headings.",
-        font="Times-Roman",
-        font_bold="Times-Bold",
+        description="Serif type for a traditional look, ruled headings.",
+        font="DejaVuSerif",
+        font_bold="DejaVuSerif-Bold",
         body_size=11,
         name_size=20,
         heading_size=12,

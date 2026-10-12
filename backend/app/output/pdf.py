@@ -1,12 +1,15 @@
-"""Text-extractable PDF rendering with reportlab's standard fonts.
+"""Text-extractable PDF rendering with embedded Unicode fonts.
 
-Standard PDF fonts cover Windows-1252 only. Characters outside it are reported by the ATS
-check instead of being silently dropped; here they are replaced so the PDF never shows boxes.
+Each template names a bundled TrueType font (see app/output/fonts.py). Characters the font has
+no glyph for are reported by the ATS check instead of being silently dropped; here they are
+spelled out where there is a readable equivalent, otherwise replaced, so the PDF never shows
+empty boxes.
 """
 
 from __future__ import annotations
 
 import io
+from collections.abc import Callable
 from xml.sax.saxutils import escape
 
 from reportlab.lib.colors import HexColor
@@ -16,32 +19,50 @@ from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable, KeepTogether, Paragraph, SimpleDocTemplate, Spacer
 from reportlab.platypus.flowables import Flowable
 
+from app.output import fonts
 from app.output.templates import HEADINGS, Template
 from app.resumes.content import ResumeContent
 
+# Invisible characters that are dropped rather than reported.
+_INVISIBLE = {"\u200b", "\u200c", "\u200d", "\ufeff"}
 
-def unsupported_characters(text: str) -> set[str]:
-    out: set[str] = set()
-    for ch in text:
-        try:
-            ch.encode("cp1252")
-        except UnicodeEncodeError:
-            out.add(ch)
-    return out
+# Symbols with a readable spelling, used only when the font has no glyph for them.
+_REPLACEMENTS = {"₹": "INR ", "→": "->", "≥": ">=", "≤": "<=", "✓": "-", "★": "*"}
 
 
-# Common symbols that have a readable ASCII spelling.
-_REPLACEMENTS = {"₹": "INR ", "→": "->", "≥": ">=", "≤": "<=", "✓": "-", "★": "*", "​": ""}
+def _coverage(template: Template) -> frozenset[int]:
+    return fonts.coverage(template.font) & fonts.coverage(template.font_bold)
 
 
-def _safe(text: str) -> str:
-    for src, dst in _REPLACEMENTS.items():
-        text = text.replace(src, dst)
-    return "".join(ch if not unsupported_characters(ch) else "?" for ch in text)
+def unsupported_characters(text: str, template: Template) -> set[str]:
+    """Characters in ``text`` the template's fonts cannot show (whitespace is always fine)."""
+    covered = _coverage(template)
+    return {
+        ch
+        for ch in set(text)
+        if ord(ch) not in covered and not ch.isspace() and ch not in _INVISIBLE
+    }
 
 
-def _p(text: str, style: ParagraphStyle) -> Paragraph:
-    return Paragraph(escape(_safe(text)), style)
+def _make_safe(template: Template) -> Callable[[str], str]:
+    covered = _coverage(template)
+
+    def safe(text: str) -> str:
+        out: list[str] = []
+        for ch in text:
+            if ch in _INVISIBLE:
+                continue
+            if ord(ch) in covered or ch in "\n\t":
+                out.append(ch)
+            elif ch in _REPLACEMENTS:
+                out.append(_REPLACEMENTS[ch])
+            elif ch.isspace():
+                out.append(" ")
+            else:
+                out.append("?")
+        return "".join(out)
+
+    return safe
 
 
 def _dates(start: str, end: str, current: bool = False) -> str:
@@ -51,6 +72,13 @@ def _dates(start: str, end: str, current: bool = False) -> str:
 
 def render_pdf(content: ResumeContent, template: Template, title: str = "Resume") -> bytes:
     t = template
+    fonts.register(t.font)
+    fonts.register(t.font_bold)
+    _safe = _make_safe(t)
+
+    def _p(text: str, style: ParagraphStyle) -> Paragraph:
+        return Paragraph(escape(_safe(text)), style)
+
     accent = HexColor(t.accent)
     base = ParagraphStyle("body", fontName=t.font, fontSize=t.body_size, leading=t.body_size * 1.35)
     name_style = ParagraphStyle(

@@ -257,9 +257,9 @@ frontend UI kit, app shell, API client and session hooks.
 
 **Not done here, by decision**
 - Final template designs wait on D-10.
-- The built-in PDF fonts cover Western European characters only (cp1252). Others (₹ becomes
-  "INR", the rest are reported by the "All characters can be shown" check). Embedding a
-  Unicode font is a small change once the template fonts are chosen.
+- PDFs embed the bundled DejaVu fonts (follow-up, 2026-10-12), so Latin, Greek, Cyrillic and
+  common symbols render as real text. Scripts DejaVu does not cover (e.g. CJK) are reported by
+  the "All characters can be shown" check. Final typefaces still wait on D-10.
 
 **Verified 2026-10-12**
 - 141 backend tests pass (7 new: templates listed, PDF is real text in every template,

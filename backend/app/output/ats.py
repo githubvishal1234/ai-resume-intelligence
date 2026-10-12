@@ -17,7 +17,7 @@ from pypdf import PdfReader
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import parse_month
 from app.output.pdf import unsupported_characters
-from app.output.templates import HEADINGS
+from app.output.templates import HEADINGS, TEMPLATES
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 
@@ -144,8 +144,8 @@ def ats_check(
             else f"Could not read: {', '.join(lost)}.",
         )
 
-    # 4. Characters the standard PDF fonts cannot show.
-    odd = sorted(unsupported_characters(_all_text(c)) - {"​"})
+    # 4. Characters the template's fonts cannot show.
+    odd = sorted(unsupported_characters(_all_text(c), TEMPLATES[template_id]))
     add(
         "text.characters",
         "All characters can be shown",

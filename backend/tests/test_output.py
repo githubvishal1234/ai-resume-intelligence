@@ -58,9 +58,42 @@ def test_ats_flags_missing_email_odd_characters_and_mixed_dates() -> None:
     assert checks["text.characters"].status == "warn"
     assert "✨" in checks["text.characters"].detail
     assert checks["dates.consistent"].status == "warn"
-    # Unsupported characters never reach the PDF as boxes; known symbols are spelled out.
-    assert "INR" in _text(pdf)
+    # Characters the font covers are kept; others never reach the PDF as boxes.
+    assert "₹12L" in _text(pdf)
+    assert "₹" not in checks["text.characters"].detail
     assert report.score < 100
+
+
+@pytest.mark.parametrize("template", sorted(TEMPLATES))
+def test_pdf_keeps_non_western_text(template: str) -> None:
+    content = ResumeContent(
+        contact=Contact(full_name="José Núñez Ødegård", email="jose@example.com"),
+        summary="Привет Ελληνικά Łódź — ≥ 5 years, “quoted”.",
+        experience=[Experience(title="Інженер", company="Straße GmbH", start_date="Jan 2020")],
+    )
+    pdf = render_pdf(content, TEMPLATES[template])
+    text = _text(pdf)
+    for fragment in (
+        "José Núñez Ødegård",
+        "Привет",
+        "Ελληνικά",
+        "Łódź",
+        "≥ 5",
+        "Інженер",
+        "Straße",
+    ):
+        assert fragment in text
+    report = ats_check(content, pdf, template)
+    assert {c.id: c.status for c in report.checks}["text.characters"] == "pass"
+
+
+def test_uncovered_script_is_reported_and_replaced() -> None:
+    content = ResumeContent(contact=Contact(full_name="王伟", email="w@example.com"))
+    pdf = render_pdf(content, TEMPLATES["serif"])
+    checks = {c.id: c for c in ats_check(content, pdf, "serif").checks}
+    assert checks["text.characters"].status == "warn"
+    assert "王" in checks["text.characters"].detail
+    assert "??" in _text(pdf)
 
 
 def test_export_pdf_and_ats_endpoints(user_client: TestClient) -> None:
