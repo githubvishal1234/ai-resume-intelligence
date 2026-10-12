@@ -34,14 +34,14 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/", phase: 1, phaseNote: "" },
-      { id: "resumes", label: "My Resumes", shortLabel: "Resumes", icon: FileText, phase: 2, phaseNote: "Master Resume" },
+      { id: "resumes", label: "My Resumes", shortLabel: "Resumes", icon: FileText, to: "/resumes", phase: 2, phaseNote: "Master Resume" },
     ],
   },
   {
     id: "intelligence",
     label: "Intelligence",
     items: [
-      { id: "analysis", label: "Resume Analysis", icon: ScanSearch, phase: 2, phaseNote: "Master Resume" },
+      { id: "analysis", label: "Resume Analysis", icon: ScanSearch, to: "/analysis", phase: 2, phaseNote: "Master Resume" },
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, phase: 3, phaseNote: "Job Intelligence" },
       { id: "job-match", label: "Job Match", icon: GitCompareArrows, phase: 4, phaseNote: "Matching" },
       { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, phase: 4, phaseNote: "Matching" },

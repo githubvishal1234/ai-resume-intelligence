@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from collections.abc import Iterator
 
 # Must be set before the app imports settings.
@@ -13,6 +14,7 @@ os.environ["DATABASE_URL"] = os.environ.get(
 )
 if not os.environ["DATABASE_URL"].rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
     raise RuntimeError("Refusing to run tests: the test database name must end in '_test'.")
+os.environ["STORAGE_LOCAL_ROOT"] = tempfile.mkdtemp(prefix="resume-intel-test-storage-")
 os.environ["LLM_PROVIDER"] = ""
 os.environ["EMAIL_PROVIDER"] = ""
 
@@ -81,10 +83,28 @@ def register(client: TestClient, email: str = "ada@example.com", password: str =
     )
 
 
+def login_as(app, email: str) -> TestClient:  # type: ignore[no-untyped-def]
+    """A second, independent client signed in as a new user (for authorization tests)."""
+    other = TestClient(app, raise_server_exceptions=False)
+    response = register(other, email)
+    assert response.status_code == 201
+    other.headers["x-csrf-token"] = response.json()["csrf_token"]
+    return other
+
+
 @pytest.fixture
 def auth_client(client: TestClient) -> TestClient:
     """A client with a logged-in user; exposes csrf via `client.csrf`."""
     response = register(client)
     assert response.status_code == 201
     client.csrf = response.json()["csrf_token"]  # type: ignore[attr-defined]
+    return client
+
+
+@pytest.fixture
+def user_client(client: TestClient) -> TestClient:
+    """Signed-in client that sends the CSRF header on every request."""
+    response = register(client)
+    assert response.status_code == 201
+    client.headers["x-csrf-token"] = response.json()["csrf_token"]
     return client

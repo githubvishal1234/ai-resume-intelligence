@@ -49,7 +49,9 @@ function parseDetails(value: unknown): ApiFieldError[] {
 
 export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  // FormData sets its own multipart boundary header.
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (!SAFE.has(method) && csrfToken) headers["X-CSRF-Token"] = csrfToken;
 
   let response: Response;
@@ -58,7 +60,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
       method,
       headers,
       credentials: "include",
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, "NETWORK_ERROR", "We could not reach the server. Check your connection and try again.");
@@ -89,4 +91,12 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
+  put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
+  patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
+  delete: <T>(path: string) => request<T>("DELETE", path),
 };
+
+/** URL for a same-origin download (the session cookie authenticates it). */
+export function apiUrl(path: string): string {
+  return `${BASE}${path}`;
+}

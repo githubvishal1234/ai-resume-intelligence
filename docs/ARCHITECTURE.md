@@ -21,7 +21,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `auth` | routes → `AuthService` → repositories. Covers register, login, logout and me. |
 | `core` | settings and production guards, error envelope, JSON logging, request-context middleware, rate limiter, password and token helpers, `AccessPolicy` |
 | `db` | Declarative base with deterministic constraint names; engine and session dependency |
-| `models` | `User`, `UserSession`, `AuditLog` |
+| `models` | `User`, `UserSession`, `AuditLog`, `Resume`, `ResumeVersion`, `ResumeFile`, `ResumeImport` |
+| `resumes` | `content.py` holds the structured resume document. `extraction.py` validates uploads and extracts text. `parser.py` is the heuristic section parser. `analysis.py` holds the rule-based checks. `service.py` holds the master resume rules. `router.py` serves `/resumes`. |
 | `ai`, `mail`, `storage`, `jobs`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 
 **Conventions**
@@ -31,6 +32,11 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
   `{code, message, request_id, details?}`, with no stack traces or submitted values.
 - User-owned resources are checked with `ensure_access(actor, owner_id)`. An unauthorized
   access looks like a 404.
+- Resume content is a versioned JSONB document (`resume_versions.content`). Versions are
+  append-only, and a DB trigger rejects UPDATEs. `resumes.current_version` points at the
+  latest one. Edits send `base_version`, and a stale base returns `409 VERSION_CONFLICT`.
+- Uploads become a `ResumeImport` (pending review). Only `confirm` creates a master resume or
+  a new master version, using the content the user reviewed.
 - Schema changes go through Alembic only. The test suite builds the schema by running the
   migrations.
 
@@ -39,7 +45,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | Folder | Responsibility |
 |---|---|
 | `app/` | `App` providers, route table (`router.tsx`), route guards, query client |
-| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found |
+| `pages/` | Route screens: auth (login, register), dashboard, settings, not-found, `resumes/` (list, upload, review, detail, editor, versions, analysis) |
+| `components/resume` | `ResumeEditor` (structured editor that keeps entity ids), `ResumeView`, `FileDrop`, `ConfidenceBadge` |
 | `components/layout` | App shell: sidebar (lg+), drawer (< lg), bottom tab bar (< md) |
 | `components/ui` | UI kit (Button, Card, Field, Notice, Pill, Score, StatTile, States, Tabs) |
 | `services/` | `apiClient` is the only place that calls `fetch`. Typed services sit on top of it. |

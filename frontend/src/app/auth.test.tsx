@@ -15,6 +15,7 @@ describe("auth routing", () => {
     mockApi([
       { path: "/auth/me", body: SESSION },
       { path: "/system/capabilities", body: CAPS },
+      { path: "/resumes", body: [] },
     ]);
     renderApp("/");
     expect(await screen.findByRole("heading", { name: "Welcome, Ada" })).toBeInTheDocument();
@@ -26,6 +27,7 @@ describe("auth routing", () => {
     mockApi([
       { path: "/auth/me", body: SESSION },
       { path: "/system/capabilities", body: CAPS },
+      { path: "/resumes", body: [] },
     ]);
     const { router } = renderApp("/login");
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
@@ -70,6 +72,7 @@ describe("login", () => {
       { path: "/auth/me", ...NOT_AUTHED },
       { method: "POST", path: "/auth/login", body: SESSION },
       { path: "/system/capabilities", body: CAPS },
+      { path: "/resumes", body: [] },
     ]);
     const { router } = renderApp("/login");
     await userEvent.type(await screen.findByLabelText("Email"), "ada@example.com");
@@ -122,6 +125,7 @@ describe("logout", () => {
     const { calls } = mockApi([
       { path: "/auth/me", body: SESSION },
       { path: "/system/capabilities", body: CAPS },
+      { path: "/resumes", body: [] },
       { method: "POST", path: "/auth/logout", status: 204 },
     ]);
     const { router } = renderApp("/");
@@ -135,6 +139,7 @@ describe("logout", () => {
     mockApi([
       { path: "/auth/me", body: SESSION },
       { path: "/system/capabilities", body: CAPS },
+      { path: "/resumes", body: [] },
       { method: "POST", path: "/auth/logout", status: 503, body: { code: "SERVICE_UNAVAILABLE", message: "x", request_id: "r" } },
     ]);
     const { router } = renderApp("/");
