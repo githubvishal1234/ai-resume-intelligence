@@ -36,6 +36,7 @@ export const interviewService = {
   create: async (jobId: string, resumeId: string | null) =>
     prep(await api.post<S["PrepDetailOut"]>("/interview/preps", { job_id: jobId, resume_id: resumeId })),
   remove: (id: string) => api.delete<void>(`/interview/preps/${id}`),
+  addAiQuestions: async (id: string) => prep(await api.post<S["PrepDetailOut"]>(`/interview/preps/${id}/ai-questions`)),
   start: async (prepId: string, questionIds: string[] | null) =>
     session(await api.post<S["PracticeSessionOut"]>(`/interview/preps/${prepId}/sessions`, { question_ids: questionIds })),
   session: async (id: string) => session(await api.get<S["PracticeSessionOut"]>(`/interview/sessions/${id}`)),

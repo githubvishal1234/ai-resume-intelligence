@@ -21,6 +21,7 @@ from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, NotFound
+from app.interview.ai_questions import MAX_AI_QUESTIONS, ai_questions
 from app.interview.questions import METHOD_VERSION, Question, build_questions
 from app.interview.schemas import Feedback
 from app.jobs.analyzer import JobAnalysis
@@ -56,6 +57,17 @@ class AnswerRequired(AppError):
     status_code = 422
     code = "ANSWER_REQUIRED"
     message = "Write an answer before asking for feedback."
+
+
+class AiQuestionLimit(Conflict):
+    code = "AI_QUESTION_LIMIT"
+    message = "This question set already has the most AI questions it can hold."
+
+
+class NoNewAiQuestions(AppError):
+    status_code = 422
+    code = "NO_NEW_AI_QUESTIONS"
+    message = "The AI did not suggest any new questions this time. Try again later."
 
 
 class SessionCompleted(Conflict):
@@ -141,6 +153,45 @@ class InterviewService:
         self.db.add(prep)
         self.db.flush()
         self._audit("interview.prep.create", str(prep.id))
+        self.db.commit()
+        return prep
+
+    def add_ai_questions(self, prep_id: uuid.UUID) -> InterviewPrep:
+        """Appends AI questions; earlier questions and practice sessions are untouched."""
+        prep = self._owned(InterviewPrep, prep_id)
+        existing = self.questions(prep)
+        if sum(q.source == "ai" for q in existing) >= MAX_AI_QUESTIONS:
+            raise AiQuestionLimit()
+        provider = metered(  # raises when no provider is configured
+            get_llm_provider(self.settings),
+            self.actor.user_id,
+            "interview.questions",
+            self.settings,
+        )
+        job = self._owned(Job, prep.job_id)
+        version = (
+            self.db.scalar(
+                select(ResumeVersion).where(
+                    ResumeVersion.resume_id == prep.resume_id,
+                    ResumeVersion.version == prep.resume_version,
+                )
+            )
+            if prep.resume_id
+            else None
+        )
+        if version is None:
+            raise MasterResumeRequired("The resume this question set was built from is gone.")
+        content = ResumeContent.model_validate(version.content)
+        analysis = JobAnalysis.model_validate(job.analysis)
+        new = ai_questions(
+            content, analysis, job.raw_text, match(content, analysis), existing, provider
+        )
+        room = MAX_AI_QUESTIONS - sum(q.source == "ai" for q in existing)
+        new = new[:room]
+        if not new:
+            raise NoNewAiQuestions()
+        prep.questions = [*prep.questions, *(q.model_dump(mode="json") for q in new)]
+        self._audit("interview.ai_questions", str(prep.id))
         self.db.commit()
         return prep
 

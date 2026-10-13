@@ -153,6 +153,11 @@ def get_prep(prep_id: uuid.UUID, service: Service) -> PrepDetailOut:
     return _prep_detail(service, service.get_prep(prep_id))
 
 
+@router.post("/preps/{prep_id}/ai-questions", response_model=PrepDetailOut)
+def add_ai_questions(prep_id: uuid.UUID, service: Service) -> PrepDetailOut:
+    return _prep_detail(service, service.add_ai_questions(prep_id))
+
+
 @router.delete("/preps/{prep_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_prep(prep_id: uuid.UUID, service: Service) -> None:
     service.delete_prep(prep_id)

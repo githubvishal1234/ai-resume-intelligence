@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, MessagesSquare, Play, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessagesSquare, Play, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -9,6 +9,7 @@ import { Pill } from "@/components/ui/Pill";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import {
+  useAddAiQuestions,
   useCompletePractice,
   useCreatePrep,
   useDeletePrep,
@@ -227,6 +228,7 @@ export function PrepPage() {
           })}
         </div>
         <div className="space-y-6">
+          <AiQuestionsCard prep={p} />
           <SessionsCard prep={p} />
           <DeletePrep prep={p} />
         </div>
@@ -282,6 +284,7 @@ function QuestionCard({ question: q, selected, onToggle }: { question: Question;
           <label htmlFor={id} className="block text-body-lg text-on-surface">
             {q.text}
           </label>
+          {q.source === "ai" ? <Pill tone="brand" className="mt-1">AI-written</Pill> : null}
           <p id={`${id}-why`} className="mt-1 text-body-sm text-on-surface-variant">
             Why: {q.why}
           </p>
@@ -289,6 +292,37 @@ function QuestionCard({ question: q, selected, onToggle }: { question: Question;
           <Tips question={q} />
         </div>
       </div>
+    </Card>
+  );
+}
+
+function AiQuestionsCard({ prep }: { prep: PrepDetail }) {
+  const caps = useCapabilities();
+  const add = useAddAiQuestions(prep.id);
+  const id = useId();
+  if (!caps.data?.ai.configured) return null;
+  const count = prep.questions.filter((q) => q.source === "ai").length;
+  return (
+    <Card aria-labelledby={`${id}-t`}>
+      <CardHeader
+        id={`${id}-t`}
+        title="More questions from AI"
+        description="The AI suggests questions this interviewer may ask, beyond the ones above. They are marked AI-written."
+      />
+      {add.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-3">
+          {errorText(add.error)}
+        </Notice>
+      ) : null}
+      <Button
+        variant="secondary"
+        loading={add.isPending}
+        icon={<Sparkles className="size-4" aria-hidden />}
+        onClick={() => add.mutate()}
+      >
+        {count ? "Suggest more" : "Suggest questions"}
+      </Button>
+      {count ? <p className="mt-2 text-body-sm text-on-surface-variant">{count} AI-written so far.</p> : null}
     </Card>
   );
 }

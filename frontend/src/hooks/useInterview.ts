@@ -21,6 +21,17 @@ export function usePracticeSession(id: string) {
   return useQuery({ queryKey: interviewKeys.session(id), queryFn: () => interviewService.session(id) });
 }
 
+export function useAddAiQuestions(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => interviewService.addAiQuestions(id),
+    onSuccess: (prep) => {
+      client.setQueryData(interviewKeys.prep(prep.id), prep);
+      void client.invalidateQueries({ queryKey: interviewKeys.list() });
+    },
+  });
+}
+
 export function useCreatePrep() {
   const client = useQueryClient();
   return useMutation({

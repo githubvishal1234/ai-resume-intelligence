@@ -70,6 +70,7 @@ class Question(BaseModel):
     requirement_ids: list[str] = Field(default_factory=list)
     evidence: list[EvidenceRef] = Field(default_factory=list)
     tips: list[str] = Field(default_factory=list)
+    source: Literal["rules", "ai"] = "rules"
 
 
 def _qid(category: str, key: str) -> str:

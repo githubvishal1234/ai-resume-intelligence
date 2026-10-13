@@ -845,6 +845,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interview/preps/{prep_id}/ai-questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Ai Questions */
+        post: operations["add_ai_questions_api_v1_interview_preps__prep_id__ai_questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interview/preps/{prep_id}/sessions": {
         parameters: {
             query?: never;
@@ -2103,6 +2120,12 @@ export interface components {
             evidence?: components["schemas"]["EvidenceRef"][];
             /** Tips */
             tips?: string[];
+            /**
+             * Source
+             * @default rules
+             * @enum {string}
+             */
+            source: "rules" | "ai";
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -4378,6 +4401,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_ai_questions_api_v1_interview_preps__prep_id__ai_questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prep_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrepDetailOut"];
+                };
             };
             /** @description Validation Error */
             422: {

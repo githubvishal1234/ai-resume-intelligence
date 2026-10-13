@@ -124,4 +124,22 @@ describe("Interview Prep", () => {
     expect(screen.getByText("Not answered.")).toBeInTheDocument();
     await waitFor(() => expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1));
   });
+
+  it("adds AI-written questions when AI is set up", async () => {
+    const aiCaps = { ...CAPS, ai: { configured: true, provider: "groq", model: "openai/gpt-oss-120b", reason: null } };
+    const Q3 = { ...Q1, id: "aaaaaaaaaaa3", text: "Walk me through a slow query you fixed in PostgreSQL.", source: "ai" };
+    const { calls } = mockApi([
+      me,
+      { path: "/system/capabilities", body: aiCaps },
+      { path: `/interview/preps/${PREP_ID}`, body: PREP },
+      { method: "POST", path: `/interview/preps/${PREP_ID}/ai-questions`, body: { ...PREP, question_count: 3, questions: [Q1, Q2, Q3] } },
+    ]);
+    renderApp(`/interview/${PREP_ID}`);
+    await userEvent.click(await screen.findByRole("button", { name: "Suggest questions" }));
+    expect(await screen.findByText(Q3.text)).toBeInTheDocument();
+    expect(screen.getByText("AI-written")).toBeInTheDocument();
+    expect(screen.getByText("1 AI-written so far.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Suggest more" })).toBeInTheDocument();
+    expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/ai-questions"))).toBe(true);
+  });
 });

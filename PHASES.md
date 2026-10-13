@@ -512,9 +512,23 @@ cannot run up the bill (the budget itself is still open under D-03).
 
 ## Phase 13: AI interview questions
 
-**Scope**
-- [ ] When AI is set up, a question set can add AI questions tailored to the job and the
-      user's gaps, marked as AI-written, next to the rule-based bank.
+**Delivered**
+- [x] `POST /interview/preps/{id}/ai-questions` (`app/interview/ai_questions.py`,
+      `interview-ai-v1`): the AI suggests up to 5 more questions per request for the job and
+      the user's gaps, appended to the set and marked `source: "ai"` (rule questions are
+      `"rules"`). At most 20 AI questions per set (409 `AI_QUESTION_LIMIT`).
+- [x] Checked in code: repeats of existing questions are dropped, questions quoting numbers
+      that are not in the resume or the posting are dropped, and requirement links must name
+      real requirements. If nothing survives, 422 `NO_NEW_AI_QUESTIONS` and the set is unchanged.
+- [x] Question set page: "More questions from AI" card ("Suggest questions" / "Suggest more")
+      when AI is set up, and an "AI-written" label on those questions. Metered as
+      `interview.questions`.
+
+**Verified 2026-10-13**
+- 216 backend tests pass (4 new: not-configured, questions added and filtered, the cap,
+  nothing-new refusal).
+- 73 frontend tests pass (1 new). Lint, types, the API types and the build are clean.
+- Not run in a browser; covered by the API and component tests above.
 
 ---
 
@@ -536,3 +550,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Phases 10–13 planned. Phase 10 completed and verified. Phase 11 started.
 - 2026-10-13: Phase 11 completed and verified. Phase 12 started.
 - 2026-10-13: Phase 12 completed and verified. Phase 13 started.
+- 2026-10-13: Phase 13 completed and verified. All planned phases are done; what remains needs a decision (see the follow-ups and D-02 to D-11) or a Groq key.
