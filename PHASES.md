@@ -26,8 +26,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 8 | Interview Prep | ✅ |
 | 9 | Hardening | ✅ |
 | 10 | AI usage limits & tracking | ✅ |
-| 11 | AI-assisted resume import | 🚧 |
-| 12 | AI-assisted job analysis | ⏳ |
+| 11 | AI-assisted resume import | ✅ |
+| 12 | AI-assisted job analysis | 🚧 |
 | 13 | AI interview questions | ⏳ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
@@ -465,10 +465,27 @@ cannot run up the bill (the budget itself is still open under D-03).
 
 ## Phase 11: AI-assisted resume import
 
-**Scope**
-- [ ] When AI is set up, the import review offers "Improve with AI" for a resume the rules
-      parsed poorly. The AI returns the same structured content; nothing is saved until the
-      user confirms, and every field is checked against the uploaded text.
+**Delivered**
+- [x] `POST /resumes/imports/{id}/ai-parse` (`app/resumes/ai_parse.py`, `resume-ai-v1`): the
+      uploaded file's text is sent to the AI as data, with instructions to copy values
+      exactly. Every value it returns must appear in the file text (case, spacing and
+      punctuation ignored; phone numbers by digits), or it is left out and listed. Roles,
+      schools and projects left with nothing are dropped. If nothing matches, the request is
+      refused and the draft is unchanged.
+- [x] The AI result replaces the review draft only; nothing is saved until the user confirms.
+      The rule-based reading is kept, and `DELETE .../ai-parse` restores it.
+- [x] Import review page: "Improve with AI" (only when AI is set up), a notice with how many
+      values matched and what was left out, and "Use the original reading". Section
+      confidence badges are hidden for the AI reading, since they describe the rules.
+- [x] Each call is metered as `resumes.ai_parse` (Phase 10).
+
+**Verified 2026-10-13**
+- 206 backend tests pass (6 new: value checking, not-configured, replace and undo, confirm,
+  nothing-matches refusal, other users). ruff, format and mypy are clean.
+- 70 frontend tests pass (2 new). Lint, types and the API types are clean.
+- Browser run against a stand-in for Groq that also returns an invented title, company,
+  bullet and skill: all four were listed as left out, none reached the saved resume, undo
+  worked, and there was no overflow at 768 or 390.
 
 ## Phase 12: AI-assisted job analysis
 
@@ -501,3 +518,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Groq chosen as the LLM provider; Groq adapter added.
 - 2026-10-13: Factual-check layer 2 (LLM claim check) added.
 - 2026-10-13: Phases 10–13 planned. Phase 10 completed and verified. Phase 11 started.
+- 2026-10-13: Phase 11 completed and verified. Phase 12 started.

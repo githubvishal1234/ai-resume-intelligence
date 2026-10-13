@@ -37,6 +37,7 @@ const IMPORT = {
   filename: "cv.pdf",
   created_at: "2026-10-12T05:00:00Z",
   has_master: false,
+  ai_available: false,
   content: CONTENT,
   report: {
     parser_version: "heuristic-v1",
@@ -55,6 +56,43 @@ const IMPORT = {
 };
 
 const me = { path: "/auth/me", body: SESSION };
+
+describe("Import review with AI", () => {
+  it("re-reads the file with AI, shows what was left out, and can undo", async () => {
+    const user = userEvent.setup();
+    const available = { ...IMPORT, ai_available: true };
+    const improved = {
+      ...available,
+      content: { ...CONTENT, summary: "Read by the AI." },
+      report: {
+        ...IMPORT.report,
+        ai: { method_version: "resume-ai-v1", provider: "groq", model: "openai/gpt-oss-120b", kept: 14, dropped: ["Skill: “Rust”"] },
+      },
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/resumes/imports/${IMPORT_ID}`, body: available },
+      { method: "POST", path: `/resumes/imports/${IMPORT_ID}/ai-parse`, body: improved },
+      { method: "DELETE", path: `/resumes/imports/${IMPORT_ID}/ai-parse`, body: available },
+    ]);
+    renderApp(`/resumes/imports/${IMPORT_ID}`);
+    await user.click(await screen.findByRole("button", { name: "Improve with AI" }));
+    expect(await screen.findByText("Filled in by AI (groq · openai/gpt-oss-120b)")).toBeInTheDocument();
+    expect(screen.getByText(/14 values were read and matched to your file. 1 were left out/)).toBeInTheDocument();
+    expect(screen.getByText("Skill: “Rust”")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Read by the AI.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use the original reading" }));
+    expect(await screen.findByRole("button", { name: "Improve with AI" })).toBeInTheDocument();
+    expect(calls.filter((c) => c.path.endsWith("/ai-parse")).map((c) => c.method)).toEqual(["POST", "DELETE"]);
+  });
+
+  it("does not offer AI when it is not set up", async () => {
+    mockApi([me, { path: `/resumes/imports/${IMPORT_ID}`, body: IMPORT }]);
+    renderApp(`/resumes/imports/${IMPORT_ID}`);
+    expect(await screen.findByRole("heading", { name: "Review your resume" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Improve with AI" })).not.toBeInTheDocument();
+  });
+});
 
 describe("My Resumes", () => {
   it("offers upload and scratch when there is no master", async () => {

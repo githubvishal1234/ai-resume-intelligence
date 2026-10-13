@@ -70,6 +70,8 @@
 - Every AI call is recorded in `ai_usage` (user, feature, provider, model, token counts,
   latency, outcome), never with prompt or answer text, and capped per user per day
   (`AI_DAILY_LIMIT_PER_USER`). Rows are deleted with the user.
+- AI resume import keeps only values that appear in the uploaded file's text, so the model
+  cannot add facts to a resume; what it tried to add is shown to the user.
 - Layer 2 of that check (`app/tailoring/claims.py`) asks the model to quote supporting words
   from the master resume and verifies each quote itself, so the model cannot vouch for a claim
   without real evidence. Its findings are warnings; layer-1 flags still block.

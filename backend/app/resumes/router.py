@@ -59,7 +59,7 @@ def _detail(resume: Resume, version: ResumeVersion) -> ResumeDetailOut:
     )
 
 
-def _import_out(item: ResumeImport, has_master: bool) -> ImportOut:
+def _import_out(item: ResumeImport, service: ResumeService) -> ImportOut:
     return ImportOut(
         id=item.id,
         status=item.status,
@@ -67,7 +67,8 @@ def _import_out(item: ResumeImport, has_master: bool) -> ImportOut:
         created_at=item.created_at,
         content=ResumeContent.model_validate(item.parsed),
         report=ImportReportOut.model_validate(item.report),
-        has_master=has_master,
+        has_master=service.active_master() is not None,
+        ai_available=service.ai_available(),
     )
 
 
@@ -94,13 +95,13 @@ async def upload_resume(
             f"The file is larger than {settings.max_upload_bytes // (1024 * 1024)} MB."
         )
     item = service.create_import(file.filename or "resume", data)
-    return _import_out(item, service.active_master() is not None)
+    return _import_out(item, service)
 
 
 @router.get("/imports/{import_id}", response_model=ImportOut)
 def get_import(import_id: uuid.UUID, service: Service) -> ImportOut:
     item = service.get_import(import_id)
-    return _import_out(item, service.active_master() is not None)
+    return _import_out(item, service)
 
 
 @router.post("/imports/{import_id}/confirm", response_model=ResumeDetailOut)
@@ -110,6 +111,16 @@ def confirm_import(
     resume, version, created = service.confirm_import(import_id, body.content, body.title)
     response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
     return _detail(resume, version)
+
+
+@router.post("/imports/{import_id}/ai-parse", response_model=ImportOut)
+def ai_parse_import(import_id: uuid.UUID, service: Service) -> ImportOut:
+    return _import_out(service.ai_parse_import(import_id), service)
+
+
+@router.delete("/imports/{import_id}/ai-parse", response_model=ImportOut)
+def undo_ai_parse(import_id: uuid.UUID, service: Service) -> ImportOut:
+    return _import_out(service.undo_ai_parse(import_id), service)
 
 
 @router.post("/imports/{import_id}/discard", status_code=status.HTTP_204_NO_CONTENT)

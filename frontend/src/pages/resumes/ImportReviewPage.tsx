@@ -1,10 +1,11 @@
+import { Sparkles, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ResumeEditor } from "@/components/resume/ResumeEditor";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { ErrorState, PageLoading } from "@/components/ui/States";
-import { useConfirmImport, useDiscardImport, useImport } from "@/hooks/useResumes";
+import { useAiParseImport, useConfirmImport, useDiscardImport, useImport } from "@/hooks/useResumes";
 import { ApiError } from "@/services/apiClient";
 import type { ResumeDoc, ResumeImport } from "@/services/resumeService";
 import { PageHeader } from "./common";
@@ -14,7 +15,8 @@ export function ImportReviewPage() {
   const item = useImport(importId);
   if (item.isPending) return <PageLoading label="Loading your upload" />;
   if (item.isError) return <ErrorState error={item.error} onRetry={() => void item.refetch()} />;
-  return <Review item={item.data} />;
+  // Re-mount when the AI replaces (or restores) the draft, so the editor starts from it.
+  return <Review key={item.data.report.ai ? "ai" : "rules"} item={item.data} />;
 }
 
 function Review({ item }: { item: ResumeImport }) {
@@ -62,7 +64,10 @@ function Review({ item }: { item: ResumeImport }) {
         ) : null}
       </div>
 
-      <ResumeEditor value={doc} onChange={setDoc} report={item.report} />
+      {item.ai_available || item.report.ai ? <AiAssist item={item} /> : null}
+
+      {/* Section confidence describes the rule-based reading, so it is hidden for the AI one. */}
+      <ResumeEditor value={doc} onChange={setDoc} report={item.report.ai ? undefined : item.report} />
 
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-hairline bg-surface-container-lowest/95 px-4 py-3 backdrop-blur md:bottom-0 lg:left-64">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-end gap-2">
@@ -86,6 +91,73 @@ function Review({ item }: { item: ResumeImport }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AiAssist({ item }: { item: ResumeImport }) {
+  const parse = useAiParseImport(item.id);
+  const ai = item.report.ai;
+  const error = parse.error;
+  return (
+    <div className="mb-6 space-y-3">
+      {ai ? (
+        <Notice tone="info" title={`Filled in by AI (${ai.provider} · ${ai.model})`}>
+          <p>
+            {ai.kept} values were read and matched to your file.
+            {ai.dropped.length
+              ? ` ${ai.dropped.length} were left out because your file does not contain them.`
+              : " Nothing was left out."}{" "}
+            Check every section before saving.
+          </p>
+          {ai.dropped.length ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-label-md text-primary">Show what was left out</summary>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {ai.dropped.map((d) => (
+                  <li key={d} className="break-words">{d}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          <div className="mt-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={parse.isPending}
+              icon={<Undo2 className="size-4" aria-hidden />}
+              onClick={() => parse.mutate(true)}
+            >
+              Use the original reading
+            </Button>
+          </div>
+        </Notice>
+      ) : (
+        <div className="flex flex-col gap-3 rounded-card border border-hairline bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-label-md text-on-surface">Did we miss something?</p>
+            <p className="text-body-sm text-on-surface-variant">
+              The AI can read your file again. It only keeps text that is really in your file, and it replaces the
+              draft below, including any edits you made here.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            loading={parse.isPending}
+            icon={<Sparkles className="size-4" aria-hidden />}
+            onClick={() => parse.mutate(false)}
+          >
+            Improve with AI
+          </Button>
+        </div>
+      )}
+      {error ? (
+        <Notice tone="critical" title="That didn't work">
+          {error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
+        </Notice>
+      ) : null}
     </div>
   );
 }

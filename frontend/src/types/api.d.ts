@@ -183,6 +183,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resumes/imports/{import_id}/ai-parse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ai Parse Import */
+        post: operations["ai_parse_import_api_v1_resumes_imports__import_id__ai_parse_post"];
+        /** Undo Ai Parse */
+        delete: operations["undo_ai_parse_api_v1_resumes_imports__import_id__ai_parse_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/resumes/imports/{import_id}/discard": {
         parameters: {
             query?: never;
@@ -932,6 +950,19 @@ export interface components {
             /** Reason */
             reason: string | null;
         };
+        /** AiParseOut */
+        AiParseOut: {
+            /** Method Version */
+            method_version: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Kept */
+            kept: number;
+            /** Dropped */
+            dropped: string[];
+        };
         /** AiStatusOut */
         AiStatusOut: {
             /** Configured */
@@ -1534,6 +1565,8 @@ export interface components {
             report: components["schemas"]["ImportReportOut"];
             /** Has Master */
             has_master: boolean;
+            /** Ai Available */
+            ai_available: boolean;
         };
         /** ImportReportOut */
         ImportReportOut: {
@@ -1556,6 +1589,7 @@ export interface components {
             sections: components["schemas"]["SectionReportOut"][];
             /** Warnings */
             warnings: string[];
+            ai?: components["schemas"]["AiParseOut"] | null;
         };
         /** JobAnalysis */
         JobAnalysis: {
@@ -2792,6 +2826,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResumeDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_parse_import_api_v1_resumes_imports__import_id__ai_parse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_ai_parse_api_v1_resumes_imports__import_id__ai_parse_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportOut"];
                 };
             };
             /** @description Validation Error */

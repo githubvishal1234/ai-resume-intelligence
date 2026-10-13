@@ -20,11 +20,15 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.ai.registry import ai_status, get_llm_provider
+from app.ai.usage import metered
 from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, NotFound
 from app.models import Resume, ResumeFile, ResumeImport, ResumeVersion
+from app.resumes.ai_parse import METHOD_VERSION as AI_PARSE_VERSION
+from app.resumes.ai_parse import ai_parse
 from app.resumes.content import ResumeContent
 from app.resumes.extraction import MEDIA_TYPES, extract_text, safe_display_name
 from app.resumes.parser import parse_resume
@@ -44,6 +48,15 @@ class MasterExists(Conflict):
 class ImportNotPending(Conflict):
     code = "IMPORT_NOT_PENDING"
     message = "This upload was already saved or discarded."
+
+
+class AiParseEmpty(AppError):
+    status_code = 422
+    code = "AI_PARSE_EMPTY"
+    message = (
+        "The AI could not read anything from this file that matches its text. "
+        "Your rule-based result is unchanged."
+    )
 
 
 class EmptyResume(AppError):
@@ -201,6 +214,54 @@ class ResumeService:
             self.storage.delete(file.storage_key)
             self.db.delete(file)  # cascades to the import row
         self.db.commit()
+
+    def ai_available(self) -> bool:
+        return ai_status(self.settings).configured
+
+    def ai_parse_import(self, import_id: uuid.UUID) -> ResumeImport:
+        """Replaces the parsed content with the AI's, keeping the rule-based result for undo."""
+        item = self._owned_import(import_id)
+        if item.status != "pending_review":
+            raise ImportNotPending()
+        provider = metered(  # raises when no provider is configured
+            get_llm_provider(self.settings), self.actor.user_id, "resumes.ai_parse", self.settings
+        )
+        file = item.file
+        extracted = extract_text(
+            file.original_filename,
+            self.storage.get(file.storage_key),
+            self.settings.max_upload_bytes,
+        )
+        result = ai_parse(extracted.text, provider)
+        if result.kept == 0:
+            raise AiParseEmpty()
+        report = dict(item.report)
+        report.setdefault("rules_parsed", item.parsed)
+        report["ai"] = {
+            "method_version": AI_PARSE_VERSION,
+            "provider": result.provider,
+            "model": result.model,
+            "kept": result.kept,
+            "dropped": result.dropped[:50],
+        }
+        item.report = report
+        item.parsed = result.content.model_dump(mode="json")
+        self._audit("resume.import_ai_parse", "resume_import", str(item.id))
+        self.db.commit()
+        return item
+
+    def undo_ai_parse(self, import_id: uuid.UUID) -> ResumeImport:
+        item = self._owned_import(import_id)
+        if item.status != "pending_review":
+            raise ImportNotPending()
+        report = dict(item.report)
+        rules = report.pop("rules_parsed", None)
+        report.pop("ai", None)
+        if rules is not None:
+            item.parsed = rules
+            item.report = report
+            self.db.commit()
+        return item
 
     def confirm_import(
         self, import_id: uuid.UUID, content: ResumeContent, title: str | None

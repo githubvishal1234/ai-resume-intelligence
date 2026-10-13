@@ -16,6 +16,14 @@ class SectionReportOut(BaseModel):
     notes: list[str]
 
 
+class AiParseOut(BaseModel):
+    method_version: str
+    provider: str
+    model: str
+    kept: int  # values the AI returned that were found in the file
+    dropped: list[str]  # values left out because the file does not contain them
+
+
 class ImportReportOut(BaseModel):
     parser_version: str
     file_kind: Literal["pdf", "docx", "txt"]
@@ -25,6 +33,7 @@ class ImportReportOut(BaseModel):
     headings_found: list[str]
     sections: list[SectionReportOut]
     warnings: list[str]
+    ai: AiParseOut | None = None
 
 
 class ImportOut(BaseModel):
@@ -35,6 +44,7 @@ class ImportOut(BaseModel):
     content: ResumeContent
     report: ImportReportOut
     has_master: bool
+    ai_available: bool
 
 
 class ConfirmImportIn(BaseModel):

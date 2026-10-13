@@ -100,4 +100,8 @@ export const resumeService = {
       await api.post<S["ResumeDetailOut"]>(`/resumes/imports/${id}/confirm`, { content, title }),
     ) as ResumeDetail,
   discardImport: (id: string) => api.post<void>(`/resumes/imports/${id}/discard`),
+  aiParseImport: async (id: string) =>
+    withDoc(await api.post<S["ImportOut"]>(`/resumes/imports/${id}/ai-parse`)) as ResumeImport,
+  undoAiParse: async (id: string) =>
+    withDoc(await api.delete<S["ImportOut"]>(`/resumes/imports/${id}/ai-parse`)) as ResumeImport,
 };

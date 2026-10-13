@@ -77,6 +77,14 @@ export function useConfirmImport(importId: string) {
   });
 }
 
+export function useAiParseImport(importId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (undo: boolean) => (undo ? resumeService.undoAiParse(importId) : resumeService.aiParseImport(importId)),
+    onSuccess: (item) => client.setQueryData(resumeKeys.import(importId), item),
+  });
+}
+
 export function useDiscardImport(importId: string) {
   const client = useQueryClient();
   return useMutation({
