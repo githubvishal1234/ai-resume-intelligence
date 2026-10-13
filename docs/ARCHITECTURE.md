@@ -30,7 +30,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `output` | `templates.py` holds the ATS-safe templates (pending D-10). `pdf.py` renders resume content to a text PDF with reportlab, embedding the bundled DejaVu fonts registered by `fonts.py` (`fonts/` holds them and their licence). `ats.py` (`ats-rules-v1`) reads the PDF back with pypdf and runs the ATS checks. `router.py` serves `/output/templates`, `/resumes/{id}/export.pdf` and `/resumes/{id}/ats`. |
 | `applications` | `service.py` holds the application tracker (append-only `ApplicationEvent` history) and `NotificationService` (follow-up reminders, deduplicated by `(owner_id, dedupe_key)`). `router.py` serves `/applications` and `/notifications`. |
 | `interview` | `questions.py` builds the deterministic question bank (`interview-rules-v1`) from the job, the resume's match evidence and the gaps. `service.py` runs question sets, practice sessions and the optional LLM feedback (only through `get_llm_provider`); `router.py` serves `/interview`. |
-| `ai` | `LLMProvider` interface and registry. `providers/openai.py` is the OpenAI adapter (D-03), the only code that calls a vendor API. |
+| `ai` | `LLMProvider` interface and registry. `providers/openai.py` holds the OpenAI and Groq adapters (D-03; same API format), the only code that calls a vendor API. |
 | `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 
 **Conventions**

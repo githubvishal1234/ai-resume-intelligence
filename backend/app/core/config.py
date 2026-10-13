@@ -41,13 +41,15 @@ class Settings(BaseSettings):
     auth_rate_limit_attempts: int = Field(default=10, ge=1)
     auth_rate_limit_window_seconds: int = Field(default=300, ge=1)
 
-    # --- AI provider (D-03: OpenAI). Empty LLM_PROVIDER => "AI provider not configured" ---
+    # --- AI provider (D-03: openai or groq). Empty LLM_PROVIDER => "not configured" ---
     llm_provider: str | None = None
     llm_model: str | None = None
     llm_base_url: str | None = None
     llm_api_key: SecretStr | None = None
     llm_timeout_seconds: float = Field(default=60, gt=0, le=600)
     llm_max_retries: int = Field(default=2, ge=0, le=5)
+    llm_response_format: Literal["json_schema", "json_object"] = "json_schema"
+    llm_min_output_tokens: int = Field(default=0, ge=0, le=32_000)
 
     # --- Other pending company decisions: abstractions only ---
     email_provider: str | None = None

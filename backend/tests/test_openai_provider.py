@@ -220,3 +220,49 @@ def test_interview_feedback_through_openai(
         user_client.get(f"{API}/sessions/{session['id']}").json()["answers"][0]["feedback"]["score"]
         == 4
     )
+
+
+# ---- Groq (same API format) ------------------------------------------------------------
+def test_groq_defaults_to_groq_and_needs_a_key(settings: Settings) -> None:
+    s = settings.model_copy(update={"llm_provider": "groq", "llm_model": "openai/gpt-oss-120b"})
+    assert ai_status(s).reason == "LLM_API_KEY is not set."
+    s = s.model_copy(update={"llm_api_key": SecretStr(KEY)})
+    assert ai_status(s).configured
+    provider = get_llm_provider(s)
+    assert provider.name == "groq"
+    assert provider._url == "https://api.groq.com/openai/v1/chat/completions"  # type: ignore[attr-defined]
+
+
+def test_groq_raises_small_output_limits_for_reasoning_models(
+    openai_settings: Settings, openai_server: FakeOpenAI
+) -> None:
+    s = openai_settings.model_copy(update={"llm_provider": "groq"})
+    openai_server.ok('{"score": 5}')
+    result = get_llm_provider(s).generate_structured(Answer, MESSAGES, max_output_tokens=200)
+    assert result.provider == "groq" and result.parsed.score == 5
+    assert openai_server.requests[0]["body"]["max_completion_tokens"] == 1024
+    assert openai_server.requests[0]["body"]["response_format"]["type"] == "json_schema"
+
+
+def test_json_object_mode_puts_the_schema_in_a_system_message(
+    openai_settings: Settings, openai_server: FakeOpenAI
+) -> None:
+    s = openai_settings.model_copy(
+        update={"llm_provider": "groq", "llm_response_format": "json_object"}
+    )
+    openai_server.ok('{"score": 3, "notes": []}')
+    result = get_llm_provider(s).generate_structured(Answer, MESSAGES)
+    assert result.parsed.score == 3
+    body = openai_server.requests[0]["body"]
+    assert body["response_format"] == {"type": "json_object"}
+    first = body["messages"][0]
+    assert first["role"] == "system" and "JSON" in first["content"]
+    assert '"score"' in first["content"]
+    assert body["messages"][1:] == [
+        {"role": "system", "content": "Rate the answer."},
+        {"role": "user", "content": "ANSWER:\nI shipped it."},
+    ]
+    # Valid JSON that does not match the schema is still refused.
+    openai_server.ok('{"notes": ["no score"]}')
+    with pytest.raises(LLMOutputInvalid):
+        get_llm_provider(s).generate_structured(Answer, MESSAGES)

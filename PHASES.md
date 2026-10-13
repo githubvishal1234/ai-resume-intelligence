@@ -416,6 +416,15 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
       against a local stand-in for OpenAI (no overflow at 1440/1024/768/390).
 - [ ] Factual-check layer 2 (LLM-based) is still to do.
 
+**Groq provider (chosen 2026-10-13)**
+- [x] `LLM_PROVIDER=groq` uses Groq's OpenAI-compatible API (`https://api.groq.com/openai/v1`)
+      with JSON-schema output, recommended model `openai/gpt-oss-120b`. Output limits are at
+      least 1024 tokens because gpt-oss models reason first.
+- [x] `LLM_RESPONSE_FORMAT=json_object` for Groq models without schema support: the schema goes
+      in a system message and the answer is still validated.
+- [x] 3 new tests against a local stand-in. Not yet run against the real Groq API (no key, and
+      this build environment cannot reach api.groq.com).
+
 ---
 
 ## Progress log
@@ -431,3 +440,4 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
 - 2026-10-12: Phase 9 completed and verified. All nine phases are done; the remaining work waits on the open decisions (D-02 to D-11).
 - 2026-10-12: Unicode PDF fonts embedded. D-03 decided (OpenAI) and the OpenAI adapter added.
 - 2026-10-12: AI rewrites of individual bullets added to tailoring.
+- 2026-10-13: Groq chosen as the LLM provider; Groq adapter added.

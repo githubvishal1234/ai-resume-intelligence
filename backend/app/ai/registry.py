@@ -1,9 +1,9 @@
 """Provider registry + configuration resolution.
 
-The only built-in adapter is "openai" (Decision Register D-03). If LLM_PROVIDER is unset, names
-an unregistered adapter, or the adapter's model or API key is missing, AI features report
-"AI provider not configured" - they never return substitute output. A fake provider may be
-registered by automated tests only.
+The built-in adapters are "openai" and "groq" (Decision Register D-03). If LLM_PROVIDER is
+unset, names an unregistered adapter, or the adapter's model or API key is missing, AI features
+report "AI provider not configured" - they never return substitute output. A fake provider may
+be registered by automated tests only.
 """
 
 from __future__ import annotations
@@ -43,7 +43,14 @@ def _openai(settings: Settings) -> LLMProvider:
     return openai.create(settings)
 
 
+def _groq(settings: Settings) -> LLMProvider:
+    from app.ai.providers import openai
+
+    return openai.create_groq(settings)
+
+
 register_provider("openai", _openai, requires_api_key=True)
+register_provider("groq", _groq, requires_api_key=True)
 
 
 @dataclass(frozen=True)

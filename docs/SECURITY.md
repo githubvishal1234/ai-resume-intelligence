@@ -56,8 +56,8 @@
   the work a single upload can cause.
 
 ## AI providers
-- The provider is OpenAI (D-03), in `app/ai/providers/openai.py`, the only module that calls
-  a vendor API. It uses the standard library, so no vendor SDK is installed. Every AI action
+- The providers are Groq and OpenAI (D-03), both in `app/ai/providers/openai.py` (they share
+  the OpenAI API format). It is the only module that calls a vendor API. It uses the standard library, so no vendor SDK is installed. Every AI action
   goes through `get_llm_provider`, which returns `503 AI_PROVIDER_NOT_CONFIGURED` until
   `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` are all set.
 - The key is a `SecretStr` read from the environment. It is never logged, and error messages

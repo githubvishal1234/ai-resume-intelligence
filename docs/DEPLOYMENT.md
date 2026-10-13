@@ -31,7 +31,9 @@ safe development defaults. In production:
 | `STORAGE_LOCAL_ROOT` | A persistent volume (uploaded resumes). Must be backed up with the database. |
 | `REGISTRATION_ENABLED` | `false` once accounts are provisioned another way (D-04). |
 | `SLOW_REQUEST_MS` | Optional, default 1000. Requests at or over this log a `slow_request` warning. |
-| `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | Optional. `openai`, a model that supports structured outputs, and a key from the secret store turn on AI rewrites and interview feedback. Left empty, the app reports "AI provider not configured". The API container then needs outbound HTTPS to `LLM_BASE_URL` (default `https://api.openai.com/v1`). |
+| `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | Optional. They turn on AI rewrites and interview feedback; left empty, the app reports "AI provider not configured". For Groq: `groq`, `openai/gpt-oss-120b` (or `openai/gpt-oss-20b`) and a Groq key from the secret store. For OpenAI: `openai`, a model with structured outputs and an OpenAI key. The API container needs outbound HTTPS to the provider (`https://api.groq.com/openai/v1` or `https://api.openai.com/v1`, or `LLM_BASE_URL` if set). |
+| `LLM_RESPONSE_FORMAT` | `json_schema` (default) sends the answer schema to the model. Use `json_object` for a Groq model that does not support JSON-schema output; the schema then goes in the prompt and the answer is still validated. |
+| `LLM_MIN_OUTPUT_TOKENS` | Optional floor for output limits, for reasoning models that spend tokens thinking first. Groq already uses at least 1024. |
 | `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES` | Optional, default 60 and 2. Rate-limit and server errors are retried with backoff; a rejected key is not. |
 | `EMAIL_PROVIDER` | Leave empty until D-07 is decided; the app reports "not configured". |
 

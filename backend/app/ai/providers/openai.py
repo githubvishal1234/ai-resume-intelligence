@@ -1,8 +1,13 @@
-"""OpenAI adapter (Decision Register D-03: OpenAI, chosen 2026-10-12).
+"""OpenAI-compatible adapters: OpenAI (D-03, chosen 2026-10-12) and Groq (chosen 2026-10-13).
 
-Calls the Chat Completions API with a JSON-schema response format, then validates the answer
-against the caller's Pydantic schema. It uses only the standard library, so no vendor SDK is
-installed. `LLM_BASE_URL` may point at any OpenAI-compatible endpoint; it defaults to OpenAI.
+Calls the Chat Completions API, then validates the answer against the caller's Pydantic schema.
+It uses only the standard library, so no vendor SDK is installed. `LLM_BASE_URL` may point at
+any OpenAI-compatible endpoint; it defaults to the provider's own.
+
+`LLM_RESPONSE_FORMAT` picks how structure is requested:
+- `json_schema` (default): the schema is sent as the response format.
+- `json_object`: for models without schema support; the schema goes in a system message and
+  only valid JSON is enforced, so the answer is still validated here.
 
 Nothing here logs or raises with the API key, the prompt or the response text.
 """
@@ -51,17 +56,31 @@ def _retry_after(headers: Message | None, attempt: int) -> float:
     return min(max(seconds, 0.0), _MAX_BACKOFF_SECONDS)
 
 
+def _json_instructions(schema: type[BaseModel]) -> str:
+    return (
+        "Respond with a single JSON object and nothing else. It must match this JSON schema:\n"
+        + json.dumps(schema.model_json_schema(), separators=(",", ":"))
+    )
+
+
 class OpenAIProvider(LLMProvider):
     name = "openai"
+    default_base_url = DEFAULT_BASE_URL
+    # Reasoning models count their reasoning against the output limit, so callers' small
+    # limits are raised to at least this.
+    min_output_tokens = 0
 
     def __init__(self, settings: Settings) -> None:
         if settings.llm_api_key is None or not settings.llm_model:
             raise AiProviderNotConfigured()
         self._model = settings.llm_model
         self._key = settings.llm_api_key.get_secret_value()
-        self._url = (settings.llm_base_url or DEFAULT_BASE_URL).rstrip("/") + "/chat/completions"
+        base = settings.llm_base_url or self.default_base_url
+        self._url = base.rstrip("/") + "/chat/completions"
         self._timeout = settings.llm_timeout_seconds
         self._retries = settings.llm_max_retries
+        self._format = settings.llm_response_format
+        self._min_tokens = max(self.min_output_tokens, settings.llm_min_output_tokens)
 
     @property
     def model(self) -> str:
@@ -74,10 +93,13 @@ class OpenAIProvider(LLMProvider):
     def generate_structured[T: BaseModel](
         self, schema: type[T], messages: list[LLMMessage], *, max_output_tokens: int | None = None
     ) -> StructuredResult[T]:
-        body: dict[str, Any] = {
-            "model": self._model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "response_format": {
+        sent = [{"role": m.role, "content": m.content} for m in messages]
+        response_format: dict[str, Any]
+        if self._format == "json_object":
+            sent.insert(0, {"role": "system", "content": _json_instructions(schema)})
+            response_format = {"type": "json_object"}
+        else:
+            response_format = {
                 "type": "json_schema",
                 "json_schema": {
                     "name": _schema_name(schema),
@@ -85,10 +107,14 @@ class OpenAIProvider(LLMProvider):
                     # Strict mode rejects optional fields; the answer is validated below instead.
                     "strict": False,
                 },
-            },
+            }
+        body: dict[str, Any] = {
+            "model": self._model,
+            "messages": sent,
+            "response_format": response_format,
         }
         if max_output_tokens is not None:
-            body["max_completion_tokens"] = max_output_tokens
+            body["max_completion_tokens"] = max(max_output_tokens, self._min_tokens)
 
         started = time.monotonic()
         data = self._post(body)
@@ -164,5 +190,18 @@ class OpenAIProvider(LLMProvider):
         raise AiProviderFailed()
 
 
+class GroqProvider(OpenAIProvider):
+    """Groq's OpenAI-compatible API. Schema output works on e.g. openai/gpt-oss-120b; use
+    LLM_RESPONSE_FORMAT=json_object for models without it."""
+
+    name = "groq"
+    default_base_url = "https://api.groq.com/openai/v1"
+    min_output_tokens = 1024  # gpt-oss models reason before answering
+
+
 def create(settings: Settings) -> LLMProvider:
     return OpenAIProvider(settings)
+
+
+def create_groq(settings: Settings) -> LLMProvider:
+    return GroqProvider(settings)
