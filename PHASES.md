@@ -31,7 +31,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 13 | AI interview questions | ✅ |
 | 14 | Account settings | ✅ |
 | 15 | Email over SMTP & password reset | ✅ |
-| 16 | S3-compatible file storage | 🚧 |
+| 16 | S3-compatible file storage | ✅ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -584,9 +584,20 @@ cannot run up the bill (the budget itself is still open under D-03).
 
 ## Phase 16: S3-compatible file storage
 
-**Scope**
-- [ ] `STORAGE_BACKEND=s3`: a storage adapter over the generic S3 API (endpoint, bucket,
-      region, keys from the environment), with no vendor SDK. Local storage stays the default.
+**Delivered**
+- [x] `app/storage/s3.py`: `STORAGE_BACKEND=s3` stores uploads in any service with the S3
+      object API, signed with AWS Signature Version 4 over `urllib` (no vendor SDK). Path or
+      virtual-host addressing, an optional key prefix, private objects only.
+- [x] Missing settings are named at startup; production requires an `https://` endpoint.
+      Errors carry the status code only, never credentials or file data. Local storage stays
+      the default.
+
+**Verified 2026-10-13**
+- 237 backend tests pass (7 new: the signature matches the AWS documentation's "GET Object"
+  example; put, get, exists and delete against a stand-in that checks each request's
+  signature; unsafe keys; errors without the secret; missing settings; https in production;
+  a resume upload and an account deletion end to end over S3).
+- Not tried against a real S3 service (D-06 is open, and this environment cannot reach one).
 
 ---
 
@@ -611,3 +622,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Phase 13 completed and verified. All planned phases are done; what remains needs a decision (see the follow-ups and D-02 to D-11) or a Groq key.
 - 2026-10-13: Phases 14–16 planned. Phase 14 completed and verified. Phase 15 started.
 - 2026-10-13: Phase 15 completed and verified. Phase 16 started.
+- 2026-10-13: Phase 16 completed and verified. Phases 14–16 are done; what remains needs a decision (D-02, D-04 to D-11) or a Groq key.

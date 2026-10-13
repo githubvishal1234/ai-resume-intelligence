@@ -68,6 +68,15 @@ class Settings(BaseSettings):
 
     storage_backend: str = "local"
     storage_local_root: str = "./var/storage"
+    # STORAGE_BACKEND=s3: any service with the S3 API (D-06 picks which). No vendor SDK.
+    s3_endpoint_url: str | None = None
+    s3_bucket: str | None = None
+    s3_region: str = "us-east-1"
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: SecretStr | None = None
+    s3_addressing: Literal["path", "virtual"] = "path"
+    s3_prefix: str = ""
+    s3_timeout_seconds: float = Field(default=30, gt=0, le=300)
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1)
 
     # Requests slower than this are logged at WARNING as "slow_request" (0 disables).
@@ -91,6 +100,10 @@ class Settings(BaseSettings):
         "smtp_host",
         "smtp_username",
         "smtp_password",
+        "s3_endpoint_url",
+        "s3_bucket",
+        "s3_access_key_id",
+        "s3_secret_access_key",
         mode="before",
     )
     @classmethod
@@ -111,6 +124,8 @@ class Settings(BaseSettings):
                 problems.append("CORS_ORIGINS must not contain '*'")
             if (self.email_provider or "").lower() == "console":
                 problems.append("EMAIL_PROVIDER=console is for development only")
+            if self.storage_backend == "s3" and (self.s3_endpoint_url or "").startswith("http:"):
+                problems.append("S3_ENDPOINT_URL must use https")
             if self.smtp_security == "none" and (self.email_provider or "").lower() == "smtp":
                 problems.append("SMTP_SECURITY must be starttls or ssl")
             if problems:

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.storage.local as _local_storage  # noqa: F401  (registers the local backend)
+import app.storage.s3 as _s3_storage  # noqa: F401  (registers the s3 backend)
 from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers

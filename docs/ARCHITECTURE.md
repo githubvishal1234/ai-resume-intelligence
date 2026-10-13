@@ -10,7 +10,7 @@ The app is a modular monolith with two deployables:
 Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► PostgreSQL
         ▲                                         │
         └── nginx serves the static build and proxies /api (same origin, so no CORS)
-                                                  └──► StorageBackend (local filesystem)
+                                                  └──► StorageBackend (local filesystem or S3 API)
 ```
 
 ## Backend (`backend/app`)
@@ -36,7 +36,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `account` | `service.py` handles the signed-in user's own name, password, signed-in browsers and account deletion (cascading delete, then stored files); `router.py` serves `/account`. |
 | `mail` | `base.py` is the `EmailSender` registry and `email_status`; `senders.py` holds `smtp` and `console`; `templates.py` renders plain-text mail. Password reset lives in `auth/password_reset.py`. |
 | `ai` | `LLMProvider` interface and registry. `usage.py` meters every call (`ai_usage` table, daily per-user limit) and `router.py` serves `/ai/usage`. `providers/openai.py` holds the OpenAI and Groq adapters (D-03; same API format), the only code that calls a vendor API. |
-| `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
+| `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Storage has `local` and `s3` (`s3.py`: the S3 object API signed with SigV4, no SDK). Benchmarks have only the null provider. |
 
 **Conventions**
 - Handlers stay thin, and business rules live in services.

@@ -28,7 +28,10 @@ safe development defaults. In production:
 | `DATABASE_URL` | `postgresql+psycopg://…` with a real password, from the host's secret store. |
 | `SESSION_COOKIE_SECURE` | `true` (HTTPS only). |
 | `FORWARDED_ALLOW_IPS` | The IPs of the proxy in front of the API (the web container's network). Never `*` in production: rate limiting keys on the client IP from `X-Forwarded-For`. |
-| `STORAGE_LOCAL_ROOT` | A persistent volume (uploaded resumes). Must be backed up with the database. |
+| `STORAGE_BACKEND` | `local` (default) or `s3`. |
+| `STORAGE_LOCAL_ROOT` | For `local`: a persistent volume (uploaded resumes). Must be backed up with the database. |
+| `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | For `s3`: any service with the S3 object API (D-06 picks which). The endpoint must be `https://` in production. The bucket stays private; the secret comes from the secret store. The key needs only put, get, head and delete on the bucket. |
+| `S3_ADDRESSING`, `S3_PREFIX`, `S3_TIMEOUT_SECONDS` | Optional: `path` (default) or `virtual` bucket addressing, a key prefix such as `prod/`, and the request timeout (default 30). |
 | `REGISTRATION_ENABLED` | `false` once accounts are provisioned another way (D-04). |
 | `SLOW_REQUEST_MS` | Optional, default 1000. Requests at or over this log a `slow_request` warning. |
 | `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY` | Optional. They turn on AI rewrites and interview feedback; left empty, the app reports "AI provider not configured". For Groq: `groq`, `openai/gpt-oss-120b` (or `openai/gpt-oss-20b`) and a Groq key from the secret store. For OpenAI: `openai`, a model with structured outputs and an OpenAI key. The API container needs outbound HTTPS to the provider (`https://api.groq.com/openai/v1` or `https://api.openai.com/v1`, or `LLM_BASE_URL` if set). |
