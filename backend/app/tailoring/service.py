@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.provider import LLMMessage, LLMProvider
 from app.ai.registry import ai_status, get_llm_provider
+from app.ai.usage import metered
 from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
@@ -256,22 +257,18 @@ class TailoringService:
             return []  # reorders and re-surfaced skills only use the master's own content
         return [f.model_dump() for f in check_text(str(value.get("text", "")), master)]
 
+    def _ai(self, feature: str) -> LLMProvider:
+        """The configured provider, metered for this user (raises when none is configured)."""
+        return metered(get_llm_provider(self.settings), self.actor.user_id, feature, self.settings)
+
     def _checked_flags(
-        self,
-        kind: str,
-        value: dict[str, Any],
-        master: ResumeContent,
-        provider: LLMProvider | None = None,
+        self, kind: str, value: dict[str, Any], master: ResumeContent
     ) -> list[dict[str, Any]]:
-        """Layer 1, then layer 2 when a provider is available and layer 1 found nothing to fix."""
+        """Layer 1, then layer 2 when AI is set up and layer 1 found nothing to fix."""
         flags = self._flags(kind, value, master)
-        if kind not in TEXT_KINDS or blocking(flags):
+        if kind not in TEXT_KINDS or blocking(flags) or not ai_status(self.settings).configured:
             return flags
-        if provider is None:
-            if not ai_status(self.settings).configured:
-                return flags
-            provider = get_llm_provider(self.settings)
-        claims = check_claims(str(value.get("text", "")), master, provider)
+        claims = check_claims(str(value.get("text", "")), master, self._ai("tailoring.claims"))
         return flags + [f.model_dump() for f in claims]
 
     # ---- review -------------------------------------------------------------------------
@@ -302,7 +299,7 @@ class TailoringService:
         change = self._change(row, change_id)
         if change.kind not in EDITABLE_KINDS:
             raise NotEditable()
-        provider = get_llm_provider(self.settings)  # raises when no provider is configured
+        provider = self._ai("tailoring.rewrite")  # raises when no provider is configured
         self._generate(row, change, provider)
         self._audit("tailoring.rewrite", str(row.id))
         self.db.commit()
@@ -316,7 +313,7 @@ class TailoringService:
         Asking again for the same bullet regenerates its existing change.
         """
         row = self._draft(session_id)
-        provider = get_llm_provider(self.settings)  # raises when no provider is configured
+        provider = self._ai("tailoring.rewrite_bullet")  # raises when no provider is configured
         master = self.base_content(row)
         exp = next((e for e in master.experience if e.id == experience_id), None)
         if exp is None or not 0 <= bullet_index < len(exp.bullets):
@@ -386,7 +383,7 @@ class TailoringService:
         change.reason = (
             f"Rewritten by {result.provider} ({result.model}). Check every fact before accepting."
         )
-        change.flags = self._checked_flags(change.kind, change.proposed, master, provider)
+        change.flags = self._checked_flags(change.kind, change.proposed, master)
         if change.kind == "rewrite_bullet":
             analysis = JobAnalysis.model_validate(job.analysis)
             skills = set(find_skills(change.proposed["text"])) & {s.name for s in analysis.skills}

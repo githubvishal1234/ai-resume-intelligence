@@ -1,3 +1,4 @@
+from app.models.ai_usage import AiUsage
 from app.models.application import Application, ApplicationEvent, Notification
 from app.models.audit import AuditLog
 from app.models.interview import InterviewPrep, PracticeAnswer, PracticeSession
@@ -9,6 +10,7 @@ from app.models.tailoring import TailoringChange, TailoringSession
 from app.models.user import User
 
 __all__ = [
+    "AiUsage",
     "Application",
     "ApplicationEvent",
     "AuditLog",

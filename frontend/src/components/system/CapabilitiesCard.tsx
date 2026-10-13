@@ -1,7 +1,8 @@
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { ErrorState, Skeleton } from "@/components/ui/States";
-import { useCapabilities } from "@/hooks/useCapabilities";
+import { useAiUsage, useCapabilities } from "@/hooks/useCapabilities";
+import type { AiUsage } from "@/services/systemService";
 
 function Row({ label, ok, detail }: { label: string; ok: boolean; detail: string }) {
   return (
@@ -15,9 +16,15 @@ function Row({ label, ok, detail }: { label: string; ok: boolean; detail: string
   );
 }
 
+function usageText(u: AiUsage): string {
+  if (u.daily_limit === 0) return `${u.used_today} AI requests today · no daily limit`;
+  return `${u.used_today} of ${u.daily_limit} AI requests used today · resets at midnight UTC`;
+}
+
 /** Shows what this deployment can really do, straight from GET /system/capabilities. */
 export function CapabilitiesCard() {
   const caps = useCapabilities();
+  const usage = useAiUsage(Boolean(caps.data?.ai.configured));
   return (
     <Card aria-labelledby="caps-title">
       <CardHeader id="caps-title" title="System status" description="Integrations available in this deployment." />
@@ -39,6 +46,12 @@ export function CapabilitiesCard() {
                 : "AI-assisted features stay disabled until an administrator configures a provider."
             }
           />
+          {caps.data.ai.configured && usage.data ? (
+            <li className="py-3">
+              <p className="text-label-md text-on-surface">Your AI use</p>
+              <p className="text-body-sm text-on-surface-variant">{usageText(usage.data)}</p>
+            </li>
+          ) : null}
           <Row
             label="Email delivery"
             ok={caps.data.email.configured}

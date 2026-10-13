@@ -25,6 +25,14 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 7 | Applications | ✅ |
 | 8 | Interview Prep | ✅ |
 | 9 | Hardening | ✅ |
+| 10 | AI usage limits & tracking | ✅ |
+| 11 | AI-assisted resume import | 🚧 |
+| 12 | AI-assisted job analysis | ⏳ |
+| 13 | AI interview questions | ⏳ |
+
+Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
+the AI parts that earlier phases left waiting on that decision. Each one keeps the
+deterministic version working when AI is not set up.
 
 ---
 
@@ -433,6 +441,50 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
 
 ---
 
+## Phase 10: AI usage limits & tracking
+
+Before real API keys are used, every AI call is counted and capped, so one user or a bug
+cannot run up the bill (the budget itself is still open under D-03).
+
+**Delivered**
+- [x] Every AI call is recorded in `ai_usage`: user, feature (`tailoring.rewrite`,
+      `tailoring.rewrite_bullet`, `tailoring.claims`, `interview.evaluate`), provider, model,
+      token counts, latency, outcome and error code. No prompt or answer text is stored.
+      Rows are written in their own transaction, so failed requests are still counted.
+- [x] Daily per-user limit `AI_DAILY_LIMIT_PER_USER` (default 100, 0 = none, resets at
+      midnight UTC). Over it, calls get `429 AI_DAILY_LIMIT_REACHED` and are not sent to the
+      provider; the claim check turns into its "could not run" warning.
+- [x] `GET /ai/usage`, shown in System status on Settings and the dashboard as
+      "12 of 100 AI requests used today".
+
+**Verified 2026-10-13**
+- 200 backend tests pass (5 new: recording without text, failed calls, the limit, per-user
+  isolation and no-limit mode). ruff, format and mypy are clean; the migration is built
+  from the models and runs in the test suite.
+- 68 frontend tests pass (2 new). Lint, types and the API types are clean.
+
+## Phase 11: AI-assisted resume import
+
+**Scope**
+- [ ] When AI is set up, the import review offers "Improve with AI" for a resume the rules
+      parsed poorly. The AI returns the same structured content; nothing is saved until the
+      user confirms, and every field is checked against the uploaded text.
+
+## Phase 12: AI-assisted job analysis
+
+**Scope**
+- [ ] When AI is set up, job analysis can ask the AI to extract requirements and their tiers.
+      Every requirement must quote the posting; quotes are verified, and the rule-based
+      analysis stays the fallback.
+
+## Phase 13: AI interview questions
+
+**Scope**
+- [ ] When AI is set up, a question set can add AI questions tailored to the job and the
+      user's gaps, marked as AI-written, next to the rule-based bank.
+
+---
+
 ## Progress log
 
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
@@ -448,3 +500,4 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
 - 2026-10-12: AI rewrites of individual bullets added to tailoring.
 - 2026-10-13: Groq chosen as the LLM provider; Groq adapter added.
 - 2026-10-13: Factual-check layer 2 (LLM claim check) added.
+- 2026-10-13: Phases 10–13 planned. Phase 10 completed and verified. Phase 11 started.

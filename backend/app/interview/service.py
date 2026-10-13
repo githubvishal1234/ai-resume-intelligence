@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.ai.provider import LLMMessage
 from app.ai.registry import get_llm_provider
+from app.ai.usage import metered
 from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
@@ -220,7 +221,9 @@ class InterviewService:
         row = self._answer(session, question_id)
         if row is None or not row.answer:
             raise AnswerRequired()
-        provider = get_llm_provider(self.settings)  # raises when no provider is configured
+        provider = metered(  # raises when no provider is configured
+            get_llm_provider(self.settings), self.actor.user_id, "interview.evaluate", self.settings
+        )
         question = next(q for q in self.questions(session.prep) if q.id == question_id)
         job = self.db.get(Job, session.prep.job_id)
         assert job is not None

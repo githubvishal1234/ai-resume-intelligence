@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=2, ge=0, le=5)
     llm_response_format: Literal["json_schema", "json_object"] = "json_schema"
     llm_min_output_tokens: int = Field(default=0, ge=0, le=32_000)
+    # AI calls per user per UTC day (0 = no limit). Counted in the ai_usage table.
+    ai_daily_limit_per_user: int = Field(default=100, ge=0)
 
     # --- Other pending company decisions: abstractions only ---
     email_provider: str | None = None

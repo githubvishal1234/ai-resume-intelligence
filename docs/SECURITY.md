@@ -67,6 +67,9 @@
 - Resume, job, question and answer text is passed to the model as data in user messages,
   never in the system prompt. Tests check this for tailoring rewrites and interview feedback.
 - Model output that changes a resume goes through the same factual check as user edits.
+- Every AI call is recorded in `ai_usage` (user, feature, provider, model, token counts,
+  latency, outcome), never with prompt or answer text, and capped per user per day
+  (`AI_DAILY_LIMIT_PER_USER`). Rows are deleted with the user.
 - Layer 2 of that check (`app/tailoring/claims.py`) asks the model to quote supporting words
   from the master resume and verifies each quote itself, so the model cannot vouch for a claim
   without real evidence. Its findings are warnings; layer-1 flags still block.

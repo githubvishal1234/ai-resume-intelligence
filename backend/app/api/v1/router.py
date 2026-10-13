@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.ai.router import router as ai_router
 from app.api.v1 import health, system
 from app.applications.router import notifications_router
 from app.applications.router import router as applications_router
@@ -23,3 +24,4 @@ api_router.include_router(output_router)
 api_router.include_router(applications_router)
 api_router.include_router(notifications_router)
 api_router.include_router(interview_router)
+api_router.include_router(ai_router)
