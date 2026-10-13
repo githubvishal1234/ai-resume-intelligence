@@ -28,11 +28,19 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 10 | AI usage limits & tracking | ✅ |
 | 11 | AI-assisted resume import | ✅ |
 | 12 | AI-assisted job analysis | ✅ |
-| 13 | AI interview questions | 🚧 |
+| 13 | AI interview questions | ✅ |
+| 14 | Account settings | ✅ |
+| 15 | Email over SMTP & password reset | 🚧 |
+| 16 | S3-compatible file storage | ⏳ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
 deterministic version working when AI is not set up.
+
+Phases 14–16 were added on 2026-10-13 from the plan's remaining items that need no pending
+decision: the user-initiated account delete (§13.1), the `EmailSender` boundary over generic
+SMTP so any provider chosen under D-07 works by configuration, and the S3-compatible storage
+adapter (§9) for whichever host D-06 picks.
 
 ---
 
@@ -530,6 +538,41 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 73 frontend tests pass (1 new). Lint, types, the API types and the build are clean.
 - Not run in a browser; covered by the API and component tests above.
 
+## Phase 14: Account settings
+
+**Delivered**
+- [x] `app/account/` serves `/account`: change the display name, change the password
+      (current password required; every other browser is signed out), list signed-in
+      browsers and sign out one or all others, and delete the account.
+- [x] Deleting needs the password. It removes the user and everything they own (foreign keys
+      cascade from `users`), then their stored files. An `account.deleted` audit entry is kept
+      without the user id as actor. No retention period is applied (D-08 stays open).
+- [x] Wrong passwords return 422 `WRONG_PASSWORD` on the field, not 401, so the browser stays
+      signed in. Password checks share the auth rate limit.
+- [x] Settings page: Account, Password, "Where you're signed in" (browser names from the user
+      agent, "This browser" marked) and a Delete account card with password confirmation.
+
+**Verified 2026-10-13**
+- 222 backend tests pass (6 new: name, CSRF, password change signs out others, sign-in list
+  and revoke, another user's sign-in, delete removes rows and files and frees the email).
+- 78 frontend tests pass (5 new). Lint, types, the API types and the build are clean.
+- Browser run: name saved, the password change signed out a second browser, no overflow at
+  1024/768/390, and the deleted account could not sign in again.
+
+## Phase 15: Email over SMTP & password reset
+
+**Scope**
+- [ ] An SMTP `EmailSender` configured by environment only (host, port, TLS, user, password,
+      from address), so any provider works. Off unless configured.
+- [ ] "Forgot password" with single-use, short-lived reset links (only a hash is stored),
+      shown only when email is set up. Resetting signs out every browser.
+
+## Phase 16: S3-compatible file storage
+
+**Scope**
+- [ ] `STORAGE_BACKEND=s3`: a storage adapter over the generic S3 API (endpoint, bucket,
+      region, keys from the environment), with no vendor SDK. Local storage stays the default.
+
 ---
 
 ## Progress log
@@ -551,3 +594,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Phase 11 completed and verified. Phase 12 started.
 - 2026-10-13: Phase 12 completed and verified. Phase 13 started.
 - 2026-10-13: Phase 13 completed and verified. All planned phases are done; what remains needs a decision (see the follow-ups and D-02 to D-11) or a Groq key.
+- 2026-10-13: Phases 14–16 planned. Phase 14 completed and verified. Phase 15 started.

@@ -121,7 +121,7 @@ def test_ai_questions_are_added_marked_and_checked(user_client: TestClient, fake
 def test_ai_questions_are_capped(user_client: TestClient, fake_ai: None) -> None:
     prep = _prep(user_client)
     url = f"{API}/preps/{prep['id']}/ai-questions"
-    words = "alpha beta gamma delta epsilon".split()
+    words = ["alpha", "beta", "gamma", "delta", "epsilon"]
     for batch in words[:4]:
         _Interviewer.answer = {
             "questions": [

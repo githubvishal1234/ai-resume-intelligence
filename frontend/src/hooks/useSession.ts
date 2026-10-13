@@ -37,7 +37,7 @@ export function useRegister() {
   });
 }
 
-function signOutLocally(client: ReturnType<typeof useQueryClient>) {
+export function signOutLocally(client: ReturnType<typeof useQueryClient>) {
   // Mark the session as signed out, then drop every other cached user-specific query.
   // (clear() would also remove the session query and make mounted guards refetch /auth/me.)
   void client.cancelQueries({ queryKey: SESSION_KEY });

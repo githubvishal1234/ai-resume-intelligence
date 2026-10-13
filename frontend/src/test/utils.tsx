@@ -36,7 +36,7 @@ export function mockApi(given: MockRoute[]) {
     });
   });
   vi.stubGlobal("fetch", fetchMock);
-  return { calls, fetchMock };
+  return { calls, fetchMock, routes };
 }
 
 export function renderApp(path: string) {

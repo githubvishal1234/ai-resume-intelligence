@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.account.router import router as account_router
 from app.ai.router import router as ai_router
 from app.api.v1 import health, system
 from app.applications.router import notifications_router
@@ -15,6 +16,7 @@ from app.tailoring.router import router as tailoring_router
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router)
 api_router.include_router(auth_router)
+api_router.include_router(account_router)
 api_router.include_router(system.router)
 api_router.include_router(resumes_router)
 api_router.include_router(jobs_router)

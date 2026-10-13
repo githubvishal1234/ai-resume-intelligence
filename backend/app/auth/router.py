@@ -25,6 +25,11 @@ def _limiter(kind: str, settings: Settings) -> RateLimiter:
     return _limiters[key]
 
 
+def check_rate_limit(kind: str, key: str, settings: Settings) -> None:
+    """Shared auth rate limit, also used by account routes that check a password."""
+    _limiter(kind, settings).check(key)
+
+
 def reset_rate_limiters() -> None:
     for limiter in _limiters.values():
         limiter.reset()
