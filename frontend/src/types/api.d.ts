@@ -445,6 +445,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}/ai-analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ai Analyze Job */
+        post: operations["ai_analyze_job_api_v1_jobs__job_id__ai_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matches": {
         parameters: {
             query?: never;
@@ -1622,6 +1639,12 @@ export interface components {
             sections_found?: string[];
             /** Warnings */
             warnings?: string[];
+            /** Ai Provider */
+            ai_provider?: string | null;
+            /** Ai Model */
+            ai_model?: string | null;
+            /** Ai Dropped */
+            ai_dropped?: string[];
         };
         /** JobDetailOut */
         JobDetailOut: {
@@ -3488,6 +3511,37 @@ export interface operations {
         };
     };
     reanalyze_job_api_v1_jobs__job_id__reanalyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_analyze_job_api_v1_jobs__job_id__ai_analyze_post: {
         parameters: {
             query?: never;
             header?: never;

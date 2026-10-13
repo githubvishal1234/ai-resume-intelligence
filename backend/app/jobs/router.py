@@ -115,6 +115,11 @@ def reanalyze_job(job_id: uuid.UUID, service: Service) -> JobDetailOut:
     return _detail(service.reanalyze(job_id))
 
 
+@router.post("/{job_id}/ai-analyze", response_model=JobDetailOut)
+def ai_analyze_job(job_id: uuid.UUID, service: Service) -> JobDetailOut:
+    return _detail(service.ai_analyze(job_id))
+
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_job(job_id: uuid.UUID, service: Service) -> None:
     service.delete(job_id)

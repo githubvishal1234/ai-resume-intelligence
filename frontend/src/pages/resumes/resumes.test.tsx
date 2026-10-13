@@ -78,7 +78,7 @@ describe("Import review with AI", () => {
     renderApp(`/resumes/imports/${IMPORT_ID}`);
     await user.click(await screen.findByRole("button", { name: "Improve with AI" }));
     expect(await screen.findByText("Filled in by AI (groq · openai/gpt-oss-120b)")).toBeInTheDocument();
-    expect(screen.getByText(/14 values were read and matched to your file. 1 were left out/)).toBeInTheDocument();
+    expect(screen.getByText(/14 values were read and matched to your file. 1 was left out because your file does not contain it/)).toBeInTheDocument();
     expect(screen.getByText("Skill: “Rust”")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Read by the AI.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Use the original reading" }));

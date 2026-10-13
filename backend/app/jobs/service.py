@@ -13,10 +13,13 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.registry import get_llm_provider
+from app.ai.usage import metered
 from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
+from app.jobs.ai_analyzer import AiAnalysisEmpty, ai_analyze
 from app.jobs.analyzer import ANALYZER_VERSION, analyze_job, guess_title
 from app.jobs.schemas import MAX_JOB_CHARS, MIN_JOB_CHARS
 from app.jobs.sources import registered_adapters
@@ -28,6 +31,15 @@ class JobSourceNotSupported(AppError):
     status_code = 422
     code = "JOB_SOURCE_NOT_SUPPORTED"
     message = "Unable to extract this job posting. Paste the job description instead."
+
+
+class AiJobAnalysisEmpty(AppError):
+    status_code = 422
+    code = "AI_ANALYSIS_EMPTY"
+    message = (
+        "The AI did not return any requirement that matches the posting's text. "
+        "The current analysis is unchanged."
+    )
 
 
 class JobTextInvalid(AppError):
@@ -146,6 +158,23 @@ class JobService:
         )
         job.analyzer_version = ANALYZER_VERSION
         job.updated_at = datetime.now(UTC)
+        self.db.commit()
+        return job
+
+    def ai_analyze(self, job_id: uuid.UUID) -> Job:
+        """Replaces the analysis with the AI's; `reanalyze` goes back to the rules."""
+        job = self._owned(job_id)
+        provider = metered(  # raises when no provider is configured
+            get_llm_provider(self.settings), self.actor.user_id, "jobs.ai_analyze", self.settings
+        )
+        try:
+            analysis, _ = ai_analyze(job.raw_text, job.title, job.company or "", provider)
+        except AiAnalysisEmpty:
+            raise AiJobAnalysisEmpty() from None
+        job.analysis = analysis.model_dump(mode="json")
+        job.analyzer_version = analysis.analyzer_version
+        job.updated_at = datetime.now(UTC)
+        self._audit("job.ai_analyze", str(job.id))
         self.db.commit()
         return job
 

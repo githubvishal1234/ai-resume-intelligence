@@ -10,7 +10,9 @@ import { Field, Input } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
-import { useDeleteJob, useJob, useReanalyzeJob, useUpdateJob } from "@/hooks/useJobs";
+import { useCapabilities } from "@/hooks/useCapabilities";
+import { useAiAnalyzeJob, useDeleteJob, useJob, useReanalyzeJob, useUpdateJob } from "@/hooks/useJobs";
+import { ApiError } from "@/services/apiClient";
 import { applyServerErrors } from "@/lib/formErrors";
 import { TIER_LABEL, type JobDetail, type Requirement, type Tier } from "@/services/jobService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
@@ -70,6 +72,7 @@ export function JobDetailPage() {
       />
       {editing ? <EditDetails job={j} onDone={() => setEditing(false)} /> : null}
       <Facts job={j} />
+      <AiAnalysis job={j} />
       {a.warnings.map((w) => (
         <Notice key={w} tone="warning" title="Check this analysis" className="mb-4">
           {w}
@@ -334,5 +337,68 @@ function DeleteJob({ job }: { job: JobDetail }) {
         </Button>
       )}
     </section>
+  );
+}
+
+function AiAnalysis({ job: j }: { job: JobDetail }) {
+  const caps = useCapabilities();
+  const analyze = useAiAnalyzeJob(j.id);
+  const rules = useReanalyzeJob(j.id);
+  const a = j.analysis;
+  const error = analyze.error ?? rules.error;
+  if (!a.ai_provider && !caps.data?.ai.configured) return null;
+  return (
+    <div className="mb-4 space-y-3">
+      {a.ai_provider ? (
+        <Notice tone="info" title={`Requirements read by AI (${a.ai_provider} · ${a.ai_model ?? ""})`}>
+          <p>
+            Each requirement below is quoted from the posting.
+            {a.ai_dropped.length
+              ? ` ${a.ai_dropped.length === 1 ? "1 item" : `${a.ai_dropped.length} items`} the AI suggested ${a.ai_dropped.length === 1 ? "was" : "were"} left out because the posting does not say ${a.ai_dropped.length === 1 ? "it" : "them"}.`
+              : ""}
+          </p>
+          {a.ai_dropped.length ? (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-label-md text-primary">Show what was left out</summary>
+              <ul className="mt-1 list-disc space-y-1 pl-5">
+                {a.ai_dropped.map((d) => (
+                  <li key={d} className="break-words">{d}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          <div className="mt-3">
+            <Button size="sm" variant="secondary" loading={rules.isPending} onClick={() => rules.mutate()}>
+              Use the rule-based analysis
+            </Button>
+          </div>
+        </Notice>
+      ) : (
+        <div className="flex flex-col gap-3 rounded-card border border-hairline bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-label-md text-on-surface">Requirements look off?</p>
+            <p className="text-body-sm text-on-surface-variant">
+              The AI can read the posting again and sort what it asks for. Every requirement it keeps is quoted from the
+              posting.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            loading={analyze.isPending}
+            icon={<Sparkles className="size-4" aria-hidden />}
+            onClick={() => analyze.mutate()}
+          >
+            Analyze with AI
+          </Button>
+        </div>
+      )}
+      {error ? (
+        <Notice tone="critical" title="That didn't work">
+          {error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
+        </Notice>
+      ) : null}
+    </div>
   );
 }

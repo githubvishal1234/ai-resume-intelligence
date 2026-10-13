@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { mockApi, renderApp, SESSION } from "@/test/utils";
+import { CAPS, mockApi, renderApp, SESSION } from "@/test/utils";
 
 const JOB_ID = "33333333-3333-4333-8333-333333333333";
 const me = { path: "/auth/me", body: SESSION };
@@ -45,6 +45,49 @@ const JOB = {
 };
 
 const { raw_text: _raw, analysis: _analysis, source_url: _url, source_filename: _file, ...SUMMARY } = JOB;
+
+describe("AI job analysis", () => {
+  const AI_CAPS = { path: "/system/capabilities", body: { ...CAPS, ai: { configured: true, provider: "groq", model: "openai/gpt-oss-120b", reason: null } } };
+
+  it("re-reads the posting with AI and can go back to the rules", async () => {
+    const user = userEvent.setup();
+    const analyzed = {
+      ...JOB,
+      analysis: {
+        ...JOB.analysis,
+        analyzer_version: "jd-ai-v1",
+        ai_provider: "groq",
+        ai_model: "openai/gpt-oss-120b",
+        ai_dropped: ["Requirement: “10+ years of Rust.”"],
+      },
+    };
+    const { calls } = mockApi([
+      me,
+      AI_CAPS,
+      { path: `/jobs/${JOB_ID}`, body: JOB },
+      { method: "POST", path: `/jobs/${JOB_ID}/ai-analyze`, body: analyzed },
+      { method: "POST", path: `/jobs/${JOB_ID}/reanalyze`, body: JOB },
+      { path: "/jobs", body: [] },
+    ]);
+    renderApp(`/jobs/${JOB_ID}`);
+    await user.click(await screen.findByRole("button", { name: "Analyze with AI" }));
+    expect(await screen.findByText("Requirements read by AI (groq · openai/gpt-oss-120b)")).toBeInTheDocument();
+    expect(screen.getByText("Requirement: “10+ years of Rust.”")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use the rule-based analysis" }));
+    expect(await screen.findByRole("button", { name: "Analyze with AI" })).toBeInTheDocument();
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.path)).toEqual([
+      `/jobs/${JOB_ID}/ai-analyze`,
+      `/jobs/${JOB_ID}/reanalyze`,
+    ]);
+  });
+
+  it("is not offered when AI is not set up", async () => {
+    mockApi([me, { path: `/jobs/${JOB_ID}`, body: JOB }]);
+    renderApp(`/jobs/${JOB_ID}`);
+    expect(await screen.findByRole("heading", { name: "Senior Backend Engineer" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Analyze with AI" })).not.toBeInTheDocument();
+  });
+});
 
 describe("Job Analyzer", () => {
   it("is reachable from the navigation", async () => {

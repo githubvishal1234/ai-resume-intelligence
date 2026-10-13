@@ -106,7 +106,7 @@ function AiAssist({ item }: { item: ResumeImport }) {
           <p>
             {ai.kept} values were read and matched to your file.
             {ai.dropped.length
-              ? ` ${ai.dropped.length} were left out because your file does not contain them.`
+              ? ` ${ai.dropped.length} ${ai.dropped.length === 1 ? "was" : "were"} left out because your file does not contain ${ai.dropped.length === 1 ? "it" : "them"}.`
               : " Nothing was left out."}{" "}
             Check every section before saving.
           </p>

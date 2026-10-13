@@ -55,6 +55,10 @@ class JobAnalysis(BaseModel):
     salary: str | None = None
     sections_found: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    # Set when the requirements came from the AI (`jd-ai-v1`, see ai_analyzer.py).
+    ai_provider: str | None = None
+    ai_model: str | None = None
+    ai_dropped: list[str] = Field(default_factory=list)
 
 
 _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
@@ -277,18 +281,37 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
                 tier = "required"
             else:
                 continue
-        analysis.requirements.append(
-            Requirement(
-                # Stable across re-analysis of the same text, so matches can refer to it.
-                id=hashlib.sha256(f"{tier}:{key}".encode()).hexdigest()[:12],
-                text=item[:600],
-                tier=tier,
-                category=_category(item, skills),
-                skills=skills,
-                years=_years(item),
-            )
-        )
+        analysis.requirements.append(make_requirement(item, tier))
 
+    finish_analysis(analysis, text, title, company)
+    if not has_sections:
+        analysis.warnings.append(
+            "No section headings (e.g. 'Requirements') were found, so "
+            "requirements were identified sentence by sentence."
+        )
+    if not analysis.requirements:
+        analysis.warnings.append(
+            "No requirements were identified. Check that the full job description was pasted."
+        )
+    return analysis
+
+
+def make_requirement(item: str, tier: Tier, category: ReqCategory | None = None) -> Requirement:
+    skills = find_skills(item)
+    return Requirement(
+        # Stable across re-analysis of the same text, so matches can refer to it.
+        id=hashlib.sha256(f"{tier}:{item.lower()}".encode()).hexdigest()[:12],
+        text=item[:600],
+        tier=tier,
+        category=category or _category(item, skills),
+        skills=skills,
+        years=_years(item),
+    )
+
+
+def finish_analysis(analysis: JobAnalysis, text: str, title: str, company: str) -> None:
+    """Fills skills, job facts and keywords from the requirements and the posting text."""
+    lines = [ln.rstrip() for ln in text.replace("\r", "").split("\n")]
     # Skills: tier = strongest tier that mentions them; mentions over the whole posting.
     order = {"required": 0, "preferred": 1, "nice_to_have": 2}
     best: dict[str, Tier] = {}
@@ -323,17 +346,6 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
     # The company's own name is repeated in every posting and says nothing about the role.
     exclude = {s.name.lower() for s in analysis.skills} | set(company.lower().split())
     analysis.keywords = _keywords(text, exclude)
-
-    if not has_sections:
-        analysis.warnings.append(
-            "No section headings (e.g. 'Requirements') were found, so "
-            "requirements were identified sentence by sentence."
-        )
-    if not analysis.requirements:
-        analysis.warnings.append(
-            "No requirements were identified. Check that the full job description was pasted."
-        )
-    return analysis
 
 
 def guess_title(text: str) -> str:

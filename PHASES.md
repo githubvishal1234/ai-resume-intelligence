@@ -27,8 +27,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 9 | Hardening | ✅ |
 | 10 | AI usage limits & tracking | ✅ |
 | 11 | AI-assisted resume import | ✅ |
-| 12 | AI-assisted job analysis | 🚧 |
-| 13 | AI interview questions | ⏳ |
+| 12 | AI-assisted job analysis | ✅ |
+| 13 | AI interview questions | 🚧 |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -489,10 +489,26 @@ cannot run up the bill (the budget itself is still open under D-03).
 
 ## Phase 12: AI-assisted job analysis
 
-**Scope**
-- [ ] When AI is set up, job analysis can ask the AI to extract requirements and their tiers.
-      Every requirement must quote the posting; quotes are verified, and the rule-based
-      analysis stays the fallback.
+**Delivered**
+- [x] `POST /jobs/{id}/ai-analyze` (`app/jobs/ai_analyzer.py`, `jd-ai-v1`): the AI lists the
+      posting's requirements with their tier and category, and its responsibilities, each as
+      a quote. Quotes not found in the posting are left out and listed (`ai_dropped`). If no
+      requirement survives, the request is refused and the analysis is unchanged.
+- [x] Skills, tiers per skill, years, education, seniority, salary and keywords are derived
+      from the kept quotes by the same code as the rules (`finish_analysis`), so the model
+      only chooses and labels text that is in the posting.
+- [x] The analyzer version changes to `jd-ai-v1`, so saved matches show as out of date.
+      "Use the rule-based analysis" (the existing re-run) goes back to `jd-rules-v1`.
+- [x] Job page: "Analyze with AI" when AI is set up, and a notice naming the provider with
+      what was left out. Metered as `jobs.ai_analyze`.
+
+**Verified 2026-10-13**
+- 212 backend tests pass (6 new: not-configured, quotes kept and dropped with tiers and
+  derived skills, back to rules, nothing-matches refusal, matches marked stale, other users).
+- 72 frontend tests pass (2 new). Lint, types and the API types are clean.
+- Browser run against a stand-in for Groq that also invents a "pilot license" requirement:
+  it was listed as left out and not shown, going back to the rules worked, and there was no
+  overflow at 390.
 
 ## Phase 13: AI interview questions
 
@@ -519,3 +535,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Factual-check layer 2 (LLM claim check) added.
 - 2026-10-13: Phases 10–13 planned. Phase 10 completed and verified. Phase 11 started.
 - 2026-10-13: Phase 11 completed and verified. Phase 12 started.
+- 2026-10-13: Phase 12 completed and verified. Phase 13 started.

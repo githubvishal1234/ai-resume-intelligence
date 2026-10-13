@@ -32,6 +32,9 @@ function normalizeAnalysis(a: S["JobAnalysis"]): JobAnalysis {
     salary: a.salary ?? null,
     sections_found: a.sections_found ?? [],
     warnings: a.warnings ?? [],
+    ai_provider: a.ai_provider ?? null,
+    ai_model: a.ai_model ?? null,
+    ai_dropped: a.ai_dropped ?? [],
   };
 }
 
@@ -68,5 +71,6 @@ export const jobService = {
   update: async (id: string, meta: { title: string; company: string; location: string }) =>
     detail(await api.patch<S["JobDetailOut"]>(`/jobs/${id}`, meta)),
   reanalyze: async (id: string) => detail(await api.post<S["JobDetailOut"]>(`/jobs/${id}/reanalyze`)),
+  aiAnalyze: async (id: string) => detail(await api.post<S["JobDetailOut"]>(`/jobs/${id}/ai-analyze`)),
   remove: (id: string) => api.delete<void>(`/jobs/${id}`),
 };

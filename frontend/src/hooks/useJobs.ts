@@ -56,6 +56,11 @@ export function useReanalyzeJob(id: string) {
   return useMutation({ mutationFn: () => jobService.reanalyze(id), onSuccess: settle });
 }
 
+export function useAiAnalyzeJob(id: string) {
+  const settle = useSettle();
+  return useMutation({ mutationFn: () => jobService.aiAnalyze(id), onSuccess: settle });
+}
+
 export function useDeleteJob(id: string) {
   const client = useQueryClient();
   return useMutation({
