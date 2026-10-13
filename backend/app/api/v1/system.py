@@ -24,6 +24,7 @@ class AiCapability(BaseModel):
 
 class EmailCapability(BaseModel):
     configured: bool
+    reason: str | None = None
 
 
 class StorageCapability(BaseModel):
@@ -58,7 +59,9 @@ def capabilities(
         ai=AiCapability(
             configured=ai.configured, provider=ai.provider, model=ai.model, reason=ai.reason
         ),
-        email=EmailCapability(configured=email_status(settings).configured),
+        email=EmailCapability(
+            configured=email_status(settings).configured, reason=email_status(settings).reason
+        ),
         storage=StorageCapability(backend=settings.storage_backend),
         benchmarks=BenchmarkCapability(available=get_benchmark_provider().available),
         job_sources=JobSourcesCapability(

@@ -55,7 +55,7 @@ export function CapabilitiesCard() {
           <Row
             label="Email delivery"
             ok={caps.data.email.configured}
-            detail={caps.data.email.configured ? "Email notifications can be sent." : "Password reset and email notifications are unavailable."}
+            detail={caps.data.email.configured ? "Password reset emails can be sent." : "Password reset by email is unavailable."}
           />
           <Row label="File storage" ok detail={`Backend: ${caps.data.storage.backend}`} />
         </ul>

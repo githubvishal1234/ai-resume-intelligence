@@ -53,8 +53,18 @@ class Settings(BaseSettings):
     # AI calls per user per UTC day (0 = no limit). Counted in the ai_usage table.
     ai_daily_limit_per_user: int = Field(default=100, ge=0)
 
-    # --- Other pending company decisions: abstractions only ---
+    # --- Email (D-07 provider pending). "smtp" works with any provider; "console" is dev-only.
     email_provider: str | None = None
+    email_from: str | None = None
+    # Public URL of the web app, used for links in emails (e.g. https://app.example.com).
+    app_base_url: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_timeout_seconds: float = Field(default=15, gt=0, le=120)
+    password_reset_ttl_minutes: int = Field(default=30, ge=5, le=24 * 60)
 
     storage_backend: str = "local"
     storage_local_root: str = "./var/storage"
@@ -71,7 +81,17 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
-        "llm_provider", "llm_model", "llm_base_url", "llm_api_key", "email_provider", mode="before"
+        "llm_provider",
+        "llm_model",
+        "llm_base_url",
+        "llm_api_key",
+        "email_provider",
+        "email_from",
+        "app_base_url",
+        "smtp_host",
+        "smtp_username",
+        "smtp_password",
+        mode="before",
     )
     @classmethod
     def _empty_to_none(cls, value: object) -> object:
@@ -89,6 +109,10 @@ class Settings(BaseSettings):
                 problems.append("SESSION_COOKIE_SECURE must be true")
             if "*" in self.cors_origins:
                 problems.append("CORS_ORIGINS must not contain '*'")
+            if (self.email_provider or "").lower() == "console":
+                problems.append("EMAIL_PROVIDER=console is for development only")
+            if self.smtp_security == "none" and (self.email_provider or "").lower() == "smtp":
+                problems.append("SMTP_SECURITY must be starttls or ssl")
             if problems:
                 raise ValueError("Unsafe production configuration: " + "; ".join(problems))
         return self

@@ -4,12 +4,23 @@ import hashlib
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
+from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentAuth, get_auth_service
-from app.auth.schemas import LoginRequest, RegisterRequest, SessionOut, UserOut
+from app.auth.password_reset import PasswordResetService
+from app.auth.schemas import (
+    AuthOptionsOut,
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RegisterRequest,
+    SessionOut,
+    UserOut,
+)
 from app.auth.service import AuthService, IssuedSession
 from app.core.config import Settings, get_settings
 from app.core.ratelimit import RateLimiter
+from app.db.session import get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -107,3 +118,50 @@ def logout(
 @router.get("/me", response_model=SessionOut)
 def me(ctx: CurrentAuth) -> SessionOut:
     return SessionOut(user=UserOut.model_validate(ctx.user), csrf_token=ctx.session.csrf_token)
+
+
+def get_reset_service(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PasswordResetService:
+    return PasswordResetService(db, settings, request.scope.get("state", {}).get("request_id"))
+
+
+ResetService = Annotated[PasswordResetService, Depends(get_reset_service)]
+
+
+@router.get("/options", response_model=AuthOptionsOut)
+def options(
+    service: ResetService, settings: Annotated[Settings, Depends(get_settings)]
+) -> AuthOptionsOut:
+    return AuthOptionsOut(
+        registration=settings.registration_enabled, password_reset=service.available()
+    )
+
+
+@router.post("/password-reset/request", status_code=status.HTTP_202_ACCEPTED)
+def request_password_reset(
+    body: PasswordResetRequest,
+    request: Request,
+    service: ResetService,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, str]:
+    """Always the same answer, whether or not the address has an account."""
+    email_digest = hashlib.sha256(body.email.strip().lower().encode()).hexdigest()[:16]
+    limiter = _limiter("reset", settings)
+    limiter.check(f"ip:{_client_ip(request)}")
+    limiter.check(f"acct:{email_digest}")
+    service.request(body.email)
+    return {}
+
+
+@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+def confirm_password_reset(
+    body: PasswordResetConfirm,
+    request: Request,
+    service: ResetService,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    _limiter("reset-confirm", settings).check(f"ip:{_client_ip(request)}")
+    service.confirm(body.token, body.new_password)

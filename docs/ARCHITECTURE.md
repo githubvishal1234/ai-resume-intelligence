@@ -34,6 +34,7 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 | `interview` | `questions.py` builds the deterministic question bank (`interview-rules-v1`) from the job, the resume's match evidence and the gaps. `service.py` runs question sets, practice sessions and the optional LLM feedback (only through `get_llm_provider`); `router.py` serves `/interview`. |
 | `interview` (AI) | `ai_questions.py` (`interview-ai-v1`) adds up to 5 AI questions per request (20 per set), marked `source: "ai"`; repeats, numbers not in the resume or posting, and unknown requirement links are dropped. |
 | `account` | `service.py` handles the signed-in user's own name, password, signed-in browsers and account deletion (cascading delete, then stored files); `router.py` serves `/account`. |
+| `mail` | `base.py` is the `EmailSender` registry and `email_status`; `senders.py` holds `smtp` and `console`; `templates.py` renders plain-text mail. Password reset lives in `auth/password_reset.py`. |
 | `ai` | `LLMProvider` interface and registry. `usage.py` meters every call (`ai_usage` table, daily per-user limit) and `router.py` serves `/ai/usage`. `providers/openai.py` holds the OpenAI and Groq adapters (D-03; same API format), the only code that calls a vendor API. |
 | `mail`, `storage`, `benchmarks` | Provider interfaces and registries for pending decisions. Only `LocalStorage` is implemented. |
 

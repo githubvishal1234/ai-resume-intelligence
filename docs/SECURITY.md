@@ -13,6 +13,14 @@
   sessions are deleted when presented, and in bulk on every successful login.
 - CSRF uses a per-session token, required in `X-CSRF-Token` on every non-GET request that
   needs auth. It is enforced in the shared auth dependency.
+- Password reset (only when email is configured): the request answers the same whether or not
+  the address has an account, and is rate limited per IP and per address. Links are
+  single-use, expire (`PASSWORD_RESET_TTL_MINUTES`, default 30), and only the token's SHA-256
+  is stored. A new request replaces older links; a reset signs out every session. The reset
+  page removes the token from the address bar, and `Referrer-Policy: no-referrer` is set.
+  Known limit: a request for a real account takes a little longer (it sends mail), so
+  response timing can hint that an account exists.
+- SMTP errors are logged by type only; server replies can echo addresses or credentials.
 - Changing the password requires the current one and signs out every other session. Users can
   list their sessions (never the token) and end any of them. Password checks on `/account`
   share the auth rate limit.

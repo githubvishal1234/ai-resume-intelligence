@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "@/services/apiClient";
-import { authService, type LoginInput, type RegisterInput, type SessionInfo } from "@/services/authService";
+import { authService, type LoginInput, type RegisterInput, type ResetConfirmInput, type SessionInfo } from "@/services/authService";
 
 export const SESSION_KEY = ["session"] as const;
 
@@ -56,4 +56,16 @@ export function useLogout() {
       if (error instanceof ApiError && error.status === 401) signOutLocally(client);
     },
   });
+}
+
+export function useAuthOptions() {
+  return useQuery({ queryKey: ["auth-options"], queryFn: authService.options, staleTime: 5 * 60_000, retry: false });
+}
+
+export function useRequestReset() {
+  return useMutation({ mutationFn: (email: string) => authService.requestReset(email) });
+}
+
+export function useConfirmReset() {
+  return useMutation({ mutationFn: (input: ResetConfirmInput) => authService.confirmReset(input) });
 }

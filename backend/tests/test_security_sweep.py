@@ -16,6 +16,9 @@ PUBLIC = {
     ("GET", "/api/v1/system/capabilities"),
     ("POST", "/api/v1/auth/register"),
     ("POST", "/api/v1/auth/login"),
+    ("GET", "/api/v1/auth/options"),
+    ("POST", "/api/v1/auth/password-reset/request"),
+    ("POST", "/api/v1/auth/password-reset/confirm"),
     ("POST", "/api/v1/auth/logout"),  # no session: nothing to log out, answers without effect
 }
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}

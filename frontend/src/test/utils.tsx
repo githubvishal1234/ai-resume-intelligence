@@ -11,6 +11,7 @@ export type MockRoute = { method?: string; path: string; status?: number; body?:
 const shellRoutes = (): MockRoute[] => [
   { path: "/notifications/unread-count", body: { unread: 0 } },
   { path: "/system/capabilities", body: CAPS },
+  { path: "/auth/options", body: { registration: true, password_reset: false } },
 ];
 
 /** Replaces fetch with a tiny router over `/api/v1` paths. Unmatched calls fail loudly. */

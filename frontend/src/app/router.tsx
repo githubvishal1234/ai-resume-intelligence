@@ -3,6 +3,7 @@ import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/pages/auth/AuthLayout";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { ForgotPasswordPage, ResetPasswordPage } from "@/pages/auth/PasswordResetPages";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -35,9 +36,16 @@ export const routes: RouteObject[] = [
         children: [
           { path: "/login", element: <LoginPage /> },
           { path: "/register", element: <RegisterPage /> },
+          { path: "/forgot-password", element: <ForgotPasswordPage /> },
         ],
       },
     ],
+  },
+  {
+    // A reset link works whether or not this browser is signed in.
+    HydrateFallback: AppLoading,
+    element: <AuthLayout />,
+    children: [{ path: "/reset-password", element: <ResetPasswordPage /> }],
   },
   {
     HydrateFallback: AppLoading,

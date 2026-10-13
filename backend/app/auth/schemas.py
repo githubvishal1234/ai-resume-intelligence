@@ -37,3 +37,19 @@ class SessionOut(BaseModel):
 
     user: UserOut
     csrf_token: str
+
+
+class AuthOptionsOut(BaseModel):
+    """What the sign-in pages may offer. Public: no account information."""
+
+    registration: bool
+    password_reset: bool
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
-import { useLogin } from "@/hooks/useSession";
+import { useAuthOptions, useLogin } from "@/hooks/useSession";
 import { applyServerErrors } from "@/lib/formErrors";
 
 const schema = z.object({
@@ -17,6 +17,7 @@ type Values = z.infer<typeof schema>;
 
 export function LoginPage() {
   const login = useLogin();
+  const canReset = useAuthOptions().data?.password_reset === true;
   const navigate = useNavigate();
   const location = useLocation();
   const [formError, setFormError] = useState<string | null>(null);
@@ -66,6 +67,13 @@ export function LoginPage() {
             />
           )}
         </Field>
+        {canReset ? (
+          <p className="-mt-2 text-right text-body-sm">
+            <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+              Forgot your password?
+            </Link>
+          </p>
+        ) : null}
         <Button type="submit" className="w-full" loading={login.isPending}>
           Sign in
         </Button>

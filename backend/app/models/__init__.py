@@ -4,6 +4,7 @@ from app.models.audit import AuditLog
 from app.models.interview import InterviewPrep, PracticeAnswer, PracticeSession
 from app.models.job import Job
 from app.models.match import JobMatch
+from app.models.password_reset import PasswordResetToken
 from app.models.resume import Resume, ResumeFile, ResumeImport, ResumeVersion
 from app.models.session import UserSession
 from app.models.tailoring import TailoringChange, TailoringSession
@@ -18,6 +19,7 @@ __all__ = [
     "Job",
     "JobMatch",
     "Notification",
+    "PasswordResetToken",
     "PracticeAnswer",
     "PracticeSession",
     "Resume",

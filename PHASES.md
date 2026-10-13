@@ -30,8 +30,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 12 | AI-assisted job analysis | ✅ |
 | 13 | AI interview questions | ✅ |
 | 14 | Account settings | ✅ |
-| 15 | Email over SMTP & password reset | 🚧 |
-| 16 | S3-compatible file storage | ⏳ |
+| 15 | Email over SMTP & password reset | ✅ |
+| 16 | S3-compatible file storage | 🚧 |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -561,11 +561,26 @@ cannot run up the bill (the budget itself is still open under D-03).
 
 ## Phase 15: Email over SMTP & password reset
 
-**Scope**
-- [ ] An SMTP `EmailSender` configured by environment only (host, port, TLS, user, password,
-      from address), so any provider works. Off unless configured.
-- [ ] "Forgot password" with single-use, short-lived reset links (only a hash is stored),
-      shown only when email is set up. Resetting signs out every browser.
+**Delivered**
+- [x] `app/mail/senders.py`: `smtp` (STARTTLS, SSL or plain for development; optional login)
+      and `console` (development only, refused in production). Configured only by
+      environment; `email_status` names any missing setting. No provider is chosen (D-07).
+- [x] `app/auth/password_reset.py` and `password_reset_tokens`: "Forgot your password?" sends
+      a single-use link that expires after 30 minutes. Only the token hash is stored, a new
+      request replaces older links, and a reset signs out every browser. The answer is the
+      same for unknown addresses and when sending fails (both are audited).
+- [x] `GET /auth/options` (public) tells the sign-in page whether to show the link. Without
+      email it is hidden and the API answers 503 `EMAIL_NOT_CONFIGURED`.
+- [x] Pages: Forgot password, and Reset password, which removes the token from the address bar.
+
+**Verified 2026-10-13**
+- 230 backend tests pass (8 new, using a local SMTP stand-in: settings check, SMTP send and
+  login, send failure, console refused in production, hidden without email, full flow, older
+  and expired links refused, same answer on send failure).
+- 83 frontend tests pass (5 new). Lint, types, the API types and the build are clean.
+- Browser run with the console sender at 390: link requested, token gone from the address
+  bar, new password works, the used link is refused, no overflow.
+- Not tried against a real mail provider (none chosen, and this environment has no SMTP access).
 
 ## Phase 16: S3-compatible file storage
 
@@ -595,3 +610,4 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Phase 12 completed and verified. Phase 13 started.
 - 2026-10-13: Phase 13 completed and verified. All planned phases are done; what remains needs a decision (see the follow-ups and D-02 to D-11) or a Groq key.
 - 2026-10-13: Phases 14–16 planned. Phase 14 completed and verified. Phase 15 started.
+- 2026-10-13: Phase 15 completed and verified. Phase 16 started.

@@ -36,7 +36,10 @@ safe development defaults. In production:
 | `AI_DAILY_LIMIT_PER_USER` | Default 100, `0` for no limit. AI calls per user per UTC day; over it the API answers `429 AI_DAILY_LIMIT_REACHED`. A rewrite plus its claim check counts as 2. Every call is logged in `ai_usage` (counts and timings only) for cost tracking. |
 | `LLM_MIN_OUTPUT_TOKENS` | Optional floor for output limits, for reasoning models that spend tokens thinking first. Groq already uses at least 1024. |
 | `LLM_TIMEOUT_SECONDS`, `LLM_MAX_RETRIES` | Optional, default 60 and 2. Rate-limit and server errors are retried with backoff; a rejected key is not. |
-| `EMAIL_PROVIDER` | Leave empty until D-07 is decided; the app reports "not configured". |
+| `EMAIL_PROVIDER` | Empty (default) hides "Forgot your password?". `smtp` works with any provider that offers SMTP (D-07 picks which). `console` writes mail to the log and is refused in production. |
+| `EMAIL_FROM`, `APP_BASE_URL` | Required with any email provider: the sender address, and the public URL of the web app used in reset links (e.g. `https://app.example.com`). |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD` | For `smtp`. Port defaults to 587 with `starttls`; use `ssl` for port 465. `none` is refused in production. The password comes from the secret store. The API needs outbound access to the SMTP host. |
+| `PASSWORD_RESET_TTL_MINUTES` | Default 30. How long a reset link works. |
 
 `CORS_ORIGINS` stays empty when the SPA is served through the web container.
 
