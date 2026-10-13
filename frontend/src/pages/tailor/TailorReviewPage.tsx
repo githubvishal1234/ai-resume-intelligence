@@ -92,6 +92,8 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
   const [draftText, setDraftText] = useState(current);
   const headingId = useId();
   const busy = decide.isPending || rewrite.isPending;
+  const blocking = c.flags.filter((f) => f.severity !== "warn");
+  const warnings = c.flags.filter((f) => f.severity === "warn");
   const failure = decide.error ?? rewrite.error;
   // A factual-check refusal is already explained by the flags shown on the card.
   const error = failure instanceof ApiError && failure.code === "FACTUAL_CHECK_FAILED" ? null : failure;
@@ -132,14 +134,24 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
           <EvidenceList evidence={c.evidence} />
         </details>
       ) : null}
-      {c.flags.length ? (
+      {blocking.length ? (
         <Notice tone="critical" title="Not in your master resume" className="mt-4">
           <ul className="list-disc space-y-1 pl-5">
-            {c.flags.map((f) => (
+            {blocking.map((f) => (
               <li key={`${f.kind}-${f.value}`}>{f.message}</li>
             ))}
           </ul>
           <p className="mt-2">Edit the text to remove these, or reject the change.</p>
+        </Notice>
+      ) : null}
+      {warnings.length ? (
+        <Notice tone="warning" title="Check these claims" className="mt-4">
+          <ul className="list-disc space-y-1 pl-5">
+            {warnings.map((f) => (
+              <li key={`${f.kind}-${f.value}`}>{f.message}</li>
+            ))}
+          </ul>
+          <p className="mt-2">The AI check could not match these to your master resume. Accept only if they are true.</p>
         </Notice>
       ) : null}
       {error ? (
@@ -171,7 +183,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
           <Button
             size="sm"
             variant={c.decision === "accepted" ? "secondary" : "primary"}
-            disabledReason={c.flags.length ? "Remove the flagged facts first" : undefined}
+            disabledReason={blocking.length ? "Remove the flagged facts first" : undefined}
             loading={decide.isPending && decide.variables?.decision === "accepted"}
             disabled={busy || c.decision === "accepted"}
             icon={<Check className="size-4" aria-hidden />}

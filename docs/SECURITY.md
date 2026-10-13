@@ -67,6 +67,9 @@
 - Resume, job, question and answer text is passed to the model as data in user messages,
   never in the system prompt. Tests check this for tailoring rewrites and interview feedback.
 - Model output that changes a resume goes through the same factual check as user edits.
+- Layer 2 of that check (`app/tailoring/claims.py`) asks the model to quote supporting words
+  from the master resume and verifies each quote itself, so the model cannot vouch for a claim
+  without real evidence. Its findings are warnings; layer-1 flags still block.
 
 ## Security review (Phase 9, 2026-10-12)
 - **Route sweep** (`tests/test_security_sweep.py`): every operation in the OpenAPI schema is

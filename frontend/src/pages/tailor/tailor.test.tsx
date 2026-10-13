@@ -180,6 +180,30 @@ describe("Tailoring review", () => {
   });
 });
 
+describe("Claim warnings", () => {
+  it("shows AI claim warnings without blocking accept", async () => {
+    const warned = {
+      ...SESSION_BODY,
+      changes: [
+        SESSION_BODY.changes[0],
+        {
+          ...SUMMARY_CHANGE,
+          flags: [
+            { kind: "claim", value: "Mentored a team", severity: "warn", message: "“Mentored a team” may not be backed by your master resume." },
+          ],
+        },
+      ],
+    };
+    mockApi([me, { path: `/tailoring/${SID}`, body: warned }]);
+    renderApp(`/tailor/${SID}`);
+    const summary = await screen.findByRole("region", { name: /Name the job's key skills/ });
+    expect(within(summary).getByText("Check these claims")).toBeInTheDocument();
+    expect(within(summary).getByText("“Mentored a team” may not be backed by your master resume.")).toBeInTheDocument();
+    expect(within(summary).queryByText("Not in your master resume")).not.toBeInTheDocument();
+    expect(within(summary).getByRole("button", { name: "Accept" })).not.toHaveAttribute("aria-disabled", "true");
+  });
+});
+
 describe("Bullet rewrites", () => {
   const BULLET = { experience_id: "e1", role: "Engineer at Acme", index: 0, text: "Built ETL jobs in Python.", change_id: null };
   const withBullets = { ...SESSION_BODY, bullets: [BULLET] };

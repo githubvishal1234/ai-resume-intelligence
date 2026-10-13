@@ -15,13 +15,20 @@ from pydantic import BaseModel
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 
-FlagKind = Literal["number", "date", "technology", "name"]
+FlagKind = Literal["number", "date", "technology", "name", "claim"]
 
 
 class FactFlag(BaseModel):
     kind: FlagKind
     value: str
     message: str
+    # "block": the change cannot be accepted until fixed (layer 1).
+    # "warn": shown for the user to judge (layer 2, see claims.py).
+    severity: Literal["block", "warn"] = "block"
+
+
+def blocking(flags: list[dict[str, object]]) -> list[dict[str, object]]:
+    return [f for f in flags if f.get("severity", "block") == "block"]
 
 
 _NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)*(?:\s?%|[kKmMbB]\b|x\b)?")

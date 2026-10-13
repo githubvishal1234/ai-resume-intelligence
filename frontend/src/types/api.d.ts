@@ -1447,11 +1447,17 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "number" | "date" | "technology" | "name";
+            kind: "number" | "date" | "technology" | "name" | "claim";
             /** Value */
             value: string;
             /** Message */
             message: string;
+            /**
+             * Severity
+             * @default block
+             * @enum {string}
+             */
+            severity: "block" | "warn";
         };
         /** FeedbackOut */
         FeedbackOut: {

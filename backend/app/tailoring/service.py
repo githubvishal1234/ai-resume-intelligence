@@ -6,6 +6,8 @@ Invariants:
   bullet on request) run only when a provider is configured (D-03), and their text goes
   through the same factual check as everything else.
 - Accepted text may not contain facts the master resume does not (factual check layer 1).
+  When a provider is configured, new wording also gets the LLM claim check (layer 2), whose
+  findings are warnings for the user to judge.
 """
 
 from __future__ import annotations
@@ -29,7 +31,8 @@ from app.matching.service import MasterResumeRequired
 from app.models import Job, Resume, ResumeVersion, TailoringChange, TailoringSession
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
-from app.tailoring.factcheck import FactFlag, check_text
+from app.tailoring.claims import check_claims
+from app.tailoring.factcheck import FactFlag, blocking, check_text
 from app.tailoring.proposer import (
     EDITABLE_KINDS,
     METHOD_VERSION,
@@ -253,6 +256,24 @@ class TailoringService:
             return []  # reorders and re-surfaced skills only use the master's own content
         return [f.model_dump() for f in check_text(str(value.get("text", "")), master)]
 
+    def _checked_flags(
+        self,
+        kind: str,
+        value: dict[str, Any],
+        master: ResumeContent,
+        provider: LLMProvider | None = None,
+    ) -> list[dict[str, Any]]:
+        """Layer 1, then layer 2 when a provider is available and layer 1 found nothing to fix."""
+        flags = self._flags(kind, value, master)
+        if kind not in TEXT_KINDS or blocking(flags):
+            return flags
+        if provider is None:
+            if not ai_status(self.settings).configured:
+                return flags
+            provider = get_llm_provider(self.settings)
+        claims = check_claims(str(value.get("text", "")), master, provider)
+        return flags + [f.model_dump() for f in claims]
+
     # ---- review -------------------------------------------------------------------------
     def decide(
         self, session_id: uuid.UUID, change_id: uuid.UUID, decision: str, edited_text: str | None
@@ -265,11 +286,12 @@ class TailoringService:
                 raise NotEditable()
             text = edited_text.strip()
             change.edited = None if text == change.proposed.get("text") else {"text": text}
-            change.flags = self._flags(change.kind, _value(change), master)
-        if decision == "accepted" and change.flags:
+            change.flags = self._checked_flags(change.kind, _value(change), master)
+        blocked = blocking(change.flags)
+        if decision == "accepted" and blocked:
             self.db.commit()  # keep the user's edit and its flags; only the accept is refused
             raise FactualCheckFailed(
-                details=[{"field": "edited_text", "message": f["message"]} for f in change.flags]
+                details=[{"field": "edited_text", "message": str(f["message"])} for f in blocked]
             )
         change.decision = decision
         self.db.commit()
@@ -364,7 +386,7 @@ class TailoringService:
         change.reason = (
             f"Rewritten by {result.provider} ({result.model}). Check every fact before accepting."
         )
-        change.flags = self._flags(change.kind, change.proposed, master)
+        change.flags = self._checked_flags(change.kind, change.proposed, master, provider)
         if change.kind == "rewrite_bullet":
             analysis = JobAnalysis.model_validate(job.analysis)
             skills = set(find_skills(change.proposed["text"])) & {s.name for s in analysis.skills}
@@ -377,7 +399,7 @@ class TailoringService:
         accepted = [c for c in row.changes if c.decision == "accepted"]
         if not accepted:
             raise NothingAccepted()
-        if any(c.flags for c in accepted):  # pragma: no cover - blocked when accepting
+        if any(blocking(c.flags) for c in accepted):  # pragma: no cover - blocked when accepting
             raise FactualCheckFailed()
         content = self.preview(row)
         job = self.db.get(Job, row.job_id)

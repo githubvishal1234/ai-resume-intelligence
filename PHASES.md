@@ -414,7 +414,13 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
       asking again regenerates the same change. Rewrites apply after reorders, matched by the
       bullet's text. Verified with 5 new backend tests, 2 new frontend tests and a browser run
       against a local stand-in for OpenAI (no overflow at 1440/1024/768/390).
-- [ ] Factual-check layer 2 (LLM-based) is still to do.
+- [x] Factual-check layer 2 (2026-10-13, `app/tailoring/claims.py`, `claims-llm-v1`): when AI
+      is set up, every AI rewrite and every user edit that passes layer 1 is split into claims
+      by the LLM, which must quote the master resume as evidence. A claim counts as backed only
+      if the quote really is in the master. Unbacked claims are shown as "Check these claims"
+      warnings: they do not block accepting, because the model can be wrong, while layer-1
+      flags still do. If the check cannot run, a warning says so. 7 backend tests, 1 frontend
+      test and a browser run against a stand-in for Groq.
 
 **Groq provider (chosen 2026-10-13)**
 - [x] `LLM_PROVIDER=groq` uses Groq's OpenAI-compatible API (`https://api.groq.com/openai/v1`)
@@ -441,3 +447,4 @@ Cyrillic and common symbols render. Scripts DejaVu does not cover are reported b
 - 2026-10-12: Unicode PDF fonts embedded. D-03 decided (OpenAI) and the OpenAI adapter added.
 - 2026-10-12: AI rewrites of individual bullets added to tailoring.
 - 2026-10-13: Groq chosen as the LLM provider; Groq adapter added.
+- 2026-10-13: Factual-check layer 2 (LLM claim check) added.
