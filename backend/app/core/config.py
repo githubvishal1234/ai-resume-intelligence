@@ -50,8 +50,20 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=2, ge=0, le=5)
     llm_response_format: Literal["json_schema", "json_object"] = "json_schema"
     llm_min_output_tokens: int = Field(default=0, ge=0, le=32_000)
-    # AI calls per user per UTC day (0 = no limit). Counted in the ai_usage table.
+    # AI calls per user per UTC day (0 = no limit). Counted in the ai_usage table. This is the
+    # full allowance: Pro users get it, and so does everyone while billing is not set up.
     ai_daily_limit_per_user: int = Field(default=100, ge=0)
+    # Free plan allowance, applied only when billing is configured.
+    ai_daily_limit_free: int = Field(default=5, ge=0)
+
+    # --- Billing: Razorpay subscriptions. All five set => billing on; any missing => off. ---
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: SecretStr | None = None
+    razorpay_webhook_secret: SecretStr | None = None
+    razorpay_plan_monthly: str | None = None
+    razorpay_plan_yearly: str | None = None
+    razorpay_api_base: str = "https://api.razorpay.com/v1"
+    razorpay_timeout_seconds: float = Field(default=20, gt=0, le=120)
 
     # --- Email (D-07 provider pending). "smtp" works with any provider; "console" is dev-only.
     email_provider: str | None = None
@@ -104,6 +116,11 @@ class Settings(BaseSettings):
         "s3_bucket",
         "s3_access_key_id",
         "s3_secret_access_key",
+        "razorpay_key_id",
+        "razorpay_key_secret",
+        "razorpay_webhook_secret",
+        "razorpay_plan_monthly",
+        "razorpay_plan_yearly",
         mode="before",
     )
     @classmethod
@@ -128,6 +145,10 @@ class Settings(BaseSettings):
                 problems.append("S3_ENDPOINT_URL must use https")
             if self.smtp_security == "none" and (self.email_provider or "").lower() == "smtp":
                 problems.append("SMTP_SECURITY must be starttls or ssl")
+            if (self.razorpay_key_id or "").startswith("rzp_test_"):
+                problems.append("RAZORPAY_KEY_ID is a test-mode key")
+            if not self.razorpay_api_base.startswith("https://"):
+                problems.append("RAZORPAY_API_BASE must use https")
             if problems:
                 raise ValueError("Unsafe production configuration: " + "; ".join(problems))
         return self

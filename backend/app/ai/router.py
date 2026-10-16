@@ -18,6 +18,7 @@ class AiUsageOut(BaseModel):
     daily_limit: int  # 0 means no limit
     remaining: int | None  # null when there is no limit
     resets_at: datetime
+    free_plan: bool  # true when the Free plan's allowance applies; Pro raises it
 
 
 @router.get("/usage", response_model=AiUsageOut)
@@ -30,4 +31,5 @@ def get_usage(
         daily_limit=today.limit,
         remaining=today.remaining,
         resets_at=today.resets_at,
+        free_plan=today.free_plan,
     )

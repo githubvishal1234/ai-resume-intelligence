@@ -1138,6 +1138,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Billing */
+        get: operations["get_billing_api_v1_billing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checkout */
+        post: operations["checkout_api_v1_billing_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify */
+        post: operations["verify_api_v1_billing_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_billing_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1196,6 +1264,8 @@ export interface components {
              * Format: date-time
              */
             resets_at: string;
+            /** Free Plan */
+            free_plan: boolean;
         };
         /** AnalysisOut */
         AnalysisOut: {
@@ -1386,6 +1456,19 @@ export interface components {
             /** Available */
             available: boolean;
         };
+        /** BillingOut */
+        BillingOut: {
+            /** Configured */
+            configured: boolean;
+            /**
+             * Plan
+             * @enum {string}
+             */
+            plan: "free" | "pro";
+            /** Ai Daily Limit */
+            ai_daily_limit: number;
+            subscription: components["schemas"]["SubscriptionOut"] | null;
+        };
         /** Body_upload_job_api_v1_jobs_upload_post */
         Body_upload_job_api_v1_jobs_upload_post: {
             /**
@@ -1515,6 +1598,26 @@ export interface components {
             detail: string;
             /** Weight */
             weight: number;
+        };
+        /** CheckoutIn */
+        CheckoutIn: {
+            /**
+             * Interval
+             * @enum {string}
+             */
+            interval: "monthly" | "yearly";
+        };
+        /** CheckoutOut */
+        CheckoutOut: {
+            /** Key Id */
+            key_id: string;
+            /** Subscription Id */
+            subscription_id: string;
+            /**
+             * Interval
+             * @enum {string}
+             */
+            interval: "monthly" | "yearly";
         };
         /** ConfirmImportIn */
         ConfirmImportIn: {
@@ -2660,6 +2763,20 @@ export interface components {
             /** Explanation */
             explanation: string;
         };
+        /** SubscriptionOut */
+        SubscriptionOut: {
+            /**
+             * Interval
+             * @enum {string}
+             */
+            interval: "monthly" | "yearly";
+            /** Status */
+            status: string;
+            /** Current End */
+            current_end: string | null;
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+        };
         /** TailoringSessionOut */
         TailoringSessionOut: {
             /**
@@ -2831,6 +2948,15 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VerifyIn */
+        VerifyIn: {
+            /** Razorpay Payment Id */
+            razorpay_payment_id: string;
+            /** Razorpay Subscription Id */
+            razorpay_subscription_id: string;
+            /** Razorpay Signature */
+            razorpay_signature: string;
         };
         /** VersionMetaOut */
         VersionMetaOut: {
@@ -5175,6 +5301,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AiUsageOut"];
+                };
+            };
+        };
+    };
+    get_billing_api_v1_billing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOut"];
+                };
+            };
+        };
+    };
+    checkout_api_v1_billing_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_api_v1_billing_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_billing_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingOut"];
                 };
             };
         };

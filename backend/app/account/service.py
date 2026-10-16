@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.repository import AuditRepository
 from app.auth.service import WeakPassword
+from app.billing.service import BillingService
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
 from app.core.security import hash_password, verify_password
@@ -105,6 +106,8 @@ class AccountService:
 
     def delete_account(self, password: str) -> None:
         self._require_password(password, "account.deleted", "password")
+        # Stop Pro charges before anything is deleted; if that fails, nothing is deleted.
+        BillingService(self.db, self.settings, self.user, self.request_id).cancel_now_for_deletion()
         user_id = self.user.id
         keys = list(
             self.db.scalars(select(ResumeFile.storage_key).where(ResumeFile.owner_id == user_id))

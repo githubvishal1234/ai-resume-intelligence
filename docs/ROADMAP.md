@@ -25,9 +25,9 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | 17 Quick builder & product page | Guided resume builder, more templates, public product page | Done |
 | 18 Pricing & Pro waitlist | Public pricing page, Pro waitlist (no payments) | Done |
 | 19 Vivid redesign | New tokens, fonts and motion; landing, dashboard, match, builder and pricing restyled | Done |
+| 20 Billing (Razorpay) | Pro subscriptions in INR (UPI, cards), webhooks, plan limits; test mode first | Built; test-mode payment check pending |
 
 ## Next candidates (each needs a decision first)
-- Billing: payment provider, checkout, plan-limit enforcement (needs the provider choice).
 - Job fetching from approved sources (D-05).
 - Production deployment (D-06) and data retention policy (D-08).
 
@@ -44,6 +44,6 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | D-09 | Benchmark / market data source | When a source exists |
 | D-10 | PDF resume templates (six ATS-safe templates built; final sign-off open) | Before public release |
 | D-11 | Scoring weights sign-off | Before public release |
-| — | Payment provider, tax and invoicing (prices decided 2026-10-14: Free, Pro ₹299/month or ₹2,499/year) | Billing |
+| — | Payment provider: decided 2026-10-16, Razorpay. Tax (GST) and invoicing still open (prices: Free, Pro ₹299/month or ₹2,499/year) | Going live with billing |
 
 D-01 (repository) is resolved: greenfield.

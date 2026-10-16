@@ -1,6 +1,7 @@
 from app.models.ai_usage import AiUsage
 from app.models.application import Application, ApplicationEvent, Notification
 from app.models.audit import AuditLog
+from app.models.billing import BillingEvent, Subscription
 from app.models.interview import InterviewPrep, PracticeAnswer, PracticeSession
 from app.models.job import Job
 from app.models.match import JobMatch
@@ -15,6 +16,7 @@ __all__ = [
     "Application",
     "ApplicationEvent",
     "AuditLog",
+    "BillingEvent",
     "InterviewPrep",
     "Job",
     "JobMatch",
@@ -26,6 +28,7 @@ __all__ = [
     "ResumeFile",
     "ResumeImport",
     "ResumeVersion",
+    "Subscription",
     "TailoringChange",
     "TailoringSession",
     "User",

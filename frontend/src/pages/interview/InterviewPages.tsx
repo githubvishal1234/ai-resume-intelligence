@@ -1,3 +1,4 @@
+import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { ChevronLeft, ChevronRight, MessagesSquare, Play, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -23,7 +24,6 @@ import {
 import { useJobList } from "@/hooks/useJobs";
 import { useMasterSummary, useResumeList } from "@/hooks/useResumes";
 import { cn } from "@/lib/cn";
-import { ApiError } from "@/services/apiClient";
 import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
@@ -34,9 +34,6 @@ import {
 } from "@/services/interviewService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
 
-function errorText(error: unknown): string {
-  return error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
-}
 
 // ---- index -----------------------------------------------------------------------------
 export function InterviewIndexPage() {
@@ -118,7 +115,7 @@ function BuildPrep({ jobs }: { jobs: { id: string; label: string }[] }) {
       <CardHeader id={`${id}-t`} title="Build interview questions" description="Pick the job you're interviewing for." />
       {create.isError ? (
         <Notice tone="critical" title="Could not build questions" className="mb-4">
-          {errorText(create.error)}
+          <ApiErrorText error={create.error} />
         </Notice>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -204,7 +201,7 @@ export function PrepPage() {
       />
       {start.isError ? (
         <Notice tone="critical" title="Could not start practice" className="mb-4">
-          {errorText(start.error)}
+          <ApiErrorText error={start.error} />
         </Notice>
       ) : null}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -312,7 +309,7 @@ function AiQuestionsCard({ prep }: { prep: PrepDetail }) {
       />
       {add.isError ? (
         <Notice tone="critical" title="That didn't work" className="mb-3">
-          {errorText(add.error)}
+          <ApiErrorText error={add.error} />
         </Notice>
       ) : null}
       <Button
@@ -585,7 +582,7 @@ function AnswerCard({
       ) : null}
       {failure ? (
         <p role="alert" className="mt-3 text-body-sm text-critical">
-          {errorText(failure)}
+          <ApiErrorText error={failure} />
         </p>
       ) : null}
 

@@ -7,6 +7,7 @@ import { Notice } from "@/components/ui/Notice";
 import { PRODUCT_NAME } from "@/constants/branding";
 import { formatPrice, FREE_FEATURES, PRO_FEATURES, PRO_PRICE, YEARLY_SAVING_PERCENT } from "@/constants/pricing";
 import { useJoinProWaitlist, useProWaitlist } from "@/hooks/useAccount";
+import { useBilling, useUpgrade } from "@/hooks/useBilling";
 import { useSession } from "@/hooks/useSession";
 import { cn } from "@/lib/cn";
 import { ApiError } from "@/services/apiClient";
@@ -114,7 +115,7 @@ export function PricingPage() {
             </ul>
             {/* On the blue card: the button turns white and helper text light, in both themes. */}
             <div className="mt-8 [&>.bg-primary]:bg-on-ink [&>.bg-primary]:text-ink-deep [&>.bg-primary:hover]:bg-on-ink-muted [&>p]:text-on-ink-muted [&>p[role=alert]]:text-accent">
-              <ProAction signedIn={signedIn} />
+              <ProAction signedIn={signedIn} interval={billing} />
             </div>
           </article>
         </section>
@@ -145,11 +146,14 @@ export function PricingPage() {
   );
 }
 
-/** The Pro button: sign up first when signed out, otherwise join (or show) the waitlist. */
-function ProAction({ signedIn }: { signedIn: boolean }) {
+/**
+ * The Pro button. Signed out: sign up first. Signed in with payments set up: upgrade through
+ * Razorpay Checkout (or show the current Pro plan). Without payments: the waitlist, as before.
+ */
+function ProAction({ signedIn, interval }: { signedIn: boolean; interval: Billing }) {
   const [params] = useSearchParams();
-  const waitlist = useProWaitlist(signedIn);
-  const join = useJoinProWaitlist();
+  const billing = useBilling(signedIn);
+  const upgrade = useUpgrade();
   if (!signedIn) {
     return (
       <>
@@ -158,6 +162,46 @@ function ProAction({ signedIn }: { signedIn: boolean }) {
       </>
     );
   }
+  if (billing.isPending) return <Button className="w-full" loading>Upgrade to Pro</Button>;
+  if (!billing.data?.configured) return <WaitlistAction />;
+  const sub = billing.data.subscription;
+  if (billing.data.plan === "pro" && sub) {
+    const until = sub.current_end ? new Date(sub.current_end).toLocaleDateString(undefined, { dateStyle: "medium" }) : null;
+    return (
+      <Notice tone="success" title="You're on Pro">
+        {sub.cancel_at_period_end
+          ? `Cancelled; Pro stays on${until ? ` until ${until}` : " until the end of this period"}. `
+          : `Billed ${sub.interval === "monthly" ? "monthly" : "yearly"}${until ? `, renews ${until}` : ""}. `}
+        <Link to="/settings" className="font-semibold underline">Manage in Settings</Link>
+      </Notice>
+    );
+  }
+  return (
+    <>
+      {params.get("join") === "pro" ? (
+        <Notice tone="info" title="Your free account is ready" className="mb-3">
+          One more step to upgrade to Pro.
+        </Notice>
+      ) : null}
+      <Button className="w-full" loading={upgrade.isPending} onClick={() => upgrade.mutate(interval)}>
+        Upgrade to Pro · {formatPrice(PRO_PRICE[interval])} {interval === "monthly" ? "a month" : "a year"}
+      </Button>
+      {upgrade.error ? (
+        <p role="alert" className="mt-2 text-body-sm text-critical">
+          {upgrade.error instanceof ApiError || upgrade.error instanceof Error ? upgrade.error.message : "Something went wrong. Try again."}
+        </p>
+      ) : (
+        <p className="mt-2 text-center text-body-sm text-on-surface-variant">Pay with UPI or card on Razorpay's secure page. Cancel any time.</p>
+      )}
+    </>
+  );
+}
+
+/** Before payments are set up, Pro is a waitlist. */
+function WaitlistAction() {
+  const [params] = useSearchParams();
+  const waitlist = useProWaitlist(true);
+  const join = useJoinProWaitlist();
   if (waitlist.data?.joined) {
     return (
       <Notice tone="success" title="You're on the Pro waitlist">

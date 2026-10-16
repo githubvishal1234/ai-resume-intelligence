@@ -55,7 +55,7 @@ def _migrated_database() -> Iterator[None]:
 @pytest.fixture(autouse=True)
 def _clean_state() -> Iterator[None]:
     with get_engine().begin() as conn:
-        conn.execute(text("TRUNCATE audit_logs, sessions, users CASCADE"))
+        conn.execute(text("TRUNCATE audit_logs, sessions, users, billing_events CASCADE"))
     reset_rate_limiters()
     yield
 

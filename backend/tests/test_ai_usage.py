@@ -99,6 +99,7 @@ def test_daily_limit_blocks_further_calls(
         "daily_limit": 1,
         "remaining": 0,
         "resets_at": None,
+        "free_plan": False,
     }
     # Refused calls are not sent to the provider and not counted.
     assert len(_rows()) == 1

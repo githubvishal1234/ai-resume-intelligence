@@ -1,3 +1,4 @@
+import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { Check, PenLine, Sparkles, Trash2, X } from "lucide-react";
 import { useId, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -289,7 +290,7 @@ function BulletRewrites({ session: s }: { session: Session }) {
       ) : null}
       {rewrite.isError ? (
         <Notice tone="critical" title="That didn't work" className="mb-4">
-          {rewrite.error instanceof ApiError ? rewrite.error.message : "Something went wrong. Please try again."}
+          <ApiErrorText error={rewrite.error} />
         </Notice>
       ) : null}
       <div className="space-y-4">

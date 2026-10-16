@@ -35,6 +35,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 17 | Quick builder, templates & product page | ✅ |
 | 18 | Pricing page & Pro waitlist | ✅ |
 | 19 | Vivid visual redesign | ✅ |
+| 20 | Billing with Razorpay (test mode) | 🚧 steps 1–9 built and tested; step 10 needs test keys |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -742,6 +743,104 @@ direction chosen on the "Resume Intelligence Redesign" Claude Design canvas (202
   text and buttons stay legible in both themes; no horizontal overflow at 710px; the only console
   errors are the expected 401s from `/auth/me` before sign-in.
 
+## Phase 20: Billing with Razorpay (test mode first)
+
+**Decided 2026-10-16 (by the product owner):** Razorpay, INR, with UPI and cards. Built and
+verified in Razorpay **test mode** first; live keys are a separate, later step.
+
+**How it works.** Pro is a Razorpay *Subscription* on one of two *Plans* (₹299 monthly,
+₹2,499 yearly). The server creates the subscription, the browser opens Razorpay Checkout with its
+id, and Pro switches on only after the server has verified a signature. Webhooks keep the
+plan in step afterwards (renewals, failed charges, cancellations). Payment details never touch
+our servers; Checkout collects them.
+
+**Planned work**
+1. **Config and seam** (`app/billing/`): `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
+   `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PLAN_MONTHLY`, `RAZORPAY_PLAN_YEARLY` (secrets as
+   `SecretStr`, never logged). Missing settings give an honest "Billing is not set up" state,
+   like AI and email. A `BillingProvider` interface with one Razorpay adapter over `urllib` and
+   HTTP basic auth (no SDK, as with S3). Production refuses `rzp_test_` keys.
+2. **Plans:** a `scripts/` command creates the two plans in the Razorpay account (`POST /v1/plans`,
+   `period` monthly or yearly, `interval` 1, amount in paise from the same prices as
+   `constants/pricing.ts`) and prints their ids for `.env`. Prices are defined once on the
+   server and served to the pricing page, so the two can't drift.
+3. **Data:** migration for `subscriptions` (owner, provider ids, plan, status, current period
+   end, cancel-at-period-end, timestamps) and `billing_events` (provider event id **unique**,
+   type, received at, raw payload) for idempotency and audit. The user's plan is derived from
+   their subscription, not stored twice.
+4. **Checkout API:** `POST /api/v1/billing/checkout {interval}` creates a subscription
+   (`POST /v1/subscriptions`, `plan_id`, `total_count` 120 monthly / 10 yearly, `notes.user_id`)
+   and returns the key id and subscription id. `POST /api/v1/billing/verify` checks
+   `HMAC_SHA256(razorpay_payment_id + "|" + <our stored subscription_id>, key_secret)` with
+   `hmac.compare_digest`, then marks the subscription authenticated. One open checkout per
+   user; signed in and CSRF on every POST; rate limited.
+5. **Webhooks:** `POST /api/v1/billing/webhooks/razorpay`, no session or CSRF, but the
+   `X-Razorpay-Signature` header must equal `HMAC_SHA256(raw body, webhook_secret)`; checked on
+   the exact bytes before parsing. Deduplicated on `x-razorpay-event-id`; events may arrive out
+   of order, so state changes only move forward. Handles `subscription.authenticated`,
+   `.activated`, `.charged` (extends the period), `.pending`, `.halted`, `.cancelled`,
+   `.completed`, `.paused`, `.resumed`. Unknown events are stored and ignored. The CSP and CSRF
+   middleware exempt only this path.
+6. **Plan limits:** one gate in `app/ai/usage.py` (`metered()` / `usage_today`), so every AI
+   feature is covered at once. Free and Pro daily allowances are settings. A new
+   `PLAN_UPGRADE_REQUIRED` error (402) with a clear message; the UI shows an "Upgrade to Pro"
+   prompt where the AI buttons are today. Rule-based features stay free.
+7. **Account and cancel:** Settings shows the plan, status, renewal or end date and a "Cancel
+   Pro" button (`POST /v1/subscriptions/:id/cancel`, at the end of the current period, so paid
+   time is kept; the exact option name is to be confirmed against the API reference while
+   building). Deleting an account cancels an active subscription first.
+8. **Frontend:** pricing page "Upgrade to Pro" replaces the waitlist when billing is set up
+   (waitlist stays when it isn't). Loads `https://checkout.razorpay.com/v1/checkout.js` only
+   on that click; nginx CSP gains exactly `script-src https://checkout.razorpay.com` and
+   `frame-src https://api.razorpay.com`. Success, failure and "payment is being confirmed"
+   states; existing waitlist members are shown the upgrade.
+9. **Tests:** signature helpers against fixed known vectors; webhook signature failures,
+   duplicates and out-of-order events; the plan state machine; limits for Free and Pro; IDOR on
+   every billing endpoint; a stand-in Razorpay API (as with the S3 tests). No network in CI.
+10. **Verify in test mode:** with your Razorpay test keys, a real test-mode checkout in the
+    browser using Razorpay's test card and test UPI, then the webhook delivered through a tunnel
+    to the local backend (Razorpay blocks some tunnel domains, ngrok among them; its docs
+    suggest zrok).
+
+**Built 2026-10-16 (steps 1–9)**
+- `app/billing/`: `razorpay.py` (client over `urllib`, both signatures), `service.py` (checkout,
+  verify, cancel, webhook handling, plan lookup), `router.py` (`GET /billing`,
+  `POST /billing/checkout|verify|cancel`, `POST /billing/webhooks/razorpay`),
+  `create_plans.py`. Migration `billing`: `subscriptions` and `billing_events`.
+- Plan limits: Free gets `AI_DAILY_LIMIT_FREE` (5) AI requests a day, Pro the full
+  `AI_DAILY_LIMIT_PER_USER`. Applied only when billing is set up, so nothing changes for anyone
+  before Pro can be bought. Free users at the limit get `402 PLAN_UPGRADE_REQUIRED` with an
+  "Upgrade to Pro" link next to the message.
+- Frontend: the pricing page upgrades through Razorpay Checkout (loaded only on click) and keeps
+  the waitlist while billing is off; Settings has a Plan card with renewal date and "Cancel Pro"
+  (at the end of the paid period). nginx CSP allows only Razorpay's script and payment frame.
+- Changed from the plan: no `BillingProvider` interface (one implementation, nothing to
+  abstract yet); webhook events store ids, type and status, not the raw payload (privacy);
+  prices stay in `constants/pricing.ts` and `billing/service.py`, with a test that keeps them
+  equal, instead of a new public prices endpoint.
+
+**Verified 2026-10-16**
+- 261 backend tests (16 new) pass, 1 skipped (the Windows symlink test); ruff and mypy clean.
+  New tests: fixed signature vectors, test keys refused in production, prices equal on both
+  sides, billing off by default, checkout reuse and CSRF, bad and good payment signatures,
+  verifying someone else's subscription (404), webhook signature and tampering, duplicates,
+  out-of-order and unknown subscriptions, cancel at period end, account deletion cancelling
+  first (and refusing when Razorpay is down), Free limit (402) and Pro allowance.
+- 105 frontend tests (5 new) pass; typecheck, lint, build and `check:api` clean.
+- **Not yet done (step 10):** a real test-mode payment and webhook. To confirm then: the
+  cancel option name (`cancel_at_cycle_end`), and whether Checkout needs more CSP origins or a
+  Referer (nginx sends `Referrer-Policy: no-referrer`).
+
+**Needs from you before step 10**
+- A Razorpay account with **test mode** keys and a webhook secret, put in `backend/.env`
+  yourself (never pasted into chat).
+
+**Open questions**
+- Free plan AI: none, or a small daily allowance? The pricing page lists AI under Pro and "a
+  higher daily allowance" for Pro, which suggests a small Free allowance.
+- GST and invoices: Razorpay can email invoices; whether prices include GST, and the GSTIN to
+  show, need a decision before going live (not before test mode).
+
 ---
 
 ## Progress log
@@ -772,3 +871,5 @@ direction chosen on the "Resume Intelligence Redesign" Claude Design canvas (202
 - 2026-10-16: Backend checks run for Phases 17 and 18; Windows test-isolation issues and the missing
   `@testing-library/dom` dependency fixed. Phases 17 and 18 completed and verified.
 - 2026-10-16: Phase 19 (Vivid redesign) completed and verified, including the signed-in screens in light and dark.
+- 2026-10-16: Repository pushed to GitHub (private), default branch `main`, CI green. Phase 20 (Razorpay billing) planned.
+- 2026-10-16: Phase 20 steps 1–9 built and tested (Razorpay billing, plan limits). Step 10 waits on Razorpay test keys.

@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from app.ai.provider import LLMCapabilities, LLMMessage, LLMProvider, StructuredResult
+from app.billing.service import ai_daily_limit
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.db.session import get_sessionmaker
@@ -32,11 +33,21 @@ class AiDailyLimitReached(AppError):
     message = "You have used all of today's AI requests. They reset at midnight UTC."
 
 
+class PlanUpgradeRequired(AppError):
+    status_code = 402
+    code = "PLAN_UPGRADE_REQUIRED"
+    message = (
+        "You have used today's free AI requests. Upgrade to Pro for more, or try again after "
+        "midnight UTC."
+    )
+
+
 @dataclass(frozen=True)
 class UsageToday:
     used: int
     limit: int  # 0 means no limit
     resets_at: datetime
+    free_plan: bool = False  # true when the Free allowance applies (billing is set up)
 
     @property
     def remaining(self) -> int | None:
@@ -56,7 +67,8 @@ def usage_today(owner_id: uuid.UUID, settings: Settings) -> UsageToday:
             .select_from(AiUsage)
             .where(AiUsage.owner_id == owner_id, AiUsage.created_at >= start)
         )
-    return UsageToday(int(used or 0), settings.ai_daily_limit_per_user, start + timedelta(days=1))
+        limit, free_plan = ai_daily_limit(db, owner_id, settings)
+    return UsageToday(int(used or 0), limit, start + timedelta(days=1), free_plan)
 
 
 def _record(row: AiUsage) -> None:
@@ -93,7 +105,7 @@ class MeteredProvider(LLMProvider):
     ) -> StructuredResult[T]:
         today = usage_today(self.owner_id, self.settings)
         if today.remaining == 0:
-            raise AiDailyLimitReached()
+            raise PlanUpgradeRequired() if today.free_plan else AiDailyLimitReached()
         started = time.monotonic()
         try:
             result = self.inner.generate_structured(

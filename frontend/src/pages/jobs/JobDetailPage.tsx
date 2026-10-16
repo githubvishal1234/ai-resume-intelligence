@@ -1,3 +1,4 @@
+import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BriefcaseBusiness, GitCompareArrows, PenLine, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +13,6 @@ import { Pill, type PillTone } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useAiAnalyzeJob, useDeleteJob, useJob, useReanalyzeJob, useUpdateJob } from "@/hooks/useJobs";
-import { ApiError } from "@/services/apiClient";
 import { applyServerErrors } from "@/lib/formErrors";
 import { TIER_LABEL, type JobDetail, type Requirement, type Tier } from "@/services/jobService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
@@ -396,7 +396,7 @@ function AiAnalysis({ job: j }: { job: JobDetail }) {
       )}
       {error ? (
         <Notice tone="critical" title="That didn't work">
-          {error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
+          <ApiErrorText error={error} />
         </Notice>
       ) : null}
     </div>

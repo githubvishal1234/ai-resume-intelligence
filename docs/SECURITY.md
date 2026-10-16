@@ -111,11 +111,30 @@
 - **Still open, by decision:** the in-process rate limiter (single-process limit), the
   register enumeration trade-off, and the in-process file extraction described above.
 
+## Billing (Razorpay)
+- Payment details never reach the app: Razorpay Checkout collects them in its own frame. The
+  app stores provider ids and subscription state only; webhook events keep their id, type,
+  subscription id and status, not the payload (which can carry the payer's contact details).
+- Pro is switched on only after the server checks Checkout's signature,
+  `HMAC_SHA256(payment_id + "|" + subscription_id, key_secret)`, using the subscription id it
+  stored for that user (never the one the browser sends). Signatures are compared in constant
+  time. A user can only verify, view or cancel their own subscription (tested).
+- The webhook route has no session or CSRF; it is authenticated by `X-Razorpay-Signature`,
+  checked over the exact raw body with the webhook secret before anything is parsed.
+  Deliveries are deduplicated on `x-razorpay-event-id`, and an event older than the last one
+  applied is recorded but not applied, so retries and out-of-order delivery are safe.
+- A partial unique index allows at most one live Pro subscription per user.
+- Deleting an account cancels a live subscription first; if Razorpay can't be reached, the
+  account is not deleted, so a deleted user is never charged again.
+- Keys and secrets are `SecretStr` from the environment and never logged; provider errors carry
+  only the HTTP status and Razorpay's error code.
+
 ## Production configuration guards
 With `APP_ENV=production`, the app refuses to start when:
 - the development database password is in use,
 - `SESSION_COOKIE_SECURE` is false, or
-- `CORS_ORIGINS` contains `*`.
+- `CORS_ORIGINS` contains `*`, or
+- `RAZORPAY_KEY_ID` is a test-mode (`rzp_test_`) key, or `RAZORPAY_API_BASE` is not https.
 
 ## Tests
 The test suite drops and truncates tables. It reads only `TEST_DATABASE_URL` and refuses to run

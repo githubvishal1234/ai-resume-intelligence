@@ -1,3 +1,4 @@
+import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { Sparkles, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -155,7 +156,7 @@ function AiAssist({ item }: { item: ResumeImport }) {
       )}
       {error ? (
         <Notice tone="critical" title="That didn't work">
-          {error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
+          <ApiErrorText error={error} />
         </Notice>
       ) : null}
     </div>
