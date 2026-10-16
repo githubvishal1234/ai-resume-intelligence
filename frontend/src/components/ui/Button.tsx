@@ -8,21 +8,21 @@ type Size = "md" | "sm";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-primary text-on-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-primary-hover active:bg-primary-active border border-transparent",
+    "bg-primary text-on-primary shadow-brand hover:bg-primary-hover active:bg-primary-active border border-transparent",
   secondary:
-    "bg-surface-container-lowest text-on-surface border border-hairline hover:bg-surface hover:border-hairline-strong",
+    "bg-surface-container-lowest text-on-surface border border-hairline-strong hover:bg-surface-container-low hover:border-outline",
   destructive:
     "bg-critical-surface text-critical border border-critical-border hover:border-critical",
   ghost: "bg-transparent text-on-surface-variant border border-transparent hover:bg-surface-container-low",
 };
 const SIZES: Record<Size, string> = {
-  md: "h-10 px-4 text-body-md gap-2",
-  sm: "h-8 px-3 text-label-md gap-1.5",
+  md: "h-11 px-5 text-body-md gap-2",
+  sm: "h-9 px-3.5 text-label-md gap-1.5",
 };
 
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", extra?: string) {
   return cn(
-    "inline-flex items-center justify-center rounded-control font-medium transition-colors select-none whitespace-nowrap",
+    "inline-flex items-center justify-center rounded-control font-semibold transition-colors select-none whitespace-nowrap",
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-disabled:pointer-events-auto",
     VARIANTS[variant],
     SIZES[size],

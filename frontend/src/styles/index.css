@@ -2,68 +2,68 @@
 
 /*
  * Design tokens - see docs/DESIGN_SYSTEM.md.
- * Source: Stitch "Executive Precision" DESIGN.md.
- *  - Surface/neutral tokens: DESIGN.md front-matter (these are the values the Stitch screens render).
- *  - Component, status and score colours: DESIGN.md prose rules.
- * Token names mirror Stitch's class names (bg-surface, text-on-surface, ...) so screens stay
- * traceable to the reference.
+ * Source: the "Vivid" canvas (Phase 19): bright blue brand, yellow highlight, soft-blue surfaces.
+ * Token names are unchanged from the earlier Stitch-based system (bg-surface, text-on-surface, ...),
+ * so every screen picks up the new values without class changes.
  */
 @theme {
   /* Surfaces */
-  --color-background: #f8f9ff;
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #cbdbf5;
+  --color-background: #f3f5ff;
+  --color-surface: #f3f5ff;
+  --color-surface-dim: #c9d2ff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #eff4ff;
-  --color-surface-container: #e5eeff;
-  --color-surface-container-high: #dce9ff;
-  --color-surface-container-highest: #d3e4fe;
-  --color-inverse-surface: #213145;
-  --color-inverse-on-surface: #eaf1ff;
+  --color-surface-container-low: #f8f9fe;
+  --color-surface-container: #eef1fb;
+  --color-surface-container-high: #e6eaff;
+  --color-surface-container-highest: #dce2fb;
+  --color-inverse-surface: #0e1530;
+  --color-inverse-on-surface: #e8ebf7;
 
   /* Text and lines */
-  --color-on-surface: #0b1c30;
-  --color-on-surface-variant: #464555;
-  --color-outline: #777587;
-  --color-outline-variant: #c7c4d8;
-  --color-hairline: #e2e8f0;
-  --color-hairline-strong: #cbd5e1;
-  --color-placeholder: #94a3b8;
+  --color-on-surface: #0e1530;
+  --color-on-surface-variant: #47506b;
+  --color-outline: #6b7491;
+  --color-outline-variant: #cdd5f5;
+  --color-hairline: #e1e6f8;
+  --color-hairline-strong: #cdd5f5;
+  --color-placeholder: #8a93b0;
 
-  /* Brand (indigo) */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-active: #3730a3;
-  --color-primary-strong: #3525cd;
+  /* Brand (blue) and highlight (yellow) */
+  --color-primary: #2a4bf2;
+  --color-primary-hover: #1f3ddb;
+  --color-primary-active: #1a33c2;
+  --color-primary-strong: #1a33c2;
   --color-on-primary: #ffffff;
-  --color-primary-container: #4f46e5;
-  --color-primary-fixed: #e2dfff;
-  --color-primary-fixed-dim: #c3c0ff;
-  --color-on-primary-fixed: #0f0069;
-  --color-secondary: #565e74;
-  --color-secondary-container: #dae2fd;
+  --color-primary-container: #2a4bf2;
+  --color-primary-fixed: #eef1ff;
+  --color-primary-fixed-dim: #c9d2ff;
+  --color-on-primary-fixed: #0e1a66;
+  --color-secondary: #5a637e;
+  --color-secondary-container: #e6eaff;
+  --color-accent: #ffc542;
+  --color-on-accent: #0e1530;
 
-  /* Semantic status (fg / surface / border) */
-  --color-success: #059669;
-  --color-success-surface: #ecfdf5;
-  --color-success-border: #a7f3d0;
-  --color-success-ink: #065f46;
-  --color-warning: #d97706;
-  --color-warning-surface: #fffbeb;
-  --color-warning-border: #fde68a;
-  --color-warning-ink: #92400e;
-  --color-critical: #e11d48;
-  --color-critical-surface: #fff1f2;
-  --color-critical-border: #fecdd3;
-  --color-critical-ink: #9f1239;
-  --color-info: #0284c7;
-  --color-info-surface: #f0f9ff;
-  --color-info-border: #bae6fd;
-  --color-info-ink: #075985;
+  /* Semantic status (fg / surface / border / ink) */
+  --color-success: #0a7f5a;
+  --color-success-surface: #e3f8ef;
+  --color-success-border: #b5ebd3;
+  --color-success-ink: #0a6b4c;
+  --color-warning: #b45309;
+  --color-warning-surface: #fff6e0;
+  --color-warning-border: #ffe2a3;
+  --color-warning-ink: #7a4b00;
+  --color-critical: #d92d20;
+  --color-critical-surface: #fff1ee;
+  --color-critical-border: #ffc9bf;
+  --color-critical-ink: #9a2a12;
+  --color-info: #2a4bf2;
+  --color-info-surface: #eef1ff;
+  --color-info-border: #c9d2ff;
+  --color-info-ink: #1a33c2;
 
   /* Typography */
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Geist Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora Variable", "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
 
   --text-display-lg: 40px;
@@ -93,34 +93,89 @@
   --text-code-sm: 12px;
   --text-code-sm--line-height: 16px;
 
-  /* Shape: 8px controls, 12-16px containers, pills */
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
-  --radius-panel: 1rem;
+  /* Shape: 12px controls, 24px cards, 28px panels, pills */
+  --radius-control: 0.75rem;
+  --radius-card: 1.5rem;
+  --radius-panel: 1.75rem;
 
-  /* Elevation: tonal layers + hairlines, not heavy shadows */
-  --shadow-level-1: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-level-2: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-level-3: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
-  --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  /* Elevation: soft, wide, low-opacity shadows under white cards */
+  --shadow-level-1: 0 1px 2px rgba(14, 21, 48, 0.04), 0 16px 36px -30px rgba(14, 21, 48, 0.5);
+  --shadow-level-2: 0 2px 4px rgba(14, 21, 48, 0.04), 0 24px 48px -30px rgba(14, 21, 48, 0.55);
+  --shadow-level-3: 0 30px 60px -32px rgba(14, 21, 48, 0.6);
+  --shadow-brand: 0 14px 30px -12px rgba(42, 75, 242, 0.7);
+  --shadow-focus: 0 0 0 3px rgba(42, 75, 242, 0.18);
 
-  /* Photo overlays: fixed in both themes, so text over a photo stays readable. */
-  --color-ink-deep: #0b1c30;
-  --color-ink-deep-indigo: #1e1b4b;
+  /* Fixed in both themes, so white text on them keeps its contrast: the brand band (page headers,
+     6.2:1 with white) and the deep ink used for dark sections and text over photos. */
+  --color-band: #2a4bf2;
+  --color-ink-deep: #0e1530;
+  --color-ink-deep-indigo: #1a33c2;
   --color-on-ink: #ffffff;
-  --color-on-ink-muted: #d6def0;
+  --color-on-ink-muted: #dce2ff;
 
-  /* Motion: a short rise-in for page headers and cards (off under reduced motion). */
-  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Motion (all switched off under prefers-reduced-motion, see the end of this file). */
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-float-slow: float 8s ease-in-out 1s infinite;
+  --animate-fill: fill 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s both;
+  --animate-spin-slow: spin 40s linear infinite;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-pop: pop 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(14px);
     }
     to {
       opacity: 1;
       transform: none;
     }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes fill {
+    from {
+      width: 0;
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    70% {
+      transform: scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+/* Cards that rise slightly on hover. */
+@utility lift {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-level-3);
   }
 }
 
@@ -132,59 +187,62 @@
   :root {
     color-scheme: dark;
 
-    --color-background: #0b1220;
-    --color-surface: #0b1220;
-    --color-surface-dim: #080d18;
-    --color-surface-container-lowest: #111a2e;
-    --color-surface-container-low: #142036;
-    --color-surface-container: #18263f;
-    --color-surface-container-high: #1d2d4a;
-    --color-surface-container-highest: #233556;
-    --color-inverse-surface: #e5eeff;
-    --color-inverse-on-surface: #213145;
+    --color-background: #0b1026;
+    --color-surface: #0b1026;
+    --color-surface-dim: #070b1c;
+    --color-surface-container-lowest: #121a3a;
+    --color-surface-container-low: #151e42;
+    --color-surface-container: #19234c;
+    --color-surface-container-high: #1e2a58;
+    --color-surface-container-highest: #253266;
+    --color-inverse-surface: #e8ebf7;
+    --color-inverse-on-surface: #0e1530;
 
-    --color-on-surface: #e6ecf7;
-    --color-on-surface-variant: #a9b3c6;
-    --color-outline: #8b93a7;
-    --color-outline-variant: #3a4660;
-    --color-hairline: #24324b;
-    --color-hairline-strong: #33425f;
-    --color-placeholder: #6b7690;
+    --color-on-surface: #e8ebf7;
+    --color-on-surface-variant: #b4bbd3;
+    --color-outline: #8a93b0;
+    --color-outline-variant: #34407a;
+    --color-hairline: #26305e;
+    --color-hairline-strong: #34407a;
+    --color-placeholder: #6f7898;
 
-    /* Light indigo with dark text on it keeps buttons and links above 4.5:1. */
-    --color-primary: #818cf8;
-    --color-primary-hover: #a5b4fc;
-    --color-primary-active: #c7d2fe;
-    --color-primary-strong: #a5b4fc;
-    --color-on-primary: #0b1220;
-    --color-primary-container: #818cf8;
-    --color-primary-fixed: #262b63;
-    --color-primary-fixed-dim: #4c4fa8;
-    --color-on-primary-fixed: #e0e7ff;
-    --color-secondary: #a9b3c6;
-    --color-secondary-container: #26334f;
+    /* Light blue with dark text on it keeps buttons and links above 4.5:1. */
+    --color-primary: #8fa2ff;
+    --color-primary-hover: #a9b8ff;
+    --color-primary-active: #c9d2ff;
+    --color-primary-strong: #a9b8ff;
+    --color-on-primary: #0b1026;
+    --color-primary-container: #8fa2ff;
+    --color-primary-fixed: #1e2a66;
+    --color-primary-fixed-dim: #3a4ab0;
+    --color-on-primary-fixed: #e6eaff;
+    --color-secondary: #b4bbd3;
+    --color-secondary-container: #253266;
+    --color-accent: #ffc542;
+    --color-on-accent: #0e1530;
 
-    --color-success: #34d399;
-    --color-success-surface: #0f2a22;
-    --color-success-border: #1f5a45;
+    --color-success: #4ade9f;
+    --color-success-surface: #0e2a24;
+    --color-success-border: #1d5a48;
     --color-success-ink: #a7f3d0;
     --color-warning: #fbbf24;
     --color-warning-surface: #2e2410;
     --color-warning-border: #6b4f12;
     --color-warning-ink: #fde68a;
-    --color-critical: #fb7185;
-    --color-critical-surface: #33141d;
-    --color-critical-border: #7a2236;
-    --color-critical-ink: #fecdd3;
-    --color-info: #38bdf8;
-    --color-info-surface: #0f2536;
-    --color-info-border: #1d4f73;
-    --color-info-ink: #bae6fd;
+    --color-critical: #ff8a7a;
+    --color-critical-surface: #33171a;
+    --color-critical-border: #7a2a26;
+    --color-critical-ink: #ffd2ca;
+    --color-info: #8fa2ff;
+    --color-info-surface: #172150;
+    --color-info-border: #34407a;
+    --color-info-ink: #c9d2ff;
 
     --shadow-level-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-level-2: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
     --shadow-level-3: 0 12px 20px -6px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
-    --shadow-focus: 0 0 0 3px rgba(129, 140, 248, 0.25);
+    --shadow-focus: 0 0 0 3px rgba(143, 162, 255, 0.3);
+    --shadow-brand: 0 14px 30px -14px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -202,7 +260,7 @@
     line-height: 20px;
     -webkit-font-smoothing: antialiased;
   }
-  /* Visible keyboard focus everywhere (DESIGN.md: 3px zero-blur indigo ring). */
+  /* Visible keyboard focus everywhere. */
   :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -215,11 +273,12 @@
   }
 }
 
+/* No motion when the user asks for less: rise-ins show immediately, floats and marquees stop. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

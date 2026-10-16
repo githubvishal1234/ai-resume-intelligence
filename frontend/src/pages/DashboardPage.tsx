@@ -61,22 +61,22 @@ export function DashboardPage() {
               <li
                 key={phase}
                 style={{ animationDelay: `${index * 40}ms` }}
-                className="group relative flex animate-rise flex-col gap-3 rounded-card border border-hairline bg-surface-container-lowest p-5 shadow-level-1 transition has-[a]:hover:-translate-y-0.5 has-[a]:hover:border-primary has-[a]:hover:shadow-level-3"
+                className="group relative flex animate-rise flex-col gap-3 rounded-card border border-hairline bg-surface-container-lowest p-5 shadow-level-1 transition has-[a]:hover:-translate-y-1 has-[a]:hover:border-primary-fixed-dim has-[a]:hover:shadow-level-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-control bg-primary-fixed text-on-primary-fixed">
+                  <span className="flex size-11 items-center justify-center rounded-control bg-primary-fixed text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
                     <Icon className="size-5" aria-hidden />
                   </span>
                   {to ? <Pill tone="matched">Available</Pill> : <Pill tone="neutral">Phase {phase}</Pill>}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-label-sm uppercase tracking-wider text-on-surface-variant">Step {index + 1}</p>
+                  <p className="inline-flex rounded-full bg-accent/30 px-2.5 py-0.5 text-label-sm font-bold text-on-surface">Step {index + 1}</p>
                   {to ? (
-                    <Link to={to} className="mt-1 block font-display text-headline-sm text-on-surface after:absolute after:inset-0 group-hover:text-primary">
+                    <Link to={to} className="mt-2 block font-display text-headline-sm font-bold text-on-surface after:absolute after:inset-0 group-hover:text-primary">
                       {title}
                     </Link>
                   ) : (
-                    <p className="mt-1 font-display text-headline-sm text-on-surface">{title}</p>
+                    <p className="mt-2 font-display text-headline-sm font-bold text-on-surface">{title}</p>
                   )}
                   <p className="mt-1 text-body-md text-on-surface-variant">{body}</p>
                 </div>

@@ -17,7 +17,7 @@ export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () =>
           cn(
             ROW,
             isActive
-              ? "bg-primary text-on-primary shadow-level-1"
+              ? "bg-primary font-semibold text-on-primary shadow-brand"
               : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
           )
         }

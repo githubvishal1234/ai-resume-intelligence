@@ -40,7 +40,7 @@ export function ResumePaper({ doc, template, className, label }: { doc: ResumeDo
   const t = templateStyle(template);
   const body = t.bodyPt;
   const page: CSSProperties = {
-    fontFamily: t.serif ? 'Georgia, "Times New Roman", serif' : '"Inter Variable", ui-sans-serif, system-ui, sans-serif',
+    fontFamily: t.serif ? 'Georgia, "Times New Roman", serif' : '"DM Sans Variable", ui-sans-serif, system-ui, sans-serif',
     fontSize: pt(body),
     lineHeight: 1.35,
     padding: pt(t.marginMm * MM),

@@ -142,15 +142,15 @@ export function MatchPage() {
         return (
           <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
             <div className="space-y-6">
-              <Card className="flex flex-col items-center text-center">
+              <Card className="flex animate-rise flex-col items-center border-primary-fixed-dim bg-primary-fixed text-center">
                 <ScoreRing value={r.overall} size={140} label="Match score" />
-                <p className="mt-4 text-label-md text-on-surface">Rule-based match</p>
+                <p className="mt-4 rounded-full bg-surface-container-lowest px-3 py-1 text-label-md font-semibold text-on-surface">Rule-based match</p>
                 <p className="mt-1 text-body-sm text-on-surface-variant">
                   How much of this posting your resume shows evidence for (method {r.method_version}). It is not a
                   prediction of how an employer will respond.
                 </p>
               </Card>
-              <Card aria-labelledby="sub-title">
+              <Card aria-labelledby="sub-title" className="animate-rise [animation-delay:100ms]">
                 <CardHeader id="sub-title" title="Breakdown" />
                 <ul className="space-y-5">
                   {r.subscores.map((s) => (
@@ -180,11 +180,11 @@ export function MatchPage() {
                 if (!items.length) return null;
                 const strong = items.filter((q) => q.status === "strong").length;
                 return (
-                  <Card key={tier} aria-labelledby={`tier-${tier}`}>
+                  <Card key={tier} aria-labelledby={`tier-${tier}`} className="animate-rise [animation-delay:150ms]">
                     <CardHeader id={`tier-${tier}`} title={`${TIER_LABEL[tier]} (${strong} of ${items.length} met)`} />
-                    <ul className="divide-y divide-hairline">
+                    <ul className="space-y-2.5">
                       {items.map((q) => (
-                        <li key={q.requirement_id} className="flex gap-3 py-3">
+                        <li key={q.requirement_id} className="lift flex gap-3 rounded-control border border-hairline bg-surface-container-lowest p-3.5">
                           {STATUS_ICON[q.status]}
                           <div className="min-w-0 flex-1">
                             <p className="text-body-md text-on-surface">

@@ -34,6 +34,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 16 | S3-compatible file storage | ✅ |
 | 17 | Quick builder, templates & product page | ✅ |
 | 18 | Pricing page & Pro waitlist | ✅ |
+| 19 | Vivid visual redesign | ✅ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -701,6 +702,46 @@ product explains itself to visitors.
     `@testing-library/react` 16, and npm with `legacy-peer-deps=true` skipped it, which
     broke every frontend test and pruned the lockfile.
 
+## Phase 19: Vivid visual redesign
+
+Goal: move the app from the indigo "Executive Precision" look to **Vivid**, the bright, animated
+direction chosen on the "Resume Intelligence Redesign" Claude Design canvas (2026-10-16).
+
+**Delivered**
+- [x] Tokens in `styles/index.css`: blue primary `#2a4bf2`, yellow `accent`, soft-blue surfaces,
+      24px cards, soft wide shadows, `shadow-brand`, and fixed `band` / `ink-deep` colors for
+      white-text areas. Dark mode redefined to match. Token names are unchanged, so every screen
+      restyled without class changes.
+- [x] Fonts: DM Sans (UI) and Sora (display) replace Inter and Geist, bundled through Fontsource.
+- [x] Motion: rise, float, fill, pop, slow spin, marquee and a `lift` hover utility, plus
+      `useCountUp` for scores in `ScoreRing`. Under `prefers-reduced-motion` all of it is off
+      and counts show the final value (the old rule only shortened durations, which would have
+      made the new infinite floats flicker).
+- [x] Shared pieces: `PhotoBanner` is now the blue band with a framed photo (every section page
+      header and the dashboard), buttons are taller and bolder, the active nav item glows, and
+      the brand icon uses the new colors.
+- [x] Landing page rebuilt in the Vivid layout: photo hero with floating example cards, fields
+      strip, problems and fixes, a guided-builder band with a typing demo, four feature rows
+      (import, match, tailor with an Original / Tailored switch, download and ATS check), the
+      template grid, a comparison, "Honest by design", FAQ and a closing call to action. No
+      user counts, testimonials or invented results; the example data is labelled.
+- [x] Dashboard step cards, the job match page (score card, requirement tiles), the quick builder
+      (step pills, yellow completeness bar, preview panel, step transitions) and the pricing page
+      (blue Pro card, price pop on the billing switch) restyled.
+
+**Verified 2026-10-16**
+- 100 frontend tests pass; typecheck, lint and the build are clean. No test needed changing.
+- Browser run of `/welcome` and `/pricing` in light and dark: no horizontal overflow at 375px,
+  and no console errors other than the expected 502 from `/api/auth/me` (backend not running).
+- Fixed during verification: a decorative circle sat behind the pricing heading on phones (now
+  hidden below 640px).
+- Backend unchanged in this phase; its last full run (2026-10-16, Phase 17–18 close-out) was green.
+- Browser run with the backend and a local test account (master resume + one matched job):
+  dashboard, job match (score ring, breakdown, requirement tiles with evidence) and the quick
+  builder (step pills, completeness bar, live preview at 1280px), each in light and dark. Band
+  text and buttons stay legible in both themes; no horizontal overflow at 710px; the only console
+  errors are the expected 401s from `/auth/me` before sign-in.
+
 ---
 
 ## Progress log
@@ -730,3 +771,4 @@ product explains itself to visitors.
 - 2026-10-14: Phase 18 built (pricing, Pro waitlist). Same status: frontend verified, backend tests to run.
 - 2026-10-16: Backend checks run for Phases 17 and 18; Windows test-isolation issues and the missing
   `@testing-library/dom` dependency fixed. Phases 17 and 18 completed and verified.
+- 2026-10-16: Phase 19 (Vivid redesign) completed and verified, including the signed-in screens in light and dark.

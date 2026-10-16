@@ -24,6 +24,7 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | 16 S3 storage | S3-compatible storage adapter | Done |
 | 17 Quick builder & product page | Guided resume builder, more templates, public product page | Done |
 | 18 Pricing & Pro waitlist | Public pricing page, Pro waitlist (no payments) | Done |
+| 19 Vivid redesign | New tokens, fonts and motion; landing, dashboard, match, builder and pricing restyled | Done |
 
 ## Next candidates (each needs a decision first)
 - Billing: payment provider, checkout, plan-limit enforcement (needs the provider choice).

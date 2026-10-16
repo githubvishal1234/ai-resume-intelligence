@@ -153,8 +153,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
             <span className="text-on-surface">Step {step + 1} of {STEPS.length}: {current.label}</span>
             <span className="text-on-surface-variant tnum">{percent}% complete</span>
           </div>
-          <div role="progressbar" aria-label="Resume completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
-            <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${percent}%` }} />
+          <div role="progressbar" aria-label="Resume completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-container-high">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${percent}%` }} />
           </div>
         </div>
         <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => setShowPreview((v) => !v)}
@@ -175,14 +175,14 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                   onClick={() => setStep(i)}
                   aria-current={i === step ? "step" : undefined}
                   className={cn(
-                    "flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-3.5 text-body-md transition-colors",
+                    "flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-body-md font-semibold transition-colors",
                     i === step
-                      ? "border-primary bg-primary-fixed text-on-primary-fixed"
-                      : "border-hairline bg-surface-container-lowest text-on-surface-variant hover:border-hairline-strong",
+                      ? "border-primary bg-primary text-on-primary shadow-brand"
+                      : "border-hairline bg-surface-container-lowest text-on-surface-variant hover:border-primary-fixed-dim hover:text-on-surface",
                   )}
                 >
                   <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-label-sm tnum",
-                    done ? "border-success bg-success text-on-primary" : i === step ? "border-primary" : "border-hairline-strong")}>
+                    done ? "border-success bg-success text-on-primary" : i === step ? "border-on-primary bg-on-primary text-primary" : "border-hairline-strong")}>
                     {done ? <Check className="size-3.5" aria-hidden /> : i + 1}
                   </span>
                   {s.label}
@@ -197,8 +197,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
 
         <section aria-labelledby="step-title" className={cn("min-w-0", wide && "lg:col-span-2")}>
-          <Card className="animate-rise">
-            <h2 id="step-title" ref={headingRef} tabIndex={-1} className="font-display text-headline-md text-on-surface focus:outline-none">
+          <Card key={current.id} className="animate-rise">
+            <h2 id="step-title" ref={headingRef} tabIndex={-1} className="font-display text-headline-lg font-extrabold tracking-[-0.03em] text-on-surface focus:outline-none">
               {current.title}
             </h2>
             <p className="mt-1 mb-6 text-body-md text-on-surface-variant">{current.description}</p>
@@ -227,8 +227,9 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
 
         {wide ? null : (
           <aside aria-label="Live preview" className="hidden lg:block">
-            <div className="sticky top-24 space-y-2">
-              <p className="text-label-md text-on-surface-variant">
+            <div className="sticky top-24 space-y-3 rounded-panel bg-surface-container-high p-4">
+              <p className="flex items-center gap-2 text-label-md font-semibold text-on-surface">
+                <span aria-hidden className="size-2 animate-pulse rounded-full bg-success" />
                 Live preview · {TEMPLATE_STYLES.find((t) => t.id === template)?.name ?? template}
               </p>
               <ResumePaper doc={previewDoc} template={template} />

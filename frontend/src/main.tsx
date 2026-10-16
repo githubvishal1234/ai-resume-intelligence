@@ -1,6 +1,6 @@
 import "@/lib/zodSetup"; // must stay first
-import "@fontsource-variable/inter";
-import "@fontsource-variable/geist";
+import "@fontsource-variable/dm-sans";
+import "@fontsource-variable/sora";
 import "@fontsource-variable/jetbrains-mono";
 import "@/styles/index.css";
 import { StrictMode } from "react";

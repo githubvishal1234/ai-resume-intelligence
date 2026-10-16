@@ -1,5 +1,6 @@
 import { clampScore, SCORE_LEVEL_LABEL, scoreLevel, type ScoreLevel } from "@/lib/score";
 import { cn } from "@/lib/cn";
+import { useCountUp } from "@/hooks/useCountUp";
 
 const STROKE: Record<ScoreLevel, string> = {
   critical: "stroke-critical",
@@ -27,6 +28,7 @@ export function ScoreRing({
   const stroke = Math.max(6, Math.round(size / 11));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
+  const shown = useCountUp(v);
   return (
     <div
       role="img"
@@ -44,12 +46,12 @@ export function ScoreRing({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - v / 100)}
-          className={cn("transition-[stroke-dashoffset]", STROKE[level])}
+          strokeDashoffset={c * (1 - shown / 100)}
+          className={STROKE[level]}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="tnum font-display text-headline-md leading-none text-on-surface">{Math.round(v)}</span>
+        <span className="tnum font-display text-headline-md leading-none text-on-surface">{Math.round(shown)}</span>
         <span className="tnum font-mono text-label-sm text-on-surface-variant">/100</span>
       </div>
     </div>
@@ -75,9 +77,9 @@ export function ScoreBar({ label, value }: { label: string; value: number }) {
         aria-valuemax={100}
         aria-valuenow={Math.round(v)}
         aria-valuetext={`${Math.round(v)} out of 100, ${SCORE_LEVEL_LABEL[level]}`}
-        className="h-2 overflow-hidden rounded-full bg-hairline"
+        className="h-2.5 overflow-hidden rounded-full bg-surface-container"
       >
-        <div className={cn("h-full rounded-full", FILL[level])} style={{ width: `${v}%` }} />
+        <div className={cn("h-full animate-fill rounded-full", FILL[level])} style={{ width: `${v}%` }} />
       </div>
     </div>
   );

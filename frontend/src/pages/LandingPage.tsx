@@ -1,40 +1,64 @@
 import {
+  AlertTriangle,
   ArrowRight,
   BriefcaseBusiness,
   Check,
   FileCheck2,
-  GitCompareArrows,
-  LayoutTemplate,
   MessagesSquare,
-  PenLine,
+  Plus,
   ScanSearch,
   ShieldCheck,
-  Sparkles,
   Trash2,
+  Upload,
+  X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { ButtonLink } from "@/components/ui/Button";
+import { ScoreRing } from "@/components/ui/Score";
 import { PRODUCT_NAME } from "@/constants/branding";
 import { PHOTOS } from "@/constants/images";
 import { TEMPLATE_STYLES } from "@/constants/templates";
+import { motionAllowed } from "@/hooks/useCountUp";
 import { useSession } from "@/hooks/useSession";
+import { cn } from "@/lib/cn";
 import { SAMPLE_RESUME } from "@/lib/resumeHelpers";
 
-const STEPS = [
-  { icon: LayoutTemplate, title: "Pick a template", body: "Six single-column designs that applicant tracking systems can read. Switch any time." },
-  { icon: PenLine, title: "Answer short questions", body: "Contact, experience, education, skills. Tips flag weak bullet points as you type." },
-  { icon: FileCheck2, title: "Download and check", body: "Get a PDF and see exactly what screening software reads from it." },
+const FIELDS = ["Software engineering", "Data & analytics", "Product design", "Marketing", "Sales", "Finance", "Operations", "Healthcare", "Education", "Customer support"];
+
+const PROBLEMS = [
+  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "bg-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink" },
+  { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "bg-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink" },
+  { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "bg-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink" },
 ];
 
-const FEATURES = [
-  { icon: Sparkles, title: "Quick builder", body: "A guided, seven-step builder with a live preview, skill suggestions for your field and a summary drafted from your own entries." },
+const STEPS = [
+  { title: "Pick a template", body: "Six single-column designs that applicant tracking systems can read. Switch any time." },
+  { title: "Answer short questions", body: "Contact, experience, education, skills. Tips flag weak bullet points as you type." },
+  { title: "Download and check", body: "Get a PDF and see exactly what screening software reads from it." },
+];
+
+const MORE = [
   { icon: ScanSearch, title: "Job analyzer", body: "Paste a job posting to pull out required and preferred skills, years of experience, education and salary when stated." },
-  { icon: GitCompareArrows, title: "Match and skill gaps", body: "A match score with evidence for every requirement, and a clear list of what's missing." },
-  { icon: ShieldCheck, title: "Fact-checked tailoring", body: "Reorder and reword for each job. Changes that add numbers, tools or names your resume doesn't contain are flagged." },
   { icon: BriefcaseBusiness, title: "Application tracker", body: "Every application with its status, the resume version you sent and follow-up reminders." },
   { icon: MessagesSquare, title: "Interview prep", body: "Questions built from the job, your experience and your gaps, with a place to practise your answers." },
+];
+
+const WITH_US = [
+  "Ready in minutes with a guided, seven-step builder",
+  "Templates screening software reads top to bottom",
+  "Tips on every bullet point as you type",
+  "A match score with evidence for each requirement",
+  "Every tailored change checked against your own resume",
+];
+const ALONE = [
+  "Hours spent on formatting and wording",
+  "Layouts that can scramble in screening software",
+  "No idea which bullet points are weak",
+  "Guessing how well you fit a job",
+  "Easy to overstate and get caught out",
 ];
 
 const FAQ = [
@@ -42,96 +66,313 @@ const FAQ = [
   { q: "Can I start from my existing resume?", a: "Yes. Upload a PDF, DOCX or TXT file. You review everything that was read before anything is saved." },
   { q: "Do I need AI to use it?", a: "No. The builder, job analysis, matching, tailoring and interview questions all work with built-in rules. When AI is switched on for your account, it adds rewrites and extra questions, and those are checked against your resume too." },
   { q: "Who can see my resume?", a: "Only you, when signed in. You can delete your account, and with it every resume and uploaded file, from Settings at any time." },
+  { q: "Is it free?", a: "Yes. The free plan includes the builder, all six templates, the ATS check, matching and tailoring. Pro adds AI help and is on a waitlist for now." },
 ];
+
+const DEMO_BULLET = "Built a payments API in Python and PostgreSQL serving 3 regional banks.";
+
+/** Types the demo bullet point on a loop. Shows it whole when motion is reduced. */
+function useTypedDemo(text: string): string {
+  const [n, setN] = useState(() => (motionAllowed() ? 0 : text.length));
+  useEffect(() => {
+    if (!motionAllowed()) return;
+    const id = window.setInterval(() => setN((i) => (i >= text.length + 40 ? 0 : i + 1)), 60);
+    return () => window.clearInterval(id);
+  }, [text]);
+  return text.slice(0, Math.min(n, text.length));
+}
+
+function demoTip(typed: string, full: string): { text: string; tone: string } {
+  if (typed.length === full.length) return { text: "Strong bullet: action verb, a real result, short.", tone: "bg-success-surface text-success-ink" };
+  if (/\d/.test(typed)) return { text: "A concrete number. Keep it to one or two lines.", tone: "bg-warning-surface text-warning-ink" };
+  if (typed.length >= 5) return { text: "Good opener. Add a real result if you have one.", tone: "bg-info-surface text-info-ink" };
+  return { text: "Start with an action verb: Built, Led, Designed…", tone: "bg-info-surface text-info-ink" };
+}
+
+const eyebrow = "text-label-md font-semibold uppercase tracking-wider text-primary";
+const h2 = "font-display text-[32px] font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-[44px]";
+const stepPill = "inline-block rounded-full bg-primary-fixed px-3 py-1 text-label-md font-semibold text-primary";
 
 export function LandingPage() {
   const signedIn = Boolean(useSession().data);
   const start = signedIn ? "/resumes/new" : "/register";
+  const typed = useTypedDemo(DEMO_BULLET);
+  const tip = demoTip(typed, DEMO_BULLET);
+  const [tailored, setTailored] = useState(true);
+
   return (
-    <div className="min-h-dvh bg-surface text-on-surface">
+    <div className="min-h-dvh overflow-x-hidden bg-surface-container-lowest text-on-surface">
       <a href="#landing-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-primary focus:px-3 focus:py-2 focus:text-on-primary">
         Skip to content
       </a>
+      <p className="bg-ink-deep px-4 py-2.5 text-center text-body-md text-on-ink">
+        <span className="mr-2 rounded-full bg-accent px-2 py-0.5 text-label-sm font-bold text-on-accent">NEW</span>
+        Six ATS-safe templates and a guided seven-step builder.
+      </p>
       <PublicHeader signedIn={signedIn} />
 
       <main id="landing-main">
         {/* Hero */}
-        <section className="relative overflow-hidden">
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[520px] bg-linear-to-b from-primary-fixed/60 to-transparent" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:py-20">
+        <section className="relative overflow-hidden bg-surface">
+          <svg aria-hidden viewBox="0 0 520 520" className="pointer-events-none absolute -right-36 -top-40 size-[520px] animate-spin-slow opacity-60">
+            <circle cx="260" cy="260" r="250" fill="none" className="stroke-primary-fixed-dim" strokeWidth="2" strokeDasharray="6 14" />
+            <circle cx="260" cy="260" r="180" fill="none" className="stroke-primary-fixed-dim" strokeWidth="2" strokeDasharray="2 10" />
+          </svg>
+          <div aria-hidden className="pointer-events-none absolute -bottom-28 -left-20 size-80 rounded-full bg-surface-container-high" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-24 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
             <div className="animate-rise">
-              <p className="inline-flex items-center gap-2 rounded-full border border-primary-fixed-dim bg-surface-container-lowest px-3 py-1 text-label-md text-on-surface-variant">
-                <Sparkles className="size-4 text-primary" aria-hidden /> Resume builder · Job matching · Interview prep
+              <p className="inline-flex items-center gap-2.5 rounded-full border border-hairline bg-surface-container-lowest py-1.5 pl-1.5 pr-3.5 text-body-md font-medium text-on-surface-variant">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-on-primary"><Check className="size-3.5" strokeWidth={3} aria-hidden /></span>
+                Every line checked against your own resume
               </p>
-              <h1 className="mt-5 font-display text-[40px] leading-[1.1] tracking-tight text-on-surface sm:text-[52px]">
-                Build a resume that gets read, and back up every line.
+              <h1 className="mt-6 font-display text-[42px] font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-[60px] lg:text-[68px]">
+                Build a resume that gets{" "}
+                <span className="relative whitespace-nowrap text-primary">
+                  read
+                  <svg aria-hidden viewBox="0 0 300 20" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-2 h-4 w-full">
+                    <path d="M4 14 C 80 2, 220 2, 296 12" fill="none" className="stroke-accent" strokeWidth="8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                , and back up every line.
               </h1>
-              <p className="mt-5 max-w-xl text-body-lg text-on-surface-variant">
+              <p className="mt-6 max-w-xl text-[19px] leading-relaxed text-on-surface-variant">
                 Answer a few short questions, watch your resume take shape in a professional template, and download an ATS-friendly PDF.
                 Then tailor it to each job without making anything up.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <ButtonLink to={start} variant="primary" className="h-12 px-6 text-body-lg">
+                <ButtonLink to={start} variant="primary" className="lift h-14 px-7 text-body-lg">
                   Build my resume <ArrowRight className="size-5" aria-hidden />
                 </ButtonLink>
-                <a href="#templates" className="inline-flex h-12 items-center rounded-control border border-hairline bg-surface-container-lowest px-6 text-body-lg font-medium text-on-surface hover:border-hairline-strong">
+                <a href="#templates" className="lift inline-flex h-14 items-center gap-2 rounded-control border border-hairline-strong bg-surface-container-lowest px-6 text-body-lg font-semibold text-on-surface">
                   See the templates
                 </a>
               </div>
-              <ul className="mt-8 grid gap-2 text-body-md text-on-surface-variant sm:grid-cols-3">
+              <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-body-md text-on-surface-variant">
                 {["6 ATS-safe templates", "Live preview as you type", "Nothing invented for you"].map((t) => (
-                  <li key={t} className="flex items-center gap-2"><Check className="size-4 shrink-0 text-success" aria-hidden />{t}</li>
+                  <li key={t} className="flex items-center gap-2"><Check className="size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />{t}</li>
                 ))}
               </ul>
             </div>
-            <div className="relative animate-rise [animation-delay:120ms]">
-              <div className="relative overflow-hidden rounded-panel shadow-level-3">
-                <img src={PHOTOS.register} alt="" className="aspect-[4/3] w-full object-cover" />
-                <div aria-hidden className="absolute inset-0 bg-linear-to-tr from-ink-deep/50 to-transparent" />
+
+            <div className="relative min-h-[460px] animate-rise [animation-delay:120ms] sm:min-h-[540px]">
+              <div className="absolute inset-y-8 left-12 right-4 overflow-hidden rounded-[40px_40px_40px_140px] bg-surface-container-high shadow-level-3">
+                <img src={PHOTOS.interview} alt="" decoding="async" className="size-full object-cover object-[38%_30%]" />
               </div>
-              <div className="absolute -bottom-8 -left-4 w-[46%] rotate-[-3deg] sm:-left-8">
-                <ResumePaper doc={SAMPLE_RESUME} template="modern" label="An example resume made with the builder" />
+              <div aria-hidden className="absolute left-4 top-0 size-28 rounded-full bg-accent" />
+              <div className="absolute right-0 top-12 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+                <ScoreRing value={84} size={76} label="Example match score" />
+                <div>
+                  <p className="font-semibold">Match score</p>
+                  <p className="text-body-md text-on-surface-variant">Senior Backend Engineer</p>
+                </div>
+              </div>
+              <div aria-hidden className="absolute left-0 top-56 w-60 animate-float-slow rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+                <p className="flex items-center gap-2 font-semibold"><span className="flex size-7 items-center justify-center rounded-control bg-success-surface"><Check className="size-4 text-success" strokeWidth={3} /></span>ATS check passed</p>
+                <p className="mt-1.5 text-body-sm text-on-surface-variant">Headings read in order. Contact details found. One page.</p>
+              </div>
+              <div aria-hidden className="absolute bottom-6 right-2 w-72 animate-float rounded-card bg-surface-container-lowest p-4 shadow-level-3 [animation-delay:1s]">
+                <p className="text-body-md">Cut API latency by <mark className="rounded bg-warning-border px-1 text-on-surface">40%</mark> with Redis caching.</p>
+                <p className="mt-2 flex items-center gap-1.5 text-body-sm font-semibold text-critical-ink"><AlertTriangle className="size-3.5" />"40%" isn't in your master resume</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* How it works */}
-        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 py-16">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 id="how-title" className="text-center font-display text-headline-lg">From a blank page to a PDF in three steps</h2>
-            <ol className="mt-10 grid gap-6 md:grid-cols-3">
-              {STEPS.map(({ icon: Icon, title, body }, i) => (
-                <li key={title} className="rounded-card border border-hairline bg-surface-container-lowest p-6 shadow-level-1">
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-10 items-center justify-center rounded-control bg-primary text-on-primary font-display tnum">{i + 1}</span>
-                    <Icon className="size-5 text-primary" aria-hidden />
-                  </div>
-                  <h3 className="mt-4 font-display text-headline-sm">{title}</h3>
-                  <p className="mt-2 text-body-md text-on-surface-variant">{body}</p>
+        {/* Fields strip: decorative, so the duplicate copy for the loop is hidden from assistive tech */}
+        <section aria-label="Skill suggestions for your field" className="overflow-hidden border-y border-hairline py-5">
+          <div className="flex w-max animate-marquee gap-12 whitespace-nowrap font-display text-headline-sm font-bold text-outline hover:[animation-play-state:paused]">
+            {[0, 1].map((copy) => (
+              <ul key={copy} aria-hidden={copy === 1 || undefined} className="flex gap-12">
+                {FIELDS.map((f) => (
+                  <li key={f} className="flex items-center gap-12">{f}<span aria-hidden className="text-accent">✦</span></li>
+                ))}
+              </ul>
+            ))}
+          </div>
+        </section>
+
+        {/* Problems */}
+        <section aria-labelledby="problem-title" className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className={eyebrow}>Why resumes get skipped</p>
+            <h2 id="problem-title" className={cn(h2, "mt-3")}>Your resume might be the problem. <span className="text-primary">Here's how we fix it.</span></h2>
+          </div>
+          <ul className="mt-14 grid gap-6 md:grid-cols-3">
+            {PROBLEMS.map((p) => (
+              <li key={p.title} className={cn("lift flex flex-col gap-3 rounded-card p-7", p.tone)}>
+                <div aria-hidden className="relative h-32 overflow-hidden rounded-card bg-surface-container-lowest p-4">
+                  <div className="h-2.5 w-1/2 rounded bg-on-surface" />
+                  <div className="mt-3 space-y-2"><div className="h-1.5 rounded bg-surface-container-highest" /><div className="h-1.5 w-4/5 rounded bg-surface-container-highest" /><div className="h-1.5 w-11/12 rounded bg-surface-container-highest" /></div>
+                  <span className={cn("absolute bottom-3 right-3 rounded-full px-2.5 py-1 text-label-sm font-bold", p.tagTone)}>{p.tag}</span>
+                </div>
+                <h3 className="mt-1 font-display text-headline-sm font-bold">{p.title}</h3>
+                <p className="text-body-md text-on-surface-variant">{p.body}</p>
+                <p className="mt-auto flex items-start gap-2 border-t border-on-surface/10 pt-4 font-semibold"><Check className="mt-0.5 size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />{p.fix}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Guided builder band */}
+        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 px-4 sm:px-6">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[36px] bg-primary px-6 py-14 text-on-primary sm:px-12 lg:py-18">
+            <svg aria-hidden viewBox="0 0 420 420" className="pointer-events-none absolute -bottom-40 -left-32 size-[420px] animate-spin-slow opacity-25">
+              <circle cx="210" cy="210" r="200" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 12" />
+            </svg>
+            <div className="relative mx-auto max-w-3xl text-center">
+              <h2 id="how-title" className={h2}>From a blank page to a PDF in three steps</h2>
+              <p className="mt-4 text-body-lg opacity-90">Seven short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
+            </div>
+            <ol className="relative mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-3">
+              {STEPS.map(({ title, body }, i) => (
+                <li key={title} className="rounded-card bg-on-primary/10 p-5 ring-1 ring-on-primary/25">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-accent font-display font-bold text-on-accent tnum">{i + 1}</span>
+                  <h3 className="mt-3 font-display text-headline-sm font-bold">{title}</h3>
+                  <p className="mt-1 text-body-md opacity-90">{body}</p>
                 </li>
               ))}
             </ol>
+            <figure className="relative mx-auto mt-8 max-w-4xl rounded-card bg-surface-container-lowest p-5 text-on-surface shadow-level-3 sm:p-6">
+              <figcaption className="sr-only">An example of the builder's tips on a bullet point.</figcaption>
+              <div aria-hidden>
+                <p className="text-body-md font-semibold">Bullet point · Backend Engineer, Fintrail</p>
+                <div className="mt-2 min-h-16 rounded-control border-2 border-primary px-4 py-3 text-body-lg">
+                  {typed}
+                  <span className="ml-px inline-block h-5 w-0.5 translate-y-1 animate-pulse bg-primary" />
+                </div>
+                <p className={cn("mt-3 rounded-control px-3 py-2.5 text-body-md font-medium", tip.tone)}>{tip.text}</p>
+              </div>
+            </figure>
+            <div className="relative mt-10 text-center">
+              <ButtonLink to={start} className="lift h-14 border-transparent bg-surface-container-lowest px-7 text-body-lg">Build my resume</ButtonLink>
+            </div>
           </div>
         </section>
 
+        {/* Feature rows */}
+        <section id="features" aria-labelledby="features-title" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-10 pt-28 sm:px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className={eyebrow}>From draft to interview</p>
+            <h2 id="features-title" className={cn(h2, "mt-3")}>Everything from first draft to final interview</h2>
+          </div>
+
+          <div className="mt-20 grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <p className={stepPill}>Import</p>
+              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Start from the resume you have</h3>
+              <p className="mt-3 text-body-lg text-on-surface-variant">Upload a PDF, DOCX or TXT. Every section is read into an editable form with a confidence level, and nothing is saved until you've reviewed it.</p>
+            </div>
+            <div aria-hidden className="rounded-panel bg-surface p-7">
+              <div className="rounded-card bg-surface-container-lowest p-5 shadow-level-2">
+                <div className="flex items-center gap-3 rounded-control border-2 border-dashed border-primary-fixed-dim p-3">
+                  <span className="flex h-12 w-10 items-center justify-center rounded-md bg-critical text-label-sm font-bold text-on-primary">PDF</span>
+                  <div className="min-w-0 flex-1"><p className="font-semibold">my-resume.pdf</p><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container"><div className="h-full w-full animate-fill rounded-full bg-primary" /></div></div>
+                  <Upload className="size-5 text-primary" />
+                </div>
+                <ul className="mt-4 space-y-2 text-body-md">
+                  {[["Contact", "High", "bg-success-surface text-success-ink"], ["Experience · 3 roles", "High", "bg-success-surface text-success-ink"], ["Skills · 14", "Medium", "bg-warning-surface text-warning-ink"], ["Projects", "Review", "bg-critical-surface text-critical-ink"]].map(([n, c, tone]) => (
+                    <li key={n} className="flex items-center justify-between rounded-control bg-surface-container-low px-3 py-2.5"><span className="font-medium">{n}</span><span className={cn("rounded-full px-2.5 py-0.5 text-label-sm font-bold", tone)}>{c}</span></li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
+            <div aria-hidden className="order-last rounded-panel bg-warning-surface p-7 lg:order-first">
+              <div className="rounded-card bg-surface-container-lowest p-5 shadow-level-2">
+                <div className="flex items-center justify-between"><p className="font-semibold">Required · 4 of 5 met</p><span className="font-display font-extrabold text-primary tnum">84/100</span></div>
+                <ul className="mt-3 space-y-2.5 text-body-md">
+                  {[["Python and PostgreSQL", "Strong", "Shown in a role", "bg-info-surface text-info-ink"], ["Redis or Memcached", "Only listed", "In Skills, but no role shows it", "bg-warning-surface text-warning-ink"], ["Kubernetes in production", "Missing", "Not found in your resume", "bg-critical-surface text-critical-ink"]].map(([t, s, e, tone]) => (
+                    <li key={t} className="rounded-control border border-hairline p-3"><div className="flex justify-between gap-3"><span className="font-medium">{t}</span><span className={cn("whitespace-nowrap rounded-full px-2.5 py-0.5 text-label-sm font-bold", tone)}>{s}</span></div><p className="mt-1 text-body-sm text-on-surface-variant">{e}</p></li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div>
+              <p className={stepPill}>Match</p>
+              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">See exactly where you stand for a job</h3>
+              <p className="mt-3 text-body-lg text-on-surface-variant">A match score with evidence for every requirement: shown in a role, only listed, or missing. Gaps are ranked so you know what to fix first.</p>
+            </div>
+          </div>
+
+          <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <p className={stepPill}>Tailor</p>
+              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Tailor for each job, without making things up</h3>
+              <p className="mt-3 text-body-lg text-on-surface-variant">Reorder and reword for each job. Changes that add numbers, tools or names your resume doesn't contain are flagged before you can accept them.</p>
+              <div role="group" aria-label="Compare versions" className="mt-6 inline-flex gap-1 rounded-full bg-surface p-1">
+                {[["Original", false], ["Tailored", true]].map(([label, value]) => (
+                  <button key={String(label)} type="button" aria-pressed={tailored === value} onClick={() => setTailored(Boolean(value))} className={cn("h-11 rounded-full px-5 font-semibold transition-colors", tailored === value ? "bg-ink-deep text-on-ink" : "text-on-surface")}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-panel bg-success-surface p-7">
+              <div key={String(tailored)} className="animate-pop space-y-2.5 rounded-card bg-surface-container-lowest p-5 shadow-level-2 text-body-md">
+                <p className="text-label-sm font-bold uppercase tracking-wider text-on-surface-variant">{tailored ? "Tailored for Senior Backend Engineer" : "Master resume (never changed)"}</p>
+                {tailored ? (
+                  <>
+                    <p className="rounded-control border border-success-border bg-success-surface p-3">Built a payments API in Python and PostgreSQL serving 3 regional banks.<span className="mt-1 block text-body-sm font-semibold text-success-ink">Moved to the top: matches 2 required skills</span></p>
+                    <p className="rounded-control border border-hairline p-3">Designed versioned REST APIs consumed by web and mobile clients.</p>
+                    <p className="rounded-control border border-critical-border bg-critical-surface p-3">Cut API latency by 40% with Redis caching.<span className="mt-1 block text-body-sm font-semibold text-critical-ink">Flagged: "40%" isn't in your master resume</span></p>
+                  </>
+                ) : (
+                  <>
+                    <p className="rounded-control border border-hairline p-3">Designed versioned REST APIs consumed by web and mobile clients.</p>
+                    <p className="rounded-control border border-hairline p-3">Built a payments API in Python and PostgreSQL serving 3 regional banks.</p>
+                    <p className="rounded-control border border-hairline p-3">Added Redis caching to the payments API.</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
+            <div aria-hidden className="order-last flex items-center justify-center gap-5 rounded-panel bg-surface p-7 lg:order-first">
+              <div className="w-[46%] animate-float"><ResumePaper doc={SAMPLE_RESUME} template="modern" label="An example resume made with the builder" /></div>
+              <div className="min-w-0 flex-1 rounded-card bg-ink-deep p-4 font-mono text-code-sm leading-6 text-on-ink">
+                <p className="mb-1 text-accent">What screening software reads</p>
+                <p>1 Name and contact</p><p>2 Summary</p><p>3 Experience</p><p>4 Education</p><p>5 Skills</p>
+                <p className="mt-2 text-success-border">✓ Headings in order</p>
+              </div>
+            </div>
+            <div>
+              <p className={stepPill}>Download</p>
+              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Download a PDF, then see what an ATS sees</h3>
+              <p className="mt-3 text-body-lg text-on-surface-variant">The ATS check reads your PDF back the way screening software does, in order, so you know the text, headings and contact details all come through.</p>
+            </div>
+          </div>
+
+          <ul className="mt-24 grid gap-5 md:grid-cols-3">
+            {MORE.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="lift rounded-card border border-hairline bg-surface-container-lowest p-6 shadow-level-1">
+                <span className="flex size-11 items-center justify-center rounded-control bg-primary-fixed text-primary"><Icon className="size-5" aria-hidden /></span>
+                <h3 className="mt-4 font-display text-headline-sm font-bold">{title}</h3>
+                <p className="mt-1.5 text-body-md text-on-surface-variant">{body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* Templates */}
-        <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 bg-surface-container-low py-16">
+        <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 bg-surface-container-low py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 id="templates-title" className="font-display text-headline-lg">Six templates, one click apart</h2>
-                <p className="mt-2 max-w-2xl text-body-lg text-on-surface-variant">All single-column with real, selectable text, so screening software reads them top to bottom.</p>
+                <h2 id="templates-title" className={h2}>Six templates, one click apart</h2>
+                <p className="mt-3 max-w-2xl text-body-lg text-on-surface-variant">All single-column with real, selectable text, so screening software reads them top to bottom.</p>
               </div>
               <ButtonLink to={start} variant="primary">Use a template <ArrowRight className="size-4" aria-hidden /></ButtonLink>
             </div>
-            <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {TEMPLATE_STYLES.map((t) => (
-                <li key={t.id} className="rounded-card border border-hairline bg-surface-container-lowest p-4 shadow-level-1 transition hover:-translate-y-0.5 hover:shadow-level-3">
-                  <div className="rounded-control bg-surface-container p-4">
+                <li key={t.id} className="lift rounded-card bg-surface-container-lowest p-4 shadow-level-1">
+                  <div className="rounded-control bg-surface p-4">
                     <ResumePaper doc={SAMPLE_RESUME} template={t.id} label={`Sample resume in the ${t.name} template`} />
                   </div>
-                  <h3 className="mt-4 text-label-md text-on-surface">{t.name}</h3>
+                  <h3 className="mt-4 font-semibold text-on-surface">{t.name}</h3>
                   <p className="text-body-sm text-on-surface-variant">{t.description}</p>
                 </li>
               ))}
@@ -139,62 +380,67 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Features */}
-        <section id="features" aria-labelledby="features-title" className="scroll-mt-20 py-16">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 id="features-title" className="text-center font-display text-headline-lg">Everything from first draft to final interview</h2>
-            <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map(({ icon: Icon, title, body }) => (
-                <li key={title} className="rounded-card border border-hairline bg-surface-container-lowest p-6 shadow-level-1">
-                  <span className="flex size-10 items-center justify-center rounded-control bg-primary-fixed text-on-primary-fixed">
-                    <Icon className="size-5" aria-hidden />
-                  </span>
-                  <h3 className="mt-4 font-display text-headline-sm">{title}</h3>
-                  <p className="mt-2 text-body-md text-on-surface-variant">{body}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Honest by design */}
-        <section aria-labelledby="trust-title" className="py-4">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-panel shadow-level-2">
-              <img src={PHOTOS.jobs} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+        {/* Comparison */}
+        <section aria-labelledby="compare-title" className="mx-auto max-w-5xl px-4 py-24 sm:px-6">
+          <h2 id="compare-title" className={cn(h2, "text-center")}>The builder vs writing it alone</h2>
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
+            <div className="rounded-panel bg-primary p-8 text-on-primary shadow-brand">
+              <p className="font-display text-headline-md font-extrabold">With {PRODUCT_NAME}</p>
+              <ul className="mt-5 space-y-3.5">
+                {WITH_US.map((w) => (
+                  <li key={w} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent"><Check className="size-3.5" strokeWidth={3} aria-hidden /></span>{w}</li>
+                ))}
+              </ul>
             </div>
-            <div>
-              <h2 id="trust-title" className="font-display text-headline-lg">Honest by design</h2>
-              <p className="mt-3 text-body-lg text-on-surface-variant">Recruiters check. Your resume should hold up when they do.</p>
-              <ul className="mt-6 space-y-5">
-                {[
-                  { icon: FileCheck2, title: "One master resume", body: "Your verified source of truth. Tailoring and analysis never change it; only your own edits do." },
-                  { icon: ShieldCheck, title: "Every change is checked", body: "Tailored wording is compared with your master resume, and anything it can't support is flagged before you accept it." },
-                  { icon: Trash2, title: "Your data, your call", body: "Delete your account, resumes and uploaded files from Settings whenever you want." },
-                ].map(({ icon: Icon, title, body }) => (
-                  <li key={title} className="flex gap-4">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-success-surface text-success"><Icon className="size-5" aria-hidden /></span>
-                    <div>
-                      <h3 className="text-body-lg font-semibold">{title}</h3>
-                      <p className="text-body-md text-on-surface-variant">{body}</p>
-                    </div>
-                  </li>
+            <div className="rounded-panel border border-hairline bg-surface-container-low p-8">
+              <p className="font-display text-headline-md font-extrabold">Writing it alone</p>
+              <ul className="mt-5 space-y-3.5 text-on-surface-variant">
+                {ALONE.map((a) => (
+                  <li key={a} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-critical-surface text-critical"><X className="size-3.5" strokeWidth={3} aria-hidden /></span>{a}</li>
                 ))}
               </ul>
             </div>
           </div>
         </section>
 
+        {/* Honest by design */}
+        <section aria-labelledby="trust-title" className="px-4 sm:px-6">
+          <div className="mx-auto grid max-w-6xl gap-10 rounded-[36px] bg-ink-deep p-8 text-on-ink sm:p-12 lg:grid-cols-[1fr_1.4fr]">
+            <div>
+              <h2 id="trust-title" className={h2}>Honest by design</h2>
+              <p className="mt-3 text-body-lg text-on-ink-muted">Recruiters check. Your resume should hold up when they do.</p>
+            </div>
+            <ul className="space-y-5">
+              {[
+                { icon: FileCheck2, title: "One master resume", body: "Your verified source of truth. Tailoring and analysis never change it; only your own edits do." },
+                { icon: ShieldCheck, title: "Every change is checked", body: "Tailored wording is compared with your master resume, and anything it can't support is flagged before you accept it." },
+                { icon: Trash2, title: "Your data, your call", body: "Delete your account, resumes and uploaded files from Settings whenever you want." },
+              ].map(({ icon: Icon, title, body }) => (
+                <li key={title} className="flex gap-4">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-accent text-on-accent"><Icon className="size-5" aria-hidden /></span>
+                  <div>
+                    <h3 className="text-body-lg font-semibold">{title}</h3>
+                    <p className="text-body-md text-on-ink-muted">{body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         {/* FAQ */}
-        <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 py-16">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6">
-            <h2 id="faq-title" className="text-center font-display text-headline-lg">Questions</h2>
-            <div className="mt-8 divide-y divide-hairline rounded-card border border-hairline bg-surface-container-lowest">
+        <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 py-24">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_2fr]">
+            <div>
+              <h2 id="faq-title" className={h2}>Questions</h2>
+              <p className="mt-3 text-body-lg text-on-surface-variant">The short answers. Your data stays yours, and nothing is invented on your behalf.</p>
+            </div>
+            <div className="space-y-3">
               {FAQ.map(({ q, a }) => (
-                <details key={q} className="group p-5">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-body-lg font-medium">
+                <details key={q} className="group rounded-card border border-hairline bg-surface-container-lowest p-5 shadow-level-1">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-body-lg font-semibold">
                     {q}
-                    <ArrowRight className="size-4 shrink-0 text-on-surface-variant transition group-open:rotate-90" aria-hidden />
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary transition-transform group-open:rotate-45"><Plus className="size-4" aria-hidden /></span>
                   </summary>
                   <p className="mt-3 text-body-md text-on-surface-variant">{a}</p>
                 </details>
@@ -204,29 +450,31 @@ export function LandingPage() {
         </section>
 
         {/* Final call to action */}
-        <section aria-labelledby="cta-title" className="px-4 pb-16 sm:px-6">
-          <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-panel bg-ink-deep px-6 py-14 text-center sm:px-12">
-            <img src={PHOTOS.applications} alt="" loading="lazy" className="absolute inset-0 -z-10 size-full object-cover" />
-            <div aria-hidden className="absolute inset-0 -z-10 bg-ink-deep/85" />
-            <h2 id="cta-title" className="font-display text-headline-lg text-on-ink">Your next resume is a few minutes away</h2>
-            <p className="mx-auto mt-3 max-w-xl text-body-lg text-on-ink-muted">Start with a template, or upload the resume you already have.</p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <ButtonLink to={start} variant="primary" className="h-12 px-6 text-body-lg">Build my resume <ArrowRight className="size-5" aria-hidden /></ButtonLink>
-              <ButtonLink to="/pricing" className="h-12 px-6 text-body-lg">See pricing</ButtonLink>
+        <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
+          <div className="relative isolate mx-auto flex max-w-6xl flex-wrap items-center gap-8 overflow-hidden rounded-[36px] bg-ink-deep px-8 py-14 sm:px-14">
+            <div aria-hidden className="absolute -right-16 -top-16 -z-10 size-64 rounded-full bg-primary" />
+            <div aria-hidden className="absolute -bottom-24 right-40 -z-10 size-44 rounded-full bg-accent" />
+            <div className="min-w-0 flex-[2_1_420px]">
+              <h2 id="cta-title" className={cn(h2, "text-on-ink")}>Your next resume is a few minutes away</h2>
+              <p className="mt-3 text-body-lg text-on-ink-muted">Start with a template, or upload the resume you already have.</p>
+            </div>
+            <div className="flex flex-[1_1_260px] flex-wrap gap-3">
+              <ButtonLink to={start} className="lift h-14 border-transparent bg-surface-container-lowest px-7 text-body-lg">Build my resume <ArrowRight className="size-5" aria-hidden /></ButtonLink>
+              <Link to="/pricing" className="inline-flex h-14 items-center rounded-control border border-on-ink/50 px-6 text-body-lg font-semibold text-on-ink">See pricing</Link>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-hairline py-8">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-body-sm text-on-surface-variant sm:px-6">
+      <footer className="bg-ink-deep py-8 text-on-ink-muted">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-body-sm sm:px-6">
           <p>© {new Date().getFullYear()} {PRODUCT_NAME}</p>
           <p>
-            Photos from <a href="https://unsplash.com" className="underline hover:text-primary" rel="noreferrer noopener" target="_blank">Unsplash</a>
+            Photos from <a href="https://unsplash.com" className="underline hover:text-on-ink" rel="noreferrer noopener" target="_blank">Unsplash</a>
             {" · "}
-            <Link to="/pricing" className="underline hover:text-primary">Pricing</Link>
+            <Link to="/pricing" className="underline hover:text-on-ink">Pricing</Link>
             {" · "}
-            <Link to="/login" className="underline hover:text-primary">Sign in</Link>
+            <Link to="/login" className="underline hover:text-on-ink">Sign in</Link>
           </p>
         </div>
       </footer>
