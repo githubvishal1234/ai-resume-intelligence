@@ -80,6 +80,7 @@ export function ApplicationsPage() {
     <div>
       <PageHeader
         title="Applications"
+        photo="applications"
         description="Every job you're pursuing, the resume version you sent, and what happened next."
         actions={all.length ? addButton : null}
       />

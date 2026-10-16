@@ -42,7 +42,7 @@ export function LoginPage() {
 
   return (
     <>
-      <h1 className="font-display text-headline-md text-on-surface">Sign in</h1>
+      <h1 className="font-display text-headline-lg text-on-surface">Sign in</h1>
       <p className="mt-1 text-body-md text-on-surface-variant">Welcome back. Sign in to continue.</p>
       {formError ? (
         <Notice tone="critical" title="Could not sign in" className="mt-5">

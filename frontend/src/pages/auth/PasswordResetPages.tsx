@@ -38,7 +38,7 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="font-display text-headline-md text-on-surface">Reset your password</h1>
+      <h1 className="font-display text-headline-lg text-on-surface">Reset your password</h1>
       {sentTo ? (
         <Notice tone="success" title="Check your email" className="mt-5">
           If an account uses {sentTo}, we've sent it a link to choose a new password. The link works once and expires
@@ -113,7 +113,7 @@ export function ResetPasswordPage() {
   if (done) {
     return (
       <>
-        <h1 className="font-display text-headline-md text-on-surface">Password changed</h1>
+        <h1 className="font-display text-headline-lg text-on-surface">Password changed</h1>
         <p className="mt-1 text-body-md text-on-surface-variant">
           You've been signed out everywhere. Sign in with your new password.
         </p>
@@ -126,7 +126,7 @@ export function ResetPasswordPage() {
   if (linkInvalid) {
     return (
       <>
-        <h1 className="font-display text-headline-md text-on-surface">This link doesn't work</h1>
+        <h1 className="font-display text-headline-lg text-on-surface">This link doesn't work</h1>
         <p className="mt-1 text-body-md text-on-surface-variant">
           It has expired or was already used. Reset links work once.
         </p>
@@ -138,7 +138,7 @@ export function ResetPasswordPage() {
   }
   return (
     <>
-      <h1 className="font-display text-headline-md text-on-surface">Choose a new password</h1>
+      <h1 className="font-display text-headline-lg text-on-surface">Choose a new password</h1>
       {formError ? (
         <Notice tone="critical" title="Could not change the password" className="mt-5">
           {formError}

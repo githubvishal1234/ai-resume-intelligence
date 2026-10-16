@@ -24,6 +24,7 @@ export function TailorIndexPage() {
     <div>
       <PageHeader
         title="Tailor Resume"
+        photo="register"
         description="Review evidence-backed changes for one job. Your master resume is never changed; accepted changes become a separate tailored resume."
       />
       {!master ? (

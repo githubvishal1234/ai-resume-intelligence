@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
@@ -28,6 +28,7 @@ type Values = z.infer<typeof schema>;
 export function RegisterPage() {
   const registerUser = useRegister();
   const navigate = useNavigate();
+  const wantsPro = useSearchParams()[0].get("plan") === "pro";
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -43,7 +44,8 @@ export function RegisterPage() {
     setFormError(null);
     try {
       await registerUser.mutateAsync(values);
-      navigate("/", { replace: true });
+      // From the Pro waitlist button: back to pricing to confirm with one click.
+      navigate(wantsPro ? "/pricing?join=pro" : "/", { replace: true });
     } catch (error) {
       setFormError(applyServerErrors(error, ["display_name", "email", "password"], setError));
     }
@@ -51,8 +53,13 @@ export function RegisterPage() {
 
   return (
     <>
-      <h1 className="font-display text-headline-md text-on-surface">Create your account</h1>
+      <h1 className="font-display text-headline-lg text-on-surface">Create your account</h1>
       <p className="mt-1 text-body-md text-on-surface-variant">Your resume data stays private to your account.</p>
+      {wantsPro ? (
+        <Notice tone="info" title="Joining the Pro waitlist" className="mt-5">
+          Start with a free account. Next, you'll confirm your place on the waitlist. No payment now.
+        </Notice>
+      ) : null}
       {formError ? (
         <Notice tone="critical" title="Could not create the account" className="mt-5">
           {formError}

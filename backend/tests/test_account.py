@@ -144,3 +144,28 @@ def test_delete_account_removes_data_and_files(app, user_client: TestClient, set
     assert stranger.get("/api/v1/auth/me").status_code == 200
     again = TestClient(app, raise_server_exceptions=False)
     assert register(again).status_code == 201  # the email is free again
+
+
+def test_pro_waitlist_is_per_user_and_idempotent(app, user_client: TestClient) -> None:  # type: ignore[no-untyped-def]
+    assert user_client.get("/api/v1/account/pro-waitlist").json() == {
+        "joined": False,
+        "joined_at": None,
+    }
+    first = user_client.post("/api/v1/account/pro-waitlist")
+    assert first.status_code == 200 and first.json()["joined"] is True
+    # Joining again keeps the first date and adds no second entry.
+    second = user_client.post("/api/v1/account/pro-waitlist")
+    assert second.json() == first.json()
+    assert user_client.get("/api/v1/account/pro-waitlist").json() == first.json()
+    with get_engine().connect() as conn:
+        rows = conn.scalar(
+            text("select count(*) from audit_logs where action = 'plan.pro_waitlist'")
+        )
+    assert rows == 1
+    # Another user is not on the list.
+    stranger = login_as(app, "grace@example.com")
+    assert stranger.get("/api/v1/account/pro-waitlist").json()["joined"] is False
+
+
+def test_pro_waitlist_needs_csrf(auth_client: TestClient) -> None:
+    assert auth_client.post("/api/v1/account/pro-waitlist").status_code == 403

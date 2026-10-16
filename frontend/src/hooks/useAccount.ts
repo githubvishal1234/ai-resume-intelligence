@@ -42,6 +42,21 @@ export function useRevokeOtherSignIns() {
   });
 }
 
+const PRO_WAITLIST_KEY = ["account", "pro-waitlist"] as const;
+
+/** Only asked when signed in; signed-out visitors see the sign-up path instead. */
+export function useProWaitlist(enabled: boolean) {
+  return useQuery({ queryKey: PRO_WAITLIST_KEY, queryFn: accountService.proWaitlist, enabled });
+}
+
+export function useJoinProWaitlist() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => accountService.joinProWaitlist(),
+    onSuccess: (state) => client.setQueryData(PRO_WAITLIST_KEY, state),
+  });
+}
+
 export function useDeleteAccount() {
   const client = useQueryClient();
   return useMutation({

@@ -2,12 +2,13 @@ import { CheckCircle2, CircleAlert, Download, MinusCircle, XCircle } from "lucid
 import { useId } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ResumePaper } from "@/components/resume/ResumePaper";
+import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
 import { buttonClasses, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ScoreRing } from "@/components/ui/Score";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
-import { useResumeList } from "@/hooks/useResumes";
-import { cn } from "@/lib/cn";
+import { useResume, useResumeList } from "@/hooks/useResumes";
 import { outputService, type AtsReport } from "@/services/outputService";
 import { PageHeader } from "@/pages/resumes/common";
 
@@ -78,37 +79,13 @@ export function BuilderPage() {
                 ))}
               </select>
             </div>
-            <fieldset className="mt-5">
-              <legend className="text-label-md text-on-surface">Template</legend>
-              <div className="mt-2 space-y-2">
-                {templates.data.map((t) => (
-                  <label
-                    key={t.id}
-                    className={cn(
-                      "flex cursor-pointer gap-3 rounded-control border p-3",
-                      t.id === template ? "border-primary bg-primary-fixed/30" : "border-hairline hover:border-hairline-strong",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name={`${id}-template`}
-                      value={t.id}
-                      checked={t.id === template}
-                      onChange={() => update("template", t.id)}
-                      className="mt-1 accent-primary"
-                    />
-                    <span>
-                      <span className="block text-label-md text-on-surface">{t.name}</span>
-                      <span className="block text-body-sm text-on-surface-variant">{t.description}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <p className="mt-4 text-label-md text-on-surface">
+              Template: <span className="text-primary">{templates.data.find((t) => t.id === template)?.name ?? template}</span>
+            </p>
             <a
               href={outputService.pdfUrl(resumeId, template)}
               download={filename}
-              className={buttonClasses("primary", "md", "mt-5 w-full")}
+              className={buttonClasses("primary", "md", "mt-4 w-full")}
             >
               <Download className="size-4" aria-hidden /> Download PDF
             </a>
@@ -116,10 +93,44 @@ export function BuilderPage() {
               Single column, standard fonts and headings, real text. The final template set is still to be approved.
             </p>
           </Card>
+          <LivePreview resumeId={resumeId} template={template} />
         </div>
         <AtsPanel resumeId={resumeId} template={template} />
       </div>
+      <TemplateGallery resumeId={resumeId} templates={templates.data} value={template} onChange={(t) => update("template", t)} />
     </div>
+  );
+}
+
+function LivePreview({ resumeId, template }: { resumeId: string; template: string }) {
+  const resume = useResume(resumeId);
+  if (!resume.data) return null;
+  return (
+    <div className="hidden space-y-2 lg:block">
+      <p className="text-label-md text-on-surface-variant">Preview</p>
+      <ResumePaper doc={resume.data.content} template={template} />
+    </div>
+  );
+}
+
+function TemplateGallery({ resumeId, templates, value, onChange }: {
+  resumeId: string;
+  templates: TemplateOption[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const resume = useResume(resumeId);
+  return (
+    <section aria-labelledby="gallery-title" className="mt-8">
+      <CardHeader id="gallery-title" title="Choose a template" description="Each preview shows your own resume. The ATS check and download follow your choice." />
+      {resume.data ? (
+        <TemplatePicker templates={templates} value={value} onChange={onChange} doc={resume.data.content} />
+      ) : resume.isError ? (
+        <ErrorState error={resume.error} onRetry={() => void resume.refetch()} />
+      ) : (
+        <PageLoading label="Loading previews" />
+      )}
+    </section>
   );
 }
 

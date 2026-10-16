@@ -24,8 +24,13 @@ from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
-from app.auth.router import reset_rate_limiters  # noqa: E402
 from app.core.config import Settings, get_settings  # noqa: E402
+
+# A developer's backend/.env must not change test behaviour; tests use defaults plus the
+# environment set above. Set before anything calls get_settings() (app.main does at import).
+Settings.model_config["env_file"] = None
+
+from app.auth.router import reset_rate_limiters  # noqa: E402
 from app.db.session import get_engine  # noqa: E402
 from app.main import create_app  # noqa: E402
 

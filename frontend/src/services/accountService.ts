@@ -5,6 +5,7 @@ export type AccountUser = components["schemas"]["UserOut"];
 export type SignIn = components["schemas"]["SignInOut"];
 export type Revoked = components["schemas"]["RevokedOut"];
 export type PasswordChangeInput = components["schemas"]["PasswordChange"];
+export type ProWaitlist = components["schemas"]["ProWaitlistOut"];
 
 export const accountService = {
   updateProfile: (display_name: string) => api.patch<AccountUser>("/account", { display_name }),
@@ -16,4 +17,6 @@ export const accountService = {
     await api.post<void>("/account/delete", { password });
     setCsrfToken(null);
   },
+  proWaitlist: () => api.get<ProWaitlist>("/account/pro-waitlist"),
+  joinProWaitlist: () => api.post<ProWaitlist>("/account/pro-waitlist"),
 };

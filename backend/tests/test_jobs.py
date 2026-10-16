@@ -132,7 +132,9 @@ def test_title_from_request_wins_over_guess(user_client: TestClient) -> None:
     assert job["title"] == "Platform Engineer"
 
 
-@pytest.mark.parametrize("text", ["", "too short", "x" * 50_001])
+@pytest.mark.parametrize(
+    "text", ["", "too short", "x" * 50_001], ids=["empty", "short", "too-long"]
+)
 def test_create_rejects_bad_text(user_client: TestClient, text: str) -> None:
     response = create(user_client, text=text)
     assert response.status_code == 422
@@ -148,6 +150,7 @@ def test_whitespace_padded_short_text_is_rejected(user_client: TestClient) -> No
 @pytest.mark.parametrize(
     ("name", "data"),
     [("jd.docx", make_docx(JD)), ("jd.txt", JD.encode()), ("jd.pdf", make_pdf(JD))],
+    ids=["docx", "txt", "pdf"],
 )
 def test_upload_job_file(user_client: TestClient, name: str, data: bytes) -> None:
     response = user_client.post(f"{API}/upload", files={"file": (name, data)})

@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { useBlocker, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { ResumeEditor } from "@/components/resume/ResumeEditor";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { ErrorState, PageLoading } from "@/components/ui/States";
-import { useCreateResume, useResume, useSaveContent } from "@/hooks/useResumes";
+import { useResume, useSaveContent } from "@/hooks/useResumes";
+import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { ApiError } from "@/services/apiClient";
-import { emptyResume, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
+import type { ResumeDetail, ResumeDoc } from "@/services/resumeService";
 import { PageHeader } from "./common";
 
 function SaveBar({ children, error }: { children: React.ReactNode; error: unknown }) {
@@ -23,33 +24,6 @@ function SaveBar({ children, error }: { children: React.ReactNode; error: unknow
       </div>
     </div>
   );
-}
-
-/**
- * Warns before leaving with unsaved edits. Returns `allowLeave()`, called right before a
- * navigation that follows a successful save (state updates would land too late for the blocker).
- */
-function useUnsavedGuard(dirty: boolean) {
-  const leaving = useRef(false);
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname,
-  );
-  useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    if (window.confirm("You have unsaved changes. Leave without saving?")) blocker.proceed();
-    else blocker.reset();
-  }, [blocker]);
-  // Browser reload / tab close.
-  useEffect(() => {
-    if (!dirty) return;
-    const onBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty]);
-  return () => {
-    leaving.current = true;
-  };
 }
 
 export function ResumeEditPage() {
@@ -103,30 +77,6 @@ function Editor({ resume }: { resume: ResumeDetail }) {
           }
         >
           Save new version
-        </Button>
-      </SaveBar>
-    </div>
-  );
-}
-
-export function NewResumePage() {
-  const navigate = useNavigate();
-  const [doc, setDoc] = useState<ResumeDoc>(emptyResume);
-  const [title, setTitle] = useState("Master resume");
-  const create = useCreateResume();
-  return (
-    <div className="pb-24">
-      <PageHeader title="Create your master resume" description="Fill in what you have; you can edit it any time." back={{ to: "/resumes", label: "My Resumes" }} />
-      <div className="mb-6 max-w-xl">
-        <Field label="Title">
-          {({ id }) => <Input id={id} value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} />}
-        </Field>
-      </div>
-      <ResumeEditor value={doc} onChange={setDoc} />
-      <SaveBar error={create.error}>
-        <Button loading={create.isPending}
-          onClick={() => create.mutate({ title: title.trim() || "Master resume", content: doc }, { onSuccess: (r) => navigate(`/resumes/${r.id}`) })}>
-          Save master resume
         </Button>
       </SaveBar>
     </div>

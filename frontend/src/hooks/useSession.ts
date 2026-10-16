@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { clearAllDrafts } from "@/lib/draftStorage";
 import { ApiError } from "@/services/apiClient";
 import { authService, type LoginInput, type RegisterInput, type ResetConfirmInput, type SessionInfo } from "@/services/authService";
 
@@ -43,6 +44,7 @@ export function signOutLocally(client: ReturnType<typeof useQueryClient>) {
   void client.cancelQueries({ queryKey: SESSION_KEY });
   client.setQueryData(SESSION_KEY, null);
   client.removeQueries({ predicate: (query) => query.queryKey[0] !== SESSION_KEY[0] });
+  clearAllDrafts();
 }
 
 export function useLogout() {

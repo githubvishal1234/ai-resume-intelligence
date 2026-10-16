@@ -271,6 +271,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/pro-waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pro Waitlist */
+        get: operations["pro_waitlist_api_v1_account_pro_waitlist_get"];
+        put?: never;
+        /** Join Pro Waitlist */
+        post: operations["join_pro_waitlist_api_v1_account_pro_waitlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/capabilities": {
         parameters: {
             query?: never;
@@ -2272,6 +2290,16 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * ProWaitlistOut
+         * @description Whether this user asked to hear when Pro launches. No payment is taken.
+         */
+        ProWaitlistOut: {
+            /** Joined */
+            joined: boolean;
+            /** Joined At */
+            joined_at: string | null;
+        };
         /** ProfileUpdate */
         ProfileUpdate: {
             /** Display Name */
@@ -3244,6 +3272,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pro_waitlist_api_v1_account_pro_waitlist_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProWaitlistOut"];
+                };
+            };
+        };
+    };
+    join_pro_waitlist_api_v1_account_pro_waitlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProWaitlistOut"];
                 };
             };
         };

@@ -23,8 +23,10 @@ class Template:
     margin_mm: float
     heading_rule: bool
     accent: str  # hex colour for headings; body text is always black
+    center_header: bool = False  # name and contact line centred (still one column)
 
 
+# The frontend preview mirrors these values in frontend/src/constants/templates.ts.
 TEMPLATES: dict[str, Template] = {
     "classic": Template(
         id="classic",
@@ -64,6 +66,47 @@ TEMPLATES: dict[str, Template] = {
         margin_mm=18,
         heading_rule=True,
         accent="#000000",
+    ),
+    "modern": Template(
+        id="modern",
+        name="Modern",
+        description="Indigo headings, a large name and ruled sections.",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
+        body_size=10,
+        name_size=22,
+        heading_size=11.5,
+        margin_mm=16,
+        heading_rule=True,
+        accent="#3730a3",
+    ),
+    "executive": Template(
+        id="executive",
+        name="Executive",
+        description="Serif type, centred name and navy ruled headings.",
+        font="DejaVuSerif",
+        font_bold="DejaVuSerif-Bold",
+        body_size=10.5,
+        name_size=22,
+        heading_size=12,
+        margin_mm=18,
+        heading_rule=True,
+        accent="#1f2a44",
+        center_header=True,
+    ),
+    "minimal": Template(
+        id="minimal",
+        name="Minimal",
+        description="Centred header, wide margins and quiet grey headings.",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
+        body_size=10,
+        name_size=18,
+        heading_size=11,
+        margin_mm=20,
+        heading_rule=False,
+        accent="#374151",
+        center_header=True,
     ),
 }
 

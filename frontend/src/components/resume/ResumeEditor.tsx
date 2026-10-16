@@ -23,7 +23,7 @@ type Report = ImportReport["sections"][number];
  * A textarea backed by structured data (e.g. one list item per line). It keeps the raw text the
  * user is typing (blank lines, trailing commas) and only resyncs when the data changed elsewhere.
  */
-function TextBacked<T>({
+export function TextBacked<T>({
   value,
   onChange,
   toText,

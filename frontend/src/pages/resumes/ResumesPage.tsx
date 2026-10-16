@@ -1,4 +1,4 @@
-import { FilePlus2, FileText, UploadCloud } from "lucide-react";
+import { FilePlus2, FileText, Sparkles, UploadCloud } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -19,12 +19,18 @@ export function ResumesPage() {
     <div>
       <PageHeader
         title="My Resumes"
+        photo="resumes"
         description="Your master resume is the verified source of truth. Tailored versions are built from it."
         actions={
           master ? (
-            <ButtonLink to="/resumes/upload">
-              <UploadCloud className="size-4" aria-hidden /> Upload new version
-            </ButtonLink>
+            <>
+              <ButtonLink to="/resumes/new" variant="primary">
+                <Sparkles className="size-4" aria-hidden /> Quick builder
+              </ButtonLink>
+              <ButtonLink to="/resumes/upload">
+                <UploadCloud className="size-4" aria-hidden /> Upload new version
+              </ButtonLink>
+            </>
           ) : null
         }
       />

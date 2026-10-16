@@ -27,6 +27,9 @@ function AppLoading() {
 }
 
 export const routes: RouteObject[] = [
+  // Public product page; signed-out visitors to "/" land here (see RequireAuth).
+  { path: "/welcome", HydrateFallback: AppLoading, ...page(() => import("@/pages/LandingPage"), "LandingPage") },
+  { path: "/pricing", HydrateFallback: AppLoading, ...page(() => import("@/pages/PricingPage"), "PricingPage") },
   {
     HydrateFallback: AppLoading,
     element: <RedirectIfAuthed />,
@@ -58,7 +61,7 @@ export const routes: RouteObject[] = [
           { path: "/settings", ...page(() => import("@/pages/SettingsPage"), "SettingsPage") },
           { path: "/resumes", ...page(() => import("@/pages/resumes/ResumesPage"), "ResumesPage") },
           { path: "/resumes/upload", ...page(() => import("@/pages/resumes/UploadPage"), "UploadPage") },
-          { path: "/resumes/new", ...page(() => import("@/pages/resumes/ResumeEditPage"), "NewResumePage") },
+          { path: "/resumes/new", ...page(() => import("@/pages/resumes/QuickBuilderPage"), "QuickBuilderPage") },
           { path: "/resumes/imports/:importId", ...page(() => import("@/pages/resumes/ImportReviewPage"), "ImportReviewPage") },
           { path: "/resumes/:resumeId", ...page(() => import("@/pages/resumes/ResumeDetailPage"), "ResumeDetailPage") },
           { path: "/resumes/:resumeId/edit", ...page(() => import("@/pages/resumes/ResumeEditPage"), "ResumeEditPage") },

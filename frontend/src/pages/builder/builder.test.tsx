@@ -16,6 +16,10 @@ const summary = (id: string, kind: string, title: string) => ({
   created_at: "2026-10-12T05:00:00Z",
   updated_at: "2026-10-12T05:00:00Z",
 });
+const detail = (id: string, kind: string, title: string) => ({
+  ...summary(id, kind, title),
+  content: { contact: { full_name: "Priya Raman", email: "priya@example.com" }, summary: "Backend engineer." },
+});
 const TEMPLATES = [
   { id: "classic", name: "Classic", description: "Ruled headings." },
   { id: "compact", name: "Compact", description: "Tighter spacing." },
@@ -39,6 +43,8 @@ describe("Resume Builder", () => {
       me,
       { path: "/resumes", body: [summary(TAILORED, "tailored", "Acme backend"), summary(MASTER, "master", "Master resume")] },
       { path: "/output/templates", body: TEMPLATES },
+      { path: `/resumes/${MASTER}`, body: detail(MASTER, "master", "Master resume") },
+      { path: `/resumes/${TAILORED}`, body: detail(TAILORED, "tailored", "Acme backend") },
       { path: `/resumes/${MASTER}/ats?template=classic`, body: report("classic", 100) },
       { path: `/resumes/${MASTER}/ats?template=compact`, body: report("compact", 90) },
       { path: `/resumes/${TAILORED}/ats?template=compact`, body: report("compact", 80) },
@@ -52,6 +58,8 @@ describe("Resume Builder", () => {
     expect(download).toHaveAttribute("href", `/api/v1/resumes/${MASTER}/export.pdf?template=classic`);
     expect(download).toHaveAttribute("download", "Master-resume.pdf");
 
+    // Each template is previewed with the user's own resume.
+    expect(await screen.findByRole("img", { name: "Compact template preview" })).toHaveTextContent("Priya Raman");
     await user.click(screen.getByRole("radio", { name: /Compact/ }));
     expect(await screen.findByRole("img", { name: /ATS checks: 90 out of 100/ })).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Resume"), TAILORED);

@@ -51,6 +51,7 @@ export function InterviewIndexPage() {
     <div>
       <PageHeader
         title="Interview Prep"
+        photo="interview"
         description="Questions built from a job's requirements, your resume's evidence and your skill gaps, with a place to practice your answers."
       />
       {!master ? (

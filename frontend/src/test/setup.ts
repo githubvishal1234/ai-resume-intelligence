@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
+
+// Pages are lazy-loaded; on slower machines the first import can exceed the 1 s default.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => cleanup());
 

@@ -18,6 +18,7 @@ export function JobsPage() {
     <div>
       <PageHeader
         title="Job Analyzer"
+        photo="jobs"
         description="Saved job descriptions and what each one asks for."
         actions={
           list.data.length ? (

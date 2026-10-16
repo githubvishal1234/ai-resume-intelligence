@@ -103,6 +103,89 @@
   --shadow-level-2: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
   --shadow-level-3: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
   --shadow-focus: 0 0 0 3px rgba(79, 70, 229, 0.12);
+
+  /* Photo overlays: fixed in both themes, so text over a photo stays readable. */
+  --color-ink-deep: #0b1c30;
+  --color-ink-deep-indigo: #1e1b4b;
+  --color-on-ink: #ffffff;
+  --color-on-ink-muted: #d6def0;
+
+  /* Motion: a short rise-in for page headers and cards (off under reduced motion). */
+  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+ * Dark theme: follows the operating system setting. Every screen uses the tokens above, so
+ * redefining them here is enough. Status colours keep the same meaning with lighter inks.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --color-background: #0b1220;
+    --color-surface: #0b1220;
+    --color-surface-dim: #080d18;
+    --color-surface-container-lowest: #111a2e;
+    --color-surface-container-low: #142036;
+    --color-surface-container: #18263f;
+    --color-surface-container-high: #1d2d4a;
+    --color-surface-container-highest: #233556;
+    --color-inverse-surface: #e5eeff;
+    --color-inverse-on-surface: #213145;
+
+    --color-on-surface: #e6ecf7;
+    --color-on-surface-variant: #a9b3c6;
+    --color-outline: #8b93a7;
+    --color-outline-variant: #3a4660;
+    --color-hairline: #24324b;
+    --color-hairline-strong: #33425f;
+    --color-placeholder: #6b7690;
+
+    /* Light indigo with dark text on it keeps buttons and links above 4.5:1. */
+    --color-primary: #818cf8;
+    --color-primary-hover: #a5b4fc;
+    --color-primary-active: #c7d2fe;
+    --color-primary-strong: #a5b4fc;
+    --color-on-primary: #0b1220;
+    --color-primary-container: #818cf8;
+    --color-primary-fixed: #262b63;
+    --color-primary-fixed-dim: #4c4fa8;
+    --color-on-primary-fixed: #e0e7ff;
+    --color-secondary: #a9b3c6;
+    --color-secondary-container: #26334f;
+
+    --color-success: #34d399;
+    --color-success-surface: #0f2a22;
+    --color-success-border: #1f5a45;
+    --color-success-ink: #a7f3d0;
+    --color-warning: #fbbf24;
+    --color-warning-surface: #2e2410;
+    --color-warning-border: #6b4f12;
+    --color-warning-ink: #fde68a;
+    --color-critical: #fb7185;
+    --color-critical-surface: #33141d;
+    --color-critical-border: #7a2236;
+    --color-critical-ink: #fecdd3;
+    --color-info: #38bdf8;
+    --color-info-surface: #0f2536;
+    --color-info-border: #1d4f73;
+    --color-info-ink: #bae6fd;
+
+    --shadow-level-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-level-2: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+    --shadow-level-3: 0 12px 20px -6px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+    --shadow-focus: 0 0 0 3px rgba(129, 140, 248, 0.25);
+  }
 }
 
 @layer base {

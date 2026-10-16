@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ from app.auth.service import WeakPassword
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
 from app.core.security import hash_password, verify_password
-from app.models import ResumeFile, User, UserSession
+from app.models import AuditLog, ResumeFile, User, UserSession
 from app.storage.base import StorageBackend
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,37 @@ class AccountService:
                 self.storage.delete(key)
             except Exception:  # the rows are gone; a leftover file is logged, not fatal
                 logger.warning("account.delete: stored file not removed", extra={"key": key})
+
+    # ---- Pro waitlist ----------------------------------------------------------------------
+    # No payment provider is chosen yet, so "Pro" is a waitlist. Interest is kept as an audit
+    # entry (no new table): `select ... from audit_logs where action = 'plan.pro_waitlist'`.
+    # Deleting the account clears the actor, so deleted users drop off the list.
+    PRO_WAITLIST_ACTION = "plan.pro_waitlist"
+
+    def pro_waitlist(self) -> datetime | None:
+        """When this user joined the Pro waitlist, or None."""
+        return self.db.scalar(
+            select(AuditLog.created_at)
+            .where(
+                AuditLog.actor_user_id == self.user.id,
+                AuditLog.action == self.PRO_WAITLIST_ACTION,
+                AuditLog.outcome == "success",
+            )
+            .order_by(AuditLog.created_at)
+            .limit(1)
+        )
+
+    def join_pro_waitlist(self) -> datetime:
+        """Idempotent: joining twice keeps the first date."""
+        joined = self.pro_waitlist()
+        if joined is not None:
+            return joined
+        self._audit(self.PRO_WAITLIST_ACTION, "success")
+        self.db.commit()
+        joined = self.pro_waitlist()
+        if joined is None:  # the row was just committed
+            raise RuntimeError("Pro waitlist entry was not saved.")
+        return joined
 
     # ---- helpers -------------------------------------------------------------------------
     def _require_password(self, password: str, action: str, field: str) -> None:

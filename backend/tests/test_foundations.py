@@ -143,7 +143,10 @@ def test_local_storage_rejects_symlink_escape(tmp_path: Path) -> None:
     outside.mkdir()
     root = tmp_path / "root"
     root.mkdir()
-    (root / "link").symlink_to(outside)
+    try:
+        (root / "link").symlink_to(outside)
+    except OSError:  # Windows without Developer Mode or admin rights
+        pytest.skip("this OS user cannot create symlinks")
     store = LocalStorage(root)
     with pytest.raises(StorageNotFound):
         store.put("link/escape.txt", b"x")

@@ -39,3 +39,10 @@ class SignInOut(BaseModel):
 
 class RevokedOut(BaseModel):
     revoked: int
+
+
+class ProWaitlistOut(BaseModel):
+    """Whether this user asked to hear when Pro launches. No payment is taken."""
+
+    joined: bool
+    joined_at: datetime | None

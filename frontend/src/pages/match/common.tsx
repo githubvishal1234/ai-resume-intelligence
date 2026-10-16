@@ -54,7 +54,7 @@ export function JobMatchIndex({ title, description, to }: { title: string; descr
 
   return (
     <div>
-      <PageHeader title={title} description={description} />
+      <PageHeader title={title} description={description} photo="jobs" />
       {jobs.data.length === 0 ? (
         <EmptyState
           title="No jobs to match yet"

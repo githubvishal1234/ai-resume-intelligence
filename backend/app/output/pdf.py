@@ -13,6 +13,7 @@ from collections.abc import Callable
 from xml.sax.saxutils import escape
 
 from reportlab.lib.colors import HexColor
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -81,10 +82,16 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
 
     accent = HexColor(t.accent)
     base = ParagraphStyle("body", fontName=t.font, fontSize=t.body_size, leading=t.body_size * 1.35)
+    header_align = TA_CENTER if t.center_header else TA_LEFT
     name_style = ParagraphStyle(
-        "name", parent=base, fontName=t.font_bold, fontSize=t.name_size, leading=t.name_size * 1.2
+        "name",
+        parent=base,
+        fontName=t.font_bold,
+        fontSize=t.name_size,
+        leading=t.name_size * 1.2,
+        alignment=header_align,
     )
-    contact_style = ParagraphStyle("contact", parent=base, spaceAfter=4)
+    contact_style = ParagraphStyle("contact", parent=base, spaceAfter=4, alignment=header_align)
     heading = ParagraphStyle(
         "heading",
         parent=base,

@@ -10,6 +10,7 @@ from app.account.schemas import (
     AccountDelete,
     PasswordChange,
     ProfileUpdate,
+    ProWaitlistOut,
     RevokedOut,
     SignInOut,
 )
@@ -92,3 +93,14 @@ def delete_account(
     check_rate_limit("password", f"user:{service.user.id}", settings)
     service.delete_account(body.password)
     response.delete_cookie(settings.session_cookie_name, path="/")
+
+
+@router.get("/pro-waitlist", response_model=ProWaitlistOut)
+def pro_waitlist(service: Service) -> ProWaitlistOut:
+    joined_at = service.pro_waitlist()
+    return ProWaitlistOut(joined=joined_at is not None, joined_at=joined_at)
+
+
+@router.post("/pro-waitlist", response_model=ProWaitlistOut)
+def join_pro_waitlist(service: Service) -> ProWaitlistOut:
+    return ProWaitlistOut(joined=True, joined_at=service.join_pro_waitlist())

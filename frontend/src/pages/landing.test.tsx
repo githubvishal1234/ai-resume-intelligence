@@ -1,0 +1,32 @@
+import { screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { mockApi, NOT_AUTHED, renderApp, SESSION } from "@/test/utils";
+
+describe("Landing page", () => {
+  it("is what a signed-out visitor sees at the site root", async () => {
+    mockApi([{ path: "/auth/me", ...NOT_AUTHED }]);
+    const { router } = renderApp("/");
+    expect(await screen.findByRole("heading", { level: 1, name: /Build a resume that gets read/ })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/welcome");
+    // Every template is shown with the sample resume.
+    for (const name of ["Classic", "Modern", "Executive", "Minimal", "Compact", "Serif"]) {
+      expect(screen.getByRole("img", { name: `Sample resume in the ${name} template` })).toBeInTheDocument();
+    }
+    for (const link of screen.getAllByRole("link", { name: /Build my resume/ })) expect(link).toHaveAttribute("href", "/register");
+    expect(screen.getAllByRole("link", { name: "Sign in" })[0]).toHaveAttribute("href", "/login");
+  });
+
+  it("offers the dashboard and the builder to a signed-in user", async () => {
+    mockApi([{ path: "/auth/me", body: SESSION }]);
+    renderApp("/welcome");
+    expect(await screen.findByRole("link", { name: "Open dashboard" })).toHaveAttribute("href", "/");
+    expect(screen.getAllByRole("link", { name: /Build my resume/ })[0]).toHaveAttribute("href", "/resumes/new");
+  });
+
+  it("still sends deep links to sign-in", async () => {
+    mockApi([{ path: "/auth/me", ...NOT_AUTHED }]);
+    const { router } = renderApp("/jobs");
+    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/login");
+  });
+});

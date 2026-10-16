@@ -32,6 +32,8 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 14 | Account settings | ✅ |
 | 15 | Email over SMTP & password reset | ✅ |
 | 16 | S3-compatible file storage | ✅ |
+| 17 | Quick builder, templates & product page | ✅ |
+| 18 | Pricing page & Pro waitlist | ✅ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -599,6 +601,106 @@ cannot run up the bill (the budget itself is still open under D-03).
   a resume upload and an account deletion end to end over S3).
 - Not tried against a real S3 service (D-06 is open, and this environment cannot reach one).
 
+## Phase 17: Quick builder, templates & product page
+
+Goal: someone with no resume finishes a good one in minutes, picks how it looks, and the
+product explains itself to visitors.
+
+**Delivered**
+- [x] Quick Resume Builder at `/resumes/new` (`pages/resumes/QuickBuilderPage.tsx`): seven
+      steps (Style, Contact, Experience, Education, Skills, Summary, Finish) with a step bar,
+      a completeness meter and a live A4 preview in the chosen template.
+  - Writing help, all deterministic (`lib/resumeHelpers.ts`): tips on each bullet point
+    (weak opener, no number, too long), action-verb starters, skill suggestions for nine
+    fields, and a summary drafted only from the user's own entries. Years of experience are
+    counted in whole months and never rounded up.
+  - The Finish step lists what a strong resume still needs, with "Fix" links to each step.
+    Saving goes straight to the Resume Builder with the chosen template.
+  - With no master resume it creates one; with a master it starts from it and saves a new
+    version (one master per user, as before).
+  - An unsaved new resume is kept in this browser per user and removed on save and on sign-out
+    (`lib/draftStorage.ts`).
+- [x] Three more ATS-safe templates (`modern`, `executive`, `minimal`) and a
+      `center_header` option in `backend/app/output/templates.py` / `pdf.py`. Headings stay
+      in title case so the ATS heading-order check still applies. The frontend preview
+      mirrors the template values in `constants/templates.ts`.
+- [x] Resume Builder page: a gallery previewing the user's own resume in every template, plus
+      a large preview next to the ATS check.
+- [x] Public product page at `/welcome` (`pages/LandingPage.tsx`): what it does, the six
+      templates with a fictional sample resume, how it works, features, privacy points and a
+      short FAQ. Signed-out visitors to `/` land there; deep links still go to sign-in, and
+      signing out still returns to sign-in. No prices, user counts or testimonials are shown.
+
+**Not done here, by decision**
+- Pricing, plans and payments need company decisions (prices, payment provider, tax and
+  invoicing) and are not built.
+- The product name is still pending (D-02); the page uses `PRODUCT_NAME`.
+- AI rewriting inside the quick builder is not added; the existing AI features are unchanged.
+
+**Verified 2026-10-14**
+- 96 frontend tests pass (13 new: checklist, bullet tips, summary draft and its year
+  counting, the full builder flow, draft recovery, editing an existing master, the name
+  requirement, the landing page, the root redirect and deep links; the Resume Builder test
+  now also checks the template gallery). Typecheck, lint and the build are clean.
+- Browser run against a stand-in API: landing page, builder steps with a restored draft,
+  live preview, summary draft and the Finish checklist. No horizontal overflow at 375, 768,
+  1024 or 1440.
+- Fixed during verification: the step list squeezed the form at 1440 (moved above it), and
+  screen-reader "(complete)" labels widened the page on phones.
+- Backend checks (2026-10-16): see the Phase 18 verification below. The parametrized output
+  tests cover the three new templates (render, text order, ATS checks, one page) and pass.
+
+## Phase 18: Pricing page & Pro waitlist
+
+**Decided 2026-10-14 (by the product owner):** two plans, Free (₹0) and Pro at ₹299 a month or
+₹2,499 a year. With no payment provider yet, the Pro button joins a waitlist.
+
+**Delivered**
+- [x] Public `/pricing` page (`pages/PricingPage.tsx`): Free and Pro cards, a monthly / yearly
+      switch (yearly saving computed and rounded down: 30%), and a short pricing FAQ. Prices and
+      the feature lists live only in `constants/pricing.ts`.
+- [x] Shared public header (`components/layout/PublicHeader.tsx`) with a Pricing link, used by
+      the product page and pricing. The product page's final call to action links to pricing.
+- [x] Pro waitlist: `GET` / `POST /api/v1/account/pro-waitlist` (signed in, CSRF on POST).
+      Joining is idempotent and recorded as an audit entry (`action = 'plan.pro_waitlist'`), so
+      no table or migration is needed. To list who joined:
+      `select u.email, a.created_at from audit_logs a join users u on u.id = a.actor_user_id where a.action = 'plan.pro_waitlist';`
+      Deleting an account removes the person from that list.
+- [x] Signed out, "Join the Pro waitlist" goes to sign-up (`/register?plan=pro`, with a note),
+      then back to pricing to confirm in one click. Signed in, it joins directly and then shows
+      "You're on the Pro waitlist" with the date.
+
+**Not done here, by decision**
+- No checkout, billing, invoices or tax handling: a payment provider is still to be chosen.
+- Plan limits are not enforced. Every signed-in user can use every feature that is set up,
+  including AI. The Pro feature list is the intended split for when billing is added.
+- `src/types/api.d.ts` was first updated by hand; `npm run check:api` confirmed it matches the
+  backend schema on 2026-10-16.
+
+**Verified 2026-10-14**
+- 100 frontend tests pass (4 new: prices and the billing switch, sign-up from the Pro button
+  returns to pricing, joining with the CSRF header, already-joined state). Typecheck, lint and
+  the build are clean.
+- Screenshots in light and dark; no horizontal overflow at 375, 768 or 1024.
+- Fixed during verification: after sign-up from the Pro button, the signed-in redirect sent
+  people to the dashboard instead of back to pricing.
+
+**Verified 2026-10-16 (backend, on Windows 11 with Python 3.14 and PostgreSQL 16)**
+- 244 backend tests pass and 1 is skipped (see below). This includes `test_pro_waitlist_*` and
+  the output tests for the new templates. ruff, `ruff format --check` and mypy are clean.
+- 100 frontend tests pass again after a clean `npm ci`. Typecheck, lint and the build are
+  clean, and `npm run check:api` reports the API types up to date.
+- Fixed during verification:
+  - Tests read the developer's `backend/.env`, so local values (here `APP_BASE_URL`) changed
+    results. `tests/conftest.py` now turns the env file off for the test run.
+  - Two parametrized job tests had multi-kilobyte ids, which pytest puts in an environment
+    variable; Windows caps those at 32,767 characters. They now have short ids.
+  - The symlink-escape storage test is skipped when the OS user cannot create symlinks
+    (Windows without Developer Mode or admin rights). It still runs on Linux CI.
+  - `@testing-library/dom` is now an explicit dev dependency. It is a required peer of
+    `@testing-library/react` 16, and npm with `legacy-peer-deps=true` skipped it, which
+    broke every frontend test and pruned the lockfile.
+
 ---
 
 ## Progress log
@@ -623,3 +725,8 @@ cannot run up the bill (the budget itself is still open under D-03).
 - 2026-10-13: Phases 14–16 planned. Phase 14 completed and verified. Phase 15 started.
 - 2026-10-13: Phase 15 completed and verified. Phase 16 started.
 - 2026-10-13: Phase 16 completed and verified. Phases 14–16 are done; what remains needs a decision (D-02, D-04 to D-11) or a Groq key.
+- 2026-10-13: Frontend redesign: photo banners, split-screen sign-in, dashboard cards, dark mode (see docs/DESIGN_SYSTEM.md).
+- 2026-10-14: Phase 17 built. Frontend verified; backend tests still to run on a machine with Python and PostgreSQL.
+- 2026-10-14: Phase 18 built (pricing, Pro waitlist). Same status: frontend verified, backend tests to run.
+- 2026-10-16: Backend checks run for Phases 17 and 18; Windows test-isolation issues and the missing
+  `@testing-library/dom` dependency fixed. Phases 17 and 18 completed and verified.
