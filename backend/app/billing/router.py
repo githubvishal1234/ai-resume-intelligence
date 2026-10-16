@@ -11,11 +11,21 @@ from app.auth.deps import CurrentAuth
 from app.auth.router import check_rate_limit
 from app.billing.service import BillingService, Interval, ai_daily_limit, handle_webhook
 from app.core.config import Settings, get_settings
+from app.core.errors import AppError
 from app.db.session import get_db
 from app.models import Subscription
 from app.models.billing import PRO_STATUSES
 
 router = APIRouter(prefix="/billing", tags=["billing"])
+
+# Razorpay webhooks are a few kilobytes; anything far larger is refused before it is read whole.
+MAX_WEBHOOK_BYTES = 256 * 1024
+
+
+class WebhookTooLarge(AppError):
+    status_code = 413
+    code = "WEBHOOK_TOO_LARGE"
+    message = "Webhook body too large."
 
 
 def get_billing_service(
@@ -119,7 +129,13 @@ async def razorpay_webhook(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> WebhookOut:
     """Called by Razorpay, not the browser: no session or CSRF; the signature authenticates it."""
-    raw = await request.body()
+    if int(request.headers.get("content-length") or 0) > MAX_WEBHOOK_BYTES:
+        raise WebhookTooLarge()
+    raw = b""
+    async for chunk in request.stream():
+        raw += chunk
+        if len(raw) > MAX_WEBHOOK_BYTES:
+            raise WebhookTooLarge()
     handle_webhook(
         db,
         settings,

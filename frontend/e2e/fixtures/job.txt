@@ -1,0 +1,24 @@
+Senior Backend Engineer
+Acme Analytics · Bengaluru (Hybrid) · Full-time
+Salary: ₹35-45 LPA
+
+About us
+We build data tools for retailers.
+
+What you'll do
+- Design and build REST APIs used by thousands of customers.
+- Mentor engineers and review code.
+
+Requirements
+- 5+ years of professional software engineering experience.
+- Strong experience with Python and FastAPI or Django.
+- Solid knowledge of PostgreSQL and query optimization.
+- Bachelor's degree in Computer Science or a related field.
+- Knowledge of Terraform is preferred.
+
+Nice to have
+- Experience with Kafka or other streaming platforms.
+- AWS certification is a plus.
+
+Benefits
+- Health insurance for your family.

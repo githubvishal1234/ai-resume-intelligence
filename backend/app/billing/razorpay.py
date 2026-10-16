@@ -65,12 +65,18 @@ class RazorpayClient:
         )
 
     def create_subscription(
-        self, *, plan_id: str, total_count: int, notes: dict[str, str]
+        self, *, plan_id: str, total_count: int, notes: dict[str, str], expire_by: int
     ) -> dict[str, Any]:
+        """`expire_by` (unix time): after it the subscription can no longer be paid."""
         return self._call(
             "POST",
             "/subscriptions",
-            {"plan_id": plan_id, "total_count": total_count, "notes": notes},
+            {
+                "plan_id": plan_id,
+                "total_count": total_count,
+                "notes": notes,
+                "expire_by": expire_by,
+            },
         )
 
     def cancel_subscription(self, subscription_id: str, *, at_cycle_end: bool) -> dict[str, Any]:

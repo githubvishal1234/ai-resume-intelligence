@@ -1,0 +1,23 @@
+Priya Raman
+Bengaluru, India | priya.raman@example.com | +91 98765 43210 | linkedin.com/in/priyaraman
+
+SUMMARY
+Backend engineer with 6 years of experience building data-heavy Python services and APIs.
+
+EXPERIENCE
+Senior Software Engineer | Acme Analytics | Bengaluru, India
+Jan 2021 - Present
+- Led migration of the reporting pipeline to PostgreSQL, cutting query latency by 40%.
+- Designed a FastAPI service handling 2M requests/day with 99.95% uptime.
+Software Engineer | Brightpath Labs
+Jun 2018 - Dec 2020
+- Built ETL jobs in Python and Airflow processing 500 GB daily.
+- Reduced cloud costs by 25% by rightsizing Kubernetes workloads.
+
+EDUCATION
+Bachelor of Technology in Computer Science
+National Institute of Technology, Trichy | 2014 - 2018
+
+SKILLS
+Languages: Python, SQL, Go
+Tools: Docker, Kubernetes, Terraform, Git

@@ -14,3 +14,7 @@ coverage/
 
 # setuptools build output
 build/
+
+# Playwright output
+frontend/playwright-report/
+frontend/test-results/

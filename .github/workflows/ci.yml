@@ -60,3 +60,48 @@ jobs:
       - name: API types are in sync with the backend
         run: PYTHON=python npm run check:api
       - run: npm audit --omit=dev --audit-level=high
+
+  e2e:
+    # A real browser against the real API and database: sign up, import, match, tailor, PDF.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: resume_app
+          POSTGRES_PASSWORD: dev_only_password
+          POSTGRES_DB: resume_intel_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U resume_app" --health-interval 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      DATABASE_URL: postgresql+psycopg://resume_app:dev_only_password@localhost:5432/resume_intel_e2e
+      PYTHON: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r ../backend/requirements.lock -e ../backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+        env:
+          STORAGE_LOCAL_ROOT: ${{ runner.temp }}/storage
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

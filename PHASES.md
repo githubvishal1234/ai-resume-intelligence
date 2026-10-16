@@ -831,6 +831,23 @@ our servers; Checkout collects them.
   cancel option name (`cancel_at_cycle_end`), and whether Checkout needs more CSP origins or a
   Referer (nginx sends `Referrer-Policy: no-referrer`).
 
+**Security review 2026-10-16 (after steps 1–9)**
+A focused manual review (the Claude Security scan needs workflows, which this environment
+doesn't have; run it later for an independently verified pass). Fixed, each with a test:
+- *Medium:* a person could pay twice (two unpaid subscriptions, e.g. monthly and yearly in two
+  tabs), and the second verification failed with a raw 500 after the money was taken. Unpaid
+  subscriptions now expire after 30 minutes (`expire_by`), starting a new checkout cancels any
+  other unpaid one at Razorpay, and a second payment returns `409 DUPLICATE_PAYMENT` and is
+  recorded in the audit log for a refund.
+- *Medium:* with the Razorpay keys removed, deleting an account skipped cancelling a live Pro
+  subscription, so a deleted user could keep being charged. Deletion is now refused
+  (`503 BILLING_CANCEL_UNAVAILABLE`) until the subscription can be cancelled.
+- *Low:* the public webhook read any size of body into memory; it is now capped at 256 KB (413).
+- *Low:* a validly signed but oddly shaped webhook caused a 500 and endless retries; payload
+  fields are now type-checked.
+No issues found in the rest of the sweep (no SQL built from strings, shell calls, eval or
+unsafe deserialization; the Phase 9 auth, CSRF and upload controls still hold).
+
 **Needs from you before step 10**
 - A Razorpay account with **test mode** keys and a webhook secret, put in `backend/.env`
   yourself (never pasted into chat).
@@ -873,3 +890,4 @@ our servers; Checkout collects them.
 - 2026-10-16: Phase 19 (Vivid redesign) completed and verified, including the signed-in screens in light and dark.
 - 2026-10-16: Repository pushed to GitHub (private), default branch `main`, CI green. Phase 20 (Razorpay billing) planned.
 - 2026-10-16: Phase 20 steps 1–9 built and tested (Razorpay billing, plan limits). Step 10 waits on Razorpay test keys.
+- 2026-10-16: Billing security review (4 issues fixed) and end-to-end tests (Playwright, real API and database) added to CI.

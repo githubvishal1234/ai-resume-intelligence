@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import select
@@ -39,6 +39,10 @@ Interval = Literal["monthly", "yearly"]
 PRICE_PAISE: dict[str, int] = {"monthly": 29_900, "yearly": 249_900}
 # Billing cycles per subscription: 10 years either way. Razorpay needs a count.
 TOTAL_COUNT: dict[str, int] = {"monthly": 120, "yearly": 10}
+# An unpaid subscription can be paid for this long, then Razorpay refuses it. Checkout reuses
+# one only while it has at least CHECKOUT_REUSE_MARGIN left, so it can't expire mid-payment.
+CHECKOUT_TTL = timedelta(minutes=30)
+CHECKOUT_REUSE_MARGIN = timedelta(minutes=10)
 
 
 class BillingNotConfigured(ServiceUnavailable):
@@ -49,6 +53,22 @@ class BillingNotConfigured(ServiceUnavailable):
 class AlreadyPro(Conflict):
     code = "ALREADY_PRO"
     message = "You're already on Pro."
+
+
+class DuplicatePayment(Conflict):
+    code = "DUPLICATE_PAYMENT"
+    message = (
+        "You already have Pro, so this payment was not applied. It has been recorded so it can "
+        "be refunded."
+    )
+
+
+class BillingCancelUnavailable(ServiceUnavailable):
+    code = "BILLING_CANCEL_UNAVAILABLE"
+    message = (
+        "Your Pro subscription has to be cancelled before the account can be deleted, and the "
+        "payment provider can't be reached right now. Please try again later."
+    )
 
 
 class PaymentSignatureInvalid(AppError):
@@ -90,6 +110,11 @@ def ai_daily_limit(db: Session, owner_id: uuid.UUID, settings: Settings) -> tupl
     return settings.ai_daily_limit_free, True
 
 
+def _obj(value: Any) -> dict[str, Any]:
+    """A JSON object, or {} for anything else, so odd but signed payloads can't crash."""
+    return value if isinstance(value, dict) else {}
+
+
 def _ts(value: Any) -> datetime | None:
     return (
         datetime.fromtimestamp(value, UTC) if isinstance(value, int | float) and value > 0 else None
@@ -118,24 +143,37 @@ class BillingService:
         self._require_configured()
         if self.live() is not None:
             raise AlreadyPro()
-        pending = self.db.scalar(
-            select(Subscription).where(
-                Subscription.owner_id == self.user.id,
-                Subscription.status == "created",
-                Subscription.interval == interval,
+        now = datetime.now(UTC)
+        unpaid = list(
+            self.db.scalars(
+                select(Subscription).where(
+                    Subscription.owner_id == self.user.id, Subscription.status == "created"
+                )
             )
         )
-        if pending is not None:
-            return pending
+        for old in unpaid:
+            if (
+                old.interval == interval
+                and old.created_at > now - CHECKOUT_TTL + CHECKOUT_REUSE_MARGIN
+            ):
+                return old
+        client = RazorpayClient(self.settings)
+        # Only one unpaid subscription may be payable at a time, so nobody can pay twice
+        # (say monthly in one tab and yearly in another). Older ones are cancelled first.
+        for old in unpaid:
+            if old.created_at > now - CHECKOUT_TTL:
+                client.cancel_subscription(old.provider_subscription_id, at_cycle_end=False)
+            old.status = "cancelled"
         plan_id = (
             self.settings.razorpay_plan_monthly
             if interval == "monthly"
             else self.settings.razorpay_plan_yearly
         )
-        created = RazorpayClient(self.settings).create_subscription(
+        created = client.create_subscription(
             plan_id=plan_id or "",
             total_count=TOTAL_COUNT[interval],
             notes={"user_id": str(self.user.id)},
+            expire_by=int((now + CHECKOUT_TTL).timestamp()),
         )
         provider_id = str(created.get("id") or "")
         if not provider_id:
@@ -173,7 +211,14 @@ class BillingService:
         if sub.status == "created":  # a webhook may already have moved it further
             sub.status = "authenticated"
         self._audit("billing.verified", sub)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:  # a second paid subscription while one is already live
+            self.db.rollback()
+            logger.error("billing.duplicate_payment", extra={"subscription": subscription_id})
+            self._audit("billing.duplicate_payment", sub, outcome="failure")
+            self.db.commit()
+            raise DuplicatePayment() from None
         return sub
 
     def cancel(self) -> Subscription:
@@ -195,8 +240,10 @@ class BillingService:
         """Account deletion: stop future charges first. If Razorpay can't be reached, this
         raises and the account is not deleted, so a deleted user is never billed again."""
         sub = self.live()
-        if sub is None or not self.configured:
+        if sub is None:
             return
+        if not self.configured:  # keys removed: we could not stop the charges, so refuse
+            raise BillingCancelUnavailable()
         RazorpayClient(self.settings).cancel_subscription(
             sub.provider_subscription_id, at_cycle_end=False
         )
@@ -239,7 +286,7 @@ def handle_webhook(
         raise WebhookRejected()
 
     event_type = str(data.get("event") or "unknown")[:64]
-    entity = ((data.get("payload") or {}).get("subscription") or {}).get("entity") or {}
+    entity = _obj(_obj(_obj(data.get("payload")).get("subscription")).get("entity"))
     provider_id = str(entity.get("id") or "")[:64] or None
     status = entity.get("status") if entity.get("status") in SUBSCRIPTION_STATUSES else None
     event = BillingEvent(

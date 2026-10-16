@@ -8,6 +8,7 @@ import pathlib
 import re
 import threading
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -15,14 +16,14 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr, ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.ai.registry import register_provider, unregister_provider
 from app.billing.razorpay import payment_signature, webhook_signature
 from app.billing.service import PRICE_PAISE
 from app.core.config import Settings, get_settings
 from app.db.session import get_sessionmaker
-from app.models import AiUsage, BillingEvent, Subscription, User
+from app.models import AiUsage, AuditLog, BillingEvent, Subscription, User
 from tests.conftest import STRONG_PASSWORD, login_as
 from tests.test_claims import _Stub
 from tests.test_tailoring import API as TAILOR_API
@@ -415,3 +416,98 @@ def test_pro_gets_the_full_allowance(user_client: TestClient, razorpay: FakeRazo
     rewrite = _rewrite(user_client)
     _use_ai(5)
     assert rewrite().status_code == 200
+
+
+# ---- security review fixes (2026-10-16) -----------------------------------------------------
+def test_switching_plans_cancels_the_unpaid_subscription(
+    user_client: TestClient, razorpay: FakeRazorpay
+) -> None:
+    """Only one unpaid subscription is payable at a time, so nobody can pay twice."""
+    first = user_client.post(f"{BILLING}/checkout", json={"interval": "monthly"}).json()[
+        "subscription_id"
+    ]
+    second = user_client.post(f"{BILLING}/checkout", json={"interval": "yearly"}).json()[
+        "subscription_id"
+    ]
+    assert second != first
+    assert (
+        "POST",
+        f"/v1/subscriptions/{first}/cancel",
+        {"cancel_at_cycle_end": 0},
+    ) in razorpay.calls
+    assert _sub(first).status == "cancelled"
+    created = [body for _, path, body in razorpay.calls if path == "/v1/subscriptions"]
+    now = datetime.now(UTC).timestamp()
+    assert all(now + 25 * 60 < body["expire_by"] <= now + 31 * 60 for body in created)
+
+
+def test_an_unpaid_subscription_near_expiry_is_not_reused(
+    user_client: TestClient, razorpay: FakeRazorpay
+) -> None:
+    first = user_client.post(f"{BILLING}/checkout", json={"interval": "monthly"}).json()[
+        "subscription_id"
+    ]
+    with get_sessionmaker()() as db:
+        db.execute(
+            update(Subscription).values(created_at=datetime.now(UTC) - timedelta(minutes=25))
+        )
+        db.commit()
+    again = user_client.post(f"{BILLING}/checkout", json={"interval": "monthly"}).json()[
+        "subscription_id"
+    ]
+    assert again != first
+
+
+def test_a_second_payment_is_refused_cleanly(
+    user_client: TestClient, razorpay: FakeRazorpay
+) -> None:
+    _pay(user_client)
+    with get_sessionmaker()() as db:
+        owner = db.scalar(select(User.id))
+        db.add(
+            Subscription(
+                owner_id=owner,
+                provider_subscription_id="sub_stale",
+                interval="yearly",
+                status="created",
+            )
+        )
+        db.commit()
+    response = user_client.post(
+        f"{BILLING}/verify",
+        json={
+            "razorpay_payment_id": "pay_2",
+            "razorpay_subscription_id": "sub_stale",
+            "razorpay_signature": payment_signature("pay_2", "sub_stale", KEY_SECRET),
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["code"] == "DUPLICATE_PAYMENT"
+    with get_sessionmaker()() as db:
+        assert db.scalar(select(AuditLog.id).where(AuditLog.action == "billing.duplicate_payment"))
+
+
+def test_deletion_is_refused_if_pro_cannot_be_cancelled(
+    app: FastAPI, settings: Settings, user_client: TestClient, razorpay: FakeRazorpay
+) -> None:
+    _pay(user_client)
+    app.dependency_overrides[get_settings] = lambda: settings  # billing keys removed
+    response = user_client.post("/api/v1/account/delete", json={"password": STRONG_PASSWORD})
+    assert response.status_code == 503
+    assert response.json()["code"] == "BILLING_CANCEL_UNAVAILABLE"
+    with get_sessionmaker()() as db:
+        assert db.scalar(select(User)) is not None
+
+
+def test_oversized_webhook_is_refused(client: TestClient, razorpay: FakeRazorpay) -> None:
+    raw = b"{" + b" " * (300 * 1024) + b"}"
+    assert _send(client, raw, "evt_big") == 413
+
+
+def test_oddly_shaped_signed_webhook_does_not_crash(
+    client: TestClient, razorpay: FakeRazorpay
+) -> None:
+    raw = json.dumps(
+        {"event": "subscription.activated", "payload": ["not", "an", "object"]}
+    ).encode()
+    assert _send(client, raw, "evt_odd") == 200

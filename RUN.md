@@ -151,3 +151,22 @@ npm run build
 | `docs/` | Architecture, security, deployment, design system, roadmap |
 | `scripts/` | Database and file backup / restore |
 | `PHASES.md` | Phase-by-phase status and what was verified |
+
+## End-to-end tests (optional)
+
+A real browser runs the main journey (sign up, import a resume, analyze a job, match, tailor,
+download the PDF) against the real API and database. From `frontend/`, once:
+
+```powershell
+npx playwright install chromium
+```
+
+Then, with PostgreSQL running and `backend/.env` set up:
+
+```powershell
+npm run e2e
+```
+
+It starts the API (after migrating the database) and the website itself, or reuses them if
+they are already running. Each run creates a new `e2e-…@example.com` account in the database.
+
