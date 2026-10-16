@@ -180,7 +180,7 @@ export function LandingPage() {
 
         {/* Fields strip: decorative, so the duplicate copy for the loop is hidden from assistive tech */}
         <section aria-label="Skill suggestions for your field" className="overflow-hidden border-y border-hairline py-5">
-          <div className="flex w-max animate-marquee gap-12 whitespace-nowrap font-display text-headline-sm font-bold text-outline hover:[animation-play-state:paused]">
+          <div className="flex w-max animate-marquee gap-12 whitespace-nowrap font-display text-headline-sm font-bold text-on-surface-variant hover:[animation-play-state:paused]">
             {[0, 1].map((copy) => (
               <ul key={copy} aria-hidden={copy === 1 || undefined} className="flex gap-12">
                 {FIELDS.map((f) => (
@@ -335,7 +335,7 @@ export function LandingPage() {
               <div className="min-w-0 flex-1 rounded-card bg-ink-deep p-4 font-mono text-code-sm leading-6 text-on-ink">
                 <p className="mb-1 text-accent">What screening software reads</p>
                 <p>1 Name and contact</p><p>2 Summary</p><p>3 Experience</p><p>4 Education</p><p>5 Skills</p>
-                <p className="mt-2 text-success-border">✓ Headings in order</p>
+                <p className="mt-2 text-on-ink-success">✓ Headings in order</p>
               </div>
             </div>
             <div>
