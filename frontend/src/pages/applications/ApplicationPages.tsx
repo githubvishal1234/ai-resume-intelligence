@@ -270,10 +270,10 @@ function DetailsCard({ application: a }: { application: ApplicationDetail }) {
       "Job",
       a.job_id ? (
         <span className="flex flex-wrap gap-x-3">
-          <Link to={`/jobs/${a.job_id}`} className="text-primary hover:underline">
+          <Link to={`/jobs/${a.job_id}`} className="py-0.5 text-primary hover:underline">
             {a.job_title ?? "Saved job"}
           </Link>
-          <Link to={`/jobs/${a.job_id}/match`} className="text-primary hover:underline">
+          <Link to={`/jobs/${a.job_id}/match`} className="py-0.5 text-primary hover:underline">
             Match
           </Link>
         </span>
@@ -284,7 +284,7 @@ function DetailsCard({ application: a }: { application: ApplicationDetail }) {
     [
       "Resume sent",
       a.resume_id ? (
-        <Link to={`/resumes/${a.resume_id}/versions`} className="text-primary hover:underline">
+        <Link to={`/resumes/${a.resume_id}/versions`} className="py-0.5 text-primary hover:underline">
           {a.resume_title ?? "Resume"} · version {a.resume_version}
         </Link>
       ) : (
