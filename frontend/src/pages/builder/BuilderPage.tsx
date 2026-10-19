@@ -65,6 +65,14 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
   }
   const resumeId = list.some((r) => r.id === params.get("resume")) ? (params.get("resume") as string) : list[0]!.id;
   const offered = templates.data.filter((t) => (t.kind ?? "resume") === kind);
+  if (offered.length === 0) {
+    return (
+      <div>
+        <PageHeader title={COPY[kind].title} />
+        <EmptyState title="No templates available" description="The server offers no templates of this kind yet. Try again after it has been updated." />
+      </div>
+    );
+  }
   const template = offered.some((t) => t.id === params.get("template")) ? (params.get("template") as string) : offered[0]!.id;
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(params);
