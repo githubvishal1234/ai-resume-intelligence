@@ -157,17 +157,17 @@ export function LandingPage() {
 
             <div className="relative min-h-[460px] animate-rise [animation-delay:120ms] sm:min-h-[540px]">
               <div className="absolute inset-y-8 left-12 right-4 overflow-hidden rounded-[40px_40px_40px_140px] bg-surface-container-high shadow-level-3">
-                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[38%_30%]" />
+                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[20%_30%]" />
               </div>
-              <div aria-hidden className="absolute left-4 top-0 size-28 rounded-full bg-accent" />
-              <div className="absolute right-0 top-12 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+              <div aria-hidden className="absolute -right-2 -top-2 size-16 rounded-full bg-accent sm:top-0 sm:size-28" />
+              <div className="absolute bottom-36 left-0 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
                 <ScoreRing value={84} size={76} label="Example match score" />
                 <div>
                   <p className="font-semibold">Match score</p>
                   <p className="text-body-md text-on-surface-variant">Senior Backend Engineer</p>
                 </div>
               </div>
-              <div aria-hidden className="absolute left-0 top-56 w-60 animate-float-slow rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+              <div aria-hidden className="absolute left-0 top-4 w-56 animate-float-slow sm:w-60 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
                 <p className="flex items-center gap-2 font-semibold"><span className="flex size-7 items-center justify-center rounded-control bg-success-surface"><Check className="size-4 text-success" strokeWidth={3} /></span>ATS check passed</p>
                 <p className="mt-1.5 text-body-sm text-on-surface-variant">Headings read in order. Contact details found. One page.</p>
               </div>
