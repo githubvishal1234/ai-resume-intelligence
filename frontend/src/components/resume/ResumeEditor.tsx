@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import { CV_SECTIONS } from "@/constants/templates";
 import {
   newId,
   type Certification,
@@ -313,6 +314,10 @@ export function ResumeEditor({ value, onChange, report }: {
         description="Awards, languages, volunteering and anything else."
         action={<Button size="sm" variant="secondary" icon={<Plus className="size-4" aria-hidden />} onClick={() => set("other", [...value.other, blankOther()])}>Add section</Button>}
       >
+        <CvQuickAdd
+          have={value.other.map((o) => o.heading)}
+          onAdd={(heading) => set("other", [...value.other, { ...blankOther(), heading }])}
+        />
         {value.other.map((o, i) => {
           const update = (patch: Partial<OtherSection>) => set("other", replaceAt(value.other, i, { ...o, ...patch }));
           return (
@@ -327,6 +332,30 @@ export function ResumeEditor({ value, onChange, report }: {
           );
         })}
       </Section>
+    </div>
+  );
+}
+
+/** One-click headings for the sections a CV usually adds; hidden once all are present. */
+function CvQuickAdd({ have, onAdd }: { have: string[]; onAdd: (heading: string) => void }) {
+  const present = new Set(have.map((h) => h.trim().toLowerCase()));
+  const missing = CV_SECTIONS.filter((name) => !present.has(name.toLowerCase()));
+  if (!missing.length) return null;
+  return (
+    <div className="sm:col-span-2">
+      <p className="mb-2 text-label-md text-on-surface-variant">Quick add for a CV</p>
+      <div className="flex flex-wrap gap-2">
+        {missing.map((name) => (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onAdd(name)}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hairline-strong bg-surface-container-lowest px-3.5 text-label-md text-on-surface transition-colors hover:border-primary hover:text-primary"
+          >
+            <Plus className="size-3.5" aria-hidden /> {name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

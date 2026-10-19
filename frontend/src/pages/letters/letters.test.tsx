@@ -57,4 +57,20 @@ describe("Cover Letter Builder", () => {
     expect(calls.find((c) => c.method === "PATCH")?.body).toMatchObject({ recipient_name: "Dana Lee" });
     expect(await screen.findByRole("link", { name: /Download PDF/ })).toBeInTheDocument();
   });
+
+  it("redrafts from the resume after confirming, keeping the user's other fields", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me, templates,
+      { path: `/cover-letters/${LETTER}`, body: { ...letter, recipient_name: "Dana Lee" } },
+      { path: `/resumes/${MASTER}`, body: { ...resume, content: { contact: { full_name: "Priya Raman" }, summary: "" } } },
+      { method: "POST", path: `/cover-letters/${LETTER}/regenerate`, body: { ...letter, recipient_name: "Dana Lee", body: "A fresh draft." } },
+    ]);
+    renderApp(`/cover-letters/${LETTER}`);
+    await user.click(await screen.findByRole("button", { name: /Redraft from my resume/ }));
+    expect(calls.some((c) => c.path.endsWith("/regenerate"))).toBe(false); // asks first
+    await user.click(screen.getByRole("button", { name: /^Redraft$/ }));
+    expect(await screen.findByDisplayValue("A fresh draft.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Hiring manager")).toHaveValue("Dana Lee");
+  });
 });

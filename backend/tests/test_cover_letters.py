@@ -129,6 +129,7 @@ def test_other_users_cannot_use_or_see_letters(app: FastAPI, user_client: TestCl
     assert other.get(f"{API}/{letter['id']}/export.pdf").status_code == 404
     assert other.patch(f"{API}/{letter['id']}", json={"body": "x"}).status_code == 404
     assert other.delete(f"{API}/{letter['id']}").status_code == 404
+    assert other.post(f"{API}/{letter['id']}/regenerate").status_code == 404
     import_and_confirm(other)
     assert other.post(API, json={"job_id": job["id"]}).status_code == 404
 
@@ -138,3 +139,28 @@ def test_lead_in_keeps_names_capitalised() -> None:
     assert _lead_in("AWS experience") == "AWS experience"
     assert _lead_in("Strong Python skills") == "strong Python skills"
     assert _lead_in("Solid knowledge of SQL") == "solid knowledge of SQL"
+
+
+def test_regenerate_keeps_user_fields_and_follows_the_resume(user_client: TestClient) -> None:
+    import_and_confirm(user_client)
+    job = create_job(user_client, company="Northwind").json()
+    letter = user_client.post(API, json={"job_id": job["id"]}).json()
+    user_client.patch(
+        f"{API}/{letter['id']}",
+        json={"recipient_name": "Dana Lee", "title": "Mine", "body": "My own words."},
+    )
+    again = user_client.post(f"{API}/{letter['id']}/regenerate")
+    assert again.status_code == 200, again.text
+    out = again.json()
+    assert out["recipient_name"] == "Dana Lee" and out["title"] == "Mine"
+    assert out["body"] == letter["body"] and out["evidence"] == letter["evidence"]
+
+
+def test_list_filters_by_job(user_client: TestClient) -> None:
+    import_and_confirm(user_client)
+    a = create_job(user_client, company="A").json()
+    b = create_job(user_client, company="B").json()
+    one = user_client.post(API, json={"job_id": a["id"]}).json()
+    user_client.post(API, json={"job_id": b["id"]})
+    assert [x["id"] for x in user_client.get(API, params={"job_id": a["id"]}).json()] == [one["id"]]
+    assert len(user_client.get(API).json()) == 2

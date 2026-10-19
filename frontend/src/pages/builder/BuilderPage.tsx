@@ -2,6 +2,7 @@ import { CheckCircle2, CircleAlert, Download, MinusCircle, XCircle } from "lucid
 import { useId } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { CV_SECTIONS } from "@/constants/templates";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
 import { buttonClasses, ButtonLink } from "@/components/ui/Button";
@@ -19,9 +20,6 @@ const ICON = {
   skip: <MinusCircle className="size-5 shrink-0 text-outline" aria-hidden />,
 };
 const STATUS_TEXT = { pass: "Passed", warn: "Could improve", fail: "Problem", skip: "Not checked" };
-
-/** Sections a CV usually adds on top of a resume; stored as extra sections on the resume. */
-const CV_SECTIONS = ["Publications", "Languages", "Conferences and talks", "Awards", "Teaching", "References"];
 
 const COPY = {
   resume: {

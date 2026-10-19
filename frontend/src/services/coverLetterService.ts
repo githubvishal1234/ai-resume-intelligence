@@ -9,6 +9,8 @@ export type LetterPatch = Partial<Pick<Letter, "title" | "recipient_name" | "com
 
 export const coverLetterService = {
   list: () => api.get<LetterSummary[]>("/cover-letters"),
+  forJob: (jobId: string) => api.get<LetterSummary[]>(`/cover-letters?job_id=${encodeURIComponent(jobId)}`),
+  regenerate: (id: string) => api.post<Letter>(`/cover-letters/${id}/regenerate`),
   get: (id: string) => api.get<Letter>(`/cover-letters/${id}`),
   create: (body: { resume_id?: string | null; job_id?: string | null; template?: string }) =>
     api.post<Letter>("/cover-letters", body),

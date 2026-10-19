@@ -1,4 +1,4 @@
-import { Download, FileSignature, Plus, Quote, Save, Trash2 } from "lucide-react";
+import { Download, FileSignature, Plus, Quote, RefreshCw, Save, Trash2 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
-import { useCreateLetter, useDeleteLetter, useLetter, useLetterList, useUpdateLetter } from "@/hooks/useCoverLetters";
+import { useCreateLetter, useDeleteLetter, useLetter, useLetterList, useRegenerateLetter, useUpdateLetter } from "@/hooks/useCoverLetters";
 import { useJobList } from "@/hooks/useJobs";
 import { useResume, useResumeList } from "@/hooks/useResumes";
 import { coverLetterService, type Letter } from "@/services/coverLetterService";
@@ -154,6 +154,8 @@ function Editor({ letter }: { letter: Letter }) {
   });
   const save = useUpdateLetter(letter.id);
   const remove = useDeleteLetter();
+  const regenerate = useRegenerateLetter(letter.id);
+  const [redrafting, setRedrafting] = useState(false);
   const navigate = useNavigate();
   const templates = useTemplates();
   const resume = useResume(letter.resume_id ?? "");
@@ -222,6 +224,40 @@ function Editor({ letter }: { letter: Letter }) {
                   <Textarea id={id} aria-describedby={describedBy} rows={16} maxLength={10000} value={draft.body} onChange={(e) => set("body")(e.target.value)} />
                 )}
               </Field>
+            </div>
+            <div className="mt-4">
+              {redrafting ? (
+                <Notice
+                  tone="warning"
+                  title="Replace the letter text with a fresh draft?"
+                  action={
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="primary"
+                        loading={regenerate.isPending}
+                        onClick={() =>
+                          regenerate.mutate(undefined, {
+                            onSuccess: (l) => {
+                              setDraft((d) => ({ ...d, body: l.body }));
+                              setRedrafting(false);
+                            },
+                          })
+                        }
+                      >
+                        Redraft
+                      </Button>
+                      <Button variant="secondary" onClick={() => setRedrafting(false)}>Keep my text</Button>
+                    </div>
+                  }
+                >
+                  The draft is rebuilt from your resume as it is now. Your title, hiring manager, company and style stay.
+                </Notice>
+              ) : (
+                <Button variant="ghost" icon={<RefreshCw className="size-4" aria-hidden />} onClick={() => setRedrafting(true)}>
+                  Redraft from my resume
+                </Button>
+              )}
+              {regenerate.isError ? <p role="alert" className="mt-2 text-body-sm text-critical-ink"><ApiErrorText error={regenerate.error} /></p> : null}
             </div>
           </Card>
 

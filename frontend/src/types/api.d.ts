@@ -1330,6 +1330,23 @@ export interface paths {
         patch: operations["update_letter_api_v1_cover_letters__letter_id__patch"];
         trace?: never;
     };
+    "/api/v1/cover-letters/{letter_id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate Letter */
+        post: operations["regenerate_letter_api_v1_cover_letters__letter_id__regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cover-letters/{letter_id}/export.pdf": {
         parameters: {
             query?: never;
@@ -6000,7 +6017,9 @@ export interface operations {
     };
     list_letters_api_v1_cover_letters_get: {
         parameters: {
-            query?: never;
+            query?: {
+                job_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6014,6 +6033,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LetterSummaryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -6125,6 +6153,37 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateLetterIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_letter_api_v1_cover_letters__letter_id__regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

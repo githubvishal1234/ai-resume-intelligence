@@ -167,6 +167,26 @@ describe("Job Analyzer", () => {
     expect(facts).not.toHaveTextContent("Salary");
   });
 
+  it("lists this job's cover letters and drafts a new one", async () => {
+    const LETTER = "44444444-4444-4444-8444-444444444444";
+    const letter = {
+      id: LETTER, title: "Cover letter: Senior Backend Engineer", company: "", template: "classic",
+      resume_id: null, job_id: JOB_ID, updated_at: "2026-10-19T05:00:00Z", created_at: "2026-10-19T05:00:00Z",
+      recipient_name: "", body: "Hello.", evidence: [], method_version: "letter-v1",
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/jobs/${JOB_ID}`, body: JOB },
+      { path: `/cover-letters?job_id=${JOB_ID}`, body: [letter] },
+      { method: "POST", path: "/cover-letters", status: 201, body: { ...letter, id: "55555555-5555-4555-8555-555555555555" } },
+    ]);
+    renderApp(`/jobs/${JOB_ID}`);
+    const card = await screen.findByRole("region", { name: "Cover letters" });
+    expect(await within(card).findByRole("link", { name: /Cover letter: Senior Backend Engineer/ })).toHaveAttribute("href", `/cover-letters/${LETTER}`);
+    await userEvent.click(within(card).getByRole("button", { name: /Draft another/ }));
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ job_id: JOB_ID });
+  });
+
   it("edits details and deletes a job", async () => {
     const user = userEvent.setup();
     const { calls } = mockApi([

@@ -42,8 +42,8 @@ def _out(letter: CoverLetter) -> LetterOut:
 
 
 @router.get("", response_model=list[LetterSummaryOut])
-def list_letters(service: Service) -> list[LetterSummaryOut]:
-    return [LetterSummaryOut.model_validate(x) for x in service.list()]
+def list_letters(service: Service, job_id: uuid.UUID | None = None) -> list[LetterSummaryOut]:
+    return [LetterSummaryOut.model_validate(x) for x in service.list(job_id)]
 
 
 @router.post("", response_model=LetterOut, status_code=status.HTTP_201_CREATED)
@@ -59,6 +59,11 @@ def get_letter(letter_id: uuid.UUID, service: Service) -> LetterOut:
 @router.patch("/{letter_id}", response_model=LetterOut)
 def update_letter(letter_id: uuid.UUID, body: UpdateLetterIn, service: Service) -> LetterOut:
     return _out(service.update(letter_id, body))
+
+
+@router.post("/{letter_id}/regenerate", response_model=LetterOut)
+def regenerate_letter(letter_id: uuid.UUID, service: Service) -> LetterOut:
+    return _out(service.regenerate(letter_id))
 
 
 @router.delete("/{letter_id}", status_code=status.HTTP_204_NO_CONTENT)

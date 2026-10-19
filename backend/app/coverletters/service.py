@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.access import Actor, ensure_access
 from app.core.errors import AppError, NotFound
-from app.coverletters.draft import draft_letter
+from app.coverletters.draft import Draft, draft_letter
 from app.coverletters.schemas import CreateLetterIn, UpdateLetterIn
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import match
@@ -78,13 +78,25 @@ class CoverLetterService:
         )
         return ResumeContent.model_validate(content or {})
 
-    def list(self) -> list[CoverLetter]:
-        return list(
-            self.db.scalars(
-                select(CoverLetter)
-                .where(CoverLetter.owner_id == self.actor.user_id)
-                .order_by(CoverLetter.updated_at.desc())
-            )
+    def list(self, job_id: uuid.UUID | None = None) -> list[CoverLetter]:
+        query = select(CoverLetter).where(CoverLetter.owner_id == self.actor.user_id)
+        if job_id is not None:
+            query = query.where(CoverLetter.job_id == job_id)
+        return list(self.db.scalars(query.order_by(CoverLetter.updated_at.desc())))
+
+    def _job(self, job_id: uuid.UUID | None) -> Job | None:
+        if job_id is None:
+            return None
+        job = self.db.get(Job, job_id)
+        if job is None:
+            raise NotFound()
+        ensure_access(self.actor, job.owner_id)
+        return job
+
+    def _draft(self, content: ResumeContent, job: Job | None) -> Draft:
+        result = match(content, JobAnalysis.model_validate(job.analysis)) if job else None
+        return draft_letter(
+            content, job.title if job else None, job.company if job else None, result
         )
 
     def get(self, letter_id: uuid.UUID) -> CoverLetter:
@@ -93,15 +105,8 @@ class CoverLetterService:
     def create(self, body: CreateLetterIn) -> CoverLetter:
         template = _check_template(body.template)
         resume = self._resume(body.resume_id)
-        content = self._content(resume)
-        job: Job | None = None
-        if body.job_id is not None:
-            job = self.db.get(Job, body.job_id)
-            if job is None:
-                raise NotFound()
-            ensure_access(self.actor, job.owner_id)
-        result = match(content, JobAnalysis.model_validate(job.analysis)) if job else None
-        d = draft_letter(content, job.title if job else None, job.company if job else None, result)
+        job = self._job(body.job_id)
+        d = self._draft(self._content(resume), job)
         letter = CoverLetter(
             owner_id=self.actor.user_id,
             resume_id=resume.id,
@@ -113,6 +118,22 @@ class CoverLetterService:
             evidence=[asdict(p) for p in d.points],
         )
         self.db.add(letter)
+        self.db.commit()
+        return letter
+
+    def regenerate(self, letter_id: uuid.UUID) -> CoverLetter:
+        """Redraft the body and evidence from the resume's current version.
+
+        Title, recipient, company and style are the user's and stay. If the resume was deleted
+        the master is used; if the job was deleted the draft is a general one.
+        """
+        letter = self._owned(letter_id)
+        resume = self._resume(letter.resume_id) if letter.resume_id else self._resume(None)
+        job = self.db.get(Job, letter.job_id) if letter.job_id else None
+        d = self._draft(self._content(resume), job)
+        letter.resume_id = resume.id
+        letter.body = d.body
+        letter.evidence = [asdict(p) for p in d.points]
         self.db.commit()
         return letter
 

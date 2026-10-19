@@ -34,6 +34,9 @@ export const TEMPLATE_STYLES: TemplateStyle[] = [
   { id: "cv-professional", kind: "cv", order: ["summary", "experience", "education", "projects", "certifications", "skills"], name: "Professional CV", description: "Full-length CV in clean sans-serif; experience first, every section kept.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 18, rule: true, accent: "#0f5e63", center: false },
 ];
 
+/** Sections a CV usually adds on top of a resume; stored as extra ("other") sections. */
+export const CV_SECTIONS = ["Publications", "Languages", "Conferences and talks", "Awards", "Teaching", "References"];
+
 export const DEFAULT_TEMPLATE = "classic";
 
 /** Style for a template id; unknown ids (a template added on the server only) fall back to Classic's look. */
