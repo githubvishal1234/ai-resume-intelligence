@@ -1,8 +1,11 @@
 import {
+  BarChart3,
   BriefcaseBusiness,
   FileText,
   GitCompareArrows,
+  Hammer,
   LayoutDashboard,
+  Map as MapIcon,
   MessagesSquare,
   Network,
   PenLine,
@@ -45,6 +48,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, to: "/jobs", phase: 3, phaseNote: "Job Intelligence" },
       { id: "job-match", label: "Job Match", icon: GitCompareArrows, to: "/match", phase: 4, phaseNote: "Matching" },
       { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, to: "/skill-gaps", phase: 4, phaseNote: "Matching" },
+      { id: "market", label: "Market Map", icon: MapIcon, to: "/market", phase: 21, phaseNote: "Career intelligence" },
     ],
   },
   {
@@ -61,6 +65,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Pipeline",
     items: [
       { id: "applications", label: "Applications", icon: BriefcaseBusiness, to: "/applications", phase: 7, phaseNote: "Applications" },
+      { id: "insights", label: "Callback Insights", icon: BarChart3, to: "/insights", phase: 21, phaseNote: "Career intelligence" },
+      { id: "proofs", label: "Proof Board", icon: Hammer, to: "/proofs", phase: 21, phaseNote: "Career intelligence" },
     ],
   },
   {

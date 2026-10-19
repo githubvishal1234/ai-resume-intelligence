@@ -57,6 +57,7 @@ export function BuilderPage() {
     <div>
       <PageHeader
         title="Resume Builder"
+        photo="builder"
         description="Pick a resume and an ATS-safe template, check how screening software reads it, and download the PDF."
       />
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">

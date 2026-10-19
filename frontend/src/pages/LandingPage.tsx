@@ -20,6 +20,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { ScoreRing } from "@/components/ui/Score";
 import { PRODUCT_NAME } from "@/constants/branding";
 import { PHOTOS, photoSrcSet } from "@/constants/images";
+import { OnlyHereSection } from "@/pages/landing/OnlyHereSection";
 import { TEMPLATE_STYLES } from "@/constants/templates";
 import { motionAllowed } from "@/hooks/useCountUp";
 import { useSession } from "@/hooks/useSession";
@@ -107,7 +108,7 @@ export function LandingPage() {
       </a>
       <p className="bg-ink-deep px-4 py-2.5 text-center text-body-md text-on-ink">
         <span className="mr-2 rounded-full bg-accent px-2 py-0.5 text-label-sm font-bold text-on-accent">NEW</span>
-        Six ATS-safe templates and a guided seven-step builder.
+        New: Callback Insights, Market Map, Proof Board and the Recruiter 6-second scan.
       </p>
       <PublicHeader signedIn={signedIn} />
 
@@ -357,6 +358,8 @@ export function LandingPage() {
         </section>
 
         {/* Templates */}
+        <OnlyHereSection eyebrow={eyebrow} h2={h2} />
+
         <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 bg-surface-container-low py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">

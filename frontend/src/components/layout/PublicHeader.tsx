@@ -16,6 +16,7 @@ export function PublicHeader({ signedIn }: { signedIn: boolean }) {
         <nav aria-label="Site" className="ml-6 hidden items-center gap-6 text-body-md text-on-surface-variant lg:flex">
           <a href="/welcome#how" className={section}>How it works</a>
           <a href="/welcome#features" className={section}>Features</a>
+          <a href="/welcome#only-here" className={section}>Only here</a>
           <a href="/welcome#templates" className={section}>Templates</a>
           <NavLink to="/pricing" className={({ isActive }) => cn(section, isActive && "font-medium text-primary")}>Pricing</NavLink>
           <a href="/welcome#faq" className={section}>FAQ</a>

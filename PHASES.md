@@ -36,6 +36,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 18 | Pricing page & Pro waitlist | ✅ |
 | 19 | Vivid visual redesign | ✅ |
 | 20 | Billing with Razorpay (test mode) | 🚧 steps 1–9 built and tested; step 10 needs test keys |
+| 21 | Career intelligence (Callback Insights, Market Map, Proof Board, 6-second scan) | ✅ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -860,6 +861,36 @@ unsafe deserialization; the Phase 9 auth, CSRF and upload controls still hold).
 
 ---
 
+## Phase 21: Career intelligence
+
+Four features built on the user's own data and explainable rules (no AI, no key needed),
+plus a design refresh with six new Unsplash photos.
+
+- [x] **Callback Insights** (`/insights`, `GET /insights/outcomes`, `outcomes-v1`): sent applications
+      grouped by the exact resume version recorded and by match-score band, with response,
+      interview and offer rates. Status history counts (an interview later rejected is still an
+      interview). Groups under 5 are shown but not ranked; a headline compares the best and worst
+      comparable versions, labelled as correlation.
+- [x] **Market Map** (`/market`, `GET /insights/market`, `market-v1`): skill demand across all saved
+      job analyses, weighted required 3 / preferred 2 / nice 1, checked against the master resume
+      with the matching evidence rules; weighted coverage and the single biggest gap.
+- [x] **Proof Board** (`/proofs`, `/proofs` CRUD + `/proofs/suggestions`, `proof-v1`, migration
+      `proof_tasks`): one plan per skill (project, certification or write-up, chosen by skill
+      category; never names a specific certificate). Evidence status is recomputed from the master
+      resume on every read, so "done" never claims a gap is closed until the resume shows it.
+      "Plan a proof" buttons on the Skill Gap page and the Market Map.
+- [x] **Recruiter 6-second scan** (resume page, `scan-v1`, in the browser): eight checks on what a
+      first glance lands on, with an F-pattern heat overlay; labelled as a heuristic.
+- [x] Design: "Only here" section on the product page, new banners for Insights, Market Map, Proof
+      Board, Job Match, Resume Analysis and Builder.
+
+**Verified:** 17 new backend tests (attribution rules, market weighting, proof evidence, owner
+isolation; the security sweep covers the new routes), 8 new frontend tests, ruff, mypy, eslint,
+API types; axe WCAG 2.2 AA on the new screens in light and dark; no overflow at 375px; Playwright
+journey passes.
+
+---
+
 ## Progress log
 
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
@@ -897,3 +928,4 @@ unsafe deserialization; the Phase 9 auth, CSRF and upload controls still hold).
 - 2026-10-19: Mobile and responsive pass: all 28 routes (with real data) checked at 320, 375 and
   768px; no horizontal overflow at any width. Back links, disclosure toggles and small text links
   raised to the 24px minimum tap target (WCAG 2.5.8).
+- 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.

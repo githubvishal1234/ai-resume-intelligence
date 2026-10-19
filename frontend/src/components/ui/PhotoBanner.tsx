@@ -2,6 +2,10 @@ import type { ReactNode } from "react";
 import { PHOTOS_SMALL, type PhotoName } from "@/constants/images";
 import { cn } from "@/lib/cn";
 
+/** Wrap buttons on a dark band: primary turns white, secondary turns outlined, in both themes. */
+export const ON_DARK_ACTIONS =
+  "flex flex-wrap gap-2 [&>.bg-primary]:bg-on-ink [&>.bg-primary]:text-ink-deep [&>.bg-primary]:shadow-level-2 [&>.bg-primary:hover]:bg-on-ink-muted [&>.bg-surface-container-lowest]:border-on-ink/50 [&>.bg-surface-container-lowest]:bg-transparent [&>.bg-surface-container-lowest]:text-on-ink [&>.bg-surface-container-lowest:hover]:bg-on-ink/10";
+
 /**
  * A page title on the brand band, with the section's photo framed on the right from md up.
  * The band and its text use fixed tokens (`band`, `on-ink`), so contrast holds in light and dark
@@ -37,7 +41,7 @@ export function PhotoBanner({
           {description ? <p className="mt-2 text-body-lg text-on-ink-muted">{description}</p> : null}
           {actions ? (
             // On the band, primary actions turn white and secondary ones outlined, in both themes.
-            <div className="mt-5 flex flex-wrap gap-2 [&>.bg-primary]:bg-on-ink [&>.bg-primary]:text-ink-deep [&>.bg-primary]:shadow-level-2 [&>.bg-primary:hover]:bg-on-ink-muted [&>.bg-surface-container-lowest]:border-on-ink/50 [&>.bg-surface-container-lowest]:bg-transparent [&>.bg-surface-container-lowest]:text-on-ink [&>.bg-surface-container-lowest:hover]:bg-on-ink/10">
+            <div className={cn("mt-5", ON_DARK_ACTIONS)}>
               {actions}
             </div>
           ) : null}
