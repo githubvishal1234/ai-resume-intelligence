@@ -1,12 +1,15 @@
 import { PRODUCT_NAME } from "@/constants/branding";
 
+/**
+ * "Verified line": two resume lines, and the last line turns into a tick.
+ * Keep in sync with public/favicon.svg.
+ */
 export function BrandIcon({ className = "size-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
       <rect width="32" height="32" rx="8" fill="#2a4bf2" />
-      <path d="M9 11h14M9 16h9M9 21h6" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-      <circle cx="23" cy="21" r="4.2" fill="#ffc542" />
-      <path d="m21.2 21 1.3 1.3 2.3-2.5" stroke="#0e1530" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 10h16M8 15.5h11" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M8 21h5l3 3.2 8-9" stroke="#ffc542" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
