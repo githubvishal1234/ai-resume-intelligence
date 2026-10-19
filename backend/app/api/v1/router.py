@@ -7,6 +7,7 @@ from app.applications.router import notifications_router
 from app.applications.router import router as applications_router
 from app.auth.router import router as auth_router
 from app.billing.router import router as billing_router
+from app.coverletters.router import router as coverletters_router
 from app.insights.router import router as insights_router
 from app.interview.router import router as interview_router
 from app.jobs.router import router as jobs_router
@@ -33,3 +34,4 @@ api_router.include_router(ai_router)
 api_router.include_router(billing_router)
 api_router.include_router(insights_router)
 api_router.include_router(proofs_router)
+api_router.include_router(coverletters_router)

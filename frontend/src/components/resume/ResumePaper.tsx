@@ -1,5 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
-import { templateStyle } from "@/constants/templates";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { templateStyle, type SectionKey } from "@/constants/templates";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
 
@@ -69,6 +69,81 @@ export function ResumePaper({ doc, template, className, label }: { doc: ResumeDo
     else groups.push({ category: s.category, names: [s.name] });
   }
 
+  const sections: Record<SectionKey, ReactNode> = {
+    summary: (
+      <>
+        {doc.summary ? (
+          <>
+            <SectionHeading style={headingStyle}>{HEADINGS.summary}</SectionHeading>
+            <p>{doc.summary}</p>
+          </>
+        ) : null}
+      </>
+    ),
+    experience: (
+      <>
+        {doc.experience.length ? <SectionHeading style={headingStyle}>{HEADINGS.experience}</SectionHeading> : null}
+        {doc.experience.map((e) => (
+          <div key={e.id} style={gap}>
+            <p style={{ fontWeight: 700 }}>{[e.title, e.company].filter(Boolean).join(" — ") || "Role"}</p>
+            {dates(e.start_date, e.end_date, e.current) || e.location ? (
+              <p style={meta}>{[dates(e.start_date, e.end_date, e.current), e.location].filter(Boolean).join(" | ")}</p>
+            ) : null}
+            <Bullets items={e.bullets} />
+          </div>
+        ))}
+      </>
+    ),
+    education: (
+      <>
+        {doc.education.length ? <SectionHeading style={headingStyle}>{HEADINGS.education}</SectionHeading> : null}
+        {doc.education.map((d) => {
+          const degree = [d.degree, d.field_of_study].filter(Boolean).join(" in ");
+          const line = [degree ? d.institution : "", dates(d.start_date, d.end_date)].filter(Boolean).join(" | ");
+          return (
+            <div key={d.id} style={{ marginBottom: pt(3) }}>
+              <p style={{ fontWeight: 700 }}>{degree || d.institution}</p>
+              {line ? <p style={meta}>{line}</p> : null}
+              <Bullets items={d.details} />
+            </div>
+          );
+        })}
+      </>
+    ),
+    skills: (
+      <>
+        {groups.length ? <SectionHeading style={headingStyle}>{HEADINGS.skills}</SectionHeading> : null}
+        {groups.map((g) => (
+          <p key={g.category || "_"}>
+            {g.category ? `${g.category}: ` : ""}
+            {g.names.join(", ")}
+          </p>
+        ))}
+      </>
+    ),
+    projects: (
+      <>
+        {doc.projects.length ? <SectionHeading style={headingStyle}>{HEADINGS.projects}</SectionHeading> : null}
+        {doc.projects.map((p) => (
+          <div key={p.id} style={{ marginBottom: pt(3) }}>
+            <p style={{ fontWeight: 700 }}>{p.name || "Project"}</p>
+            {p.technologies.length ? <p style={meta}>{p.technologies.join(", ")}</p> : null}
+            {p.description ? <p>{p.description}</p> : null}
+            <Bullets items={p.bullets} />
+          </div>
+        ))}
+      </>
+    ),
+    certifications: (
+      <>
+        {doc.certifications.length ? <SectionHeading style={headingStyle}>{HEADINGS.certifications}</SectionHeading> : null}
+        {doc.certifications.map((x) => (
+          <p key={x.id}>{[x.name, x.issuer, x.date].filter(Boolean).join(" — ")}</p>
+        ))}
+      </>
+    ),
+  };
+
   return (
     <div className={cn("@container w-full", className)}>
       <div
@@ -82,58 +157,8 @@ export function ResumePaper({ doc, template, className, label }: { doc: ResumeDo
         ) : null}
         {contact ? <p style={{ marginBottom: pt(4), textAlign: t.center ? "center" : "left", overflowWrap: "anywhere" }}>{contact}</p> : null}
 
-        {doc.summary ? (
-          <>
-            <SectionHeading style={headingStyle}>{HEADINGS.summary}</SectionHeading>
-            <p>{doc.summary}</p>
-          </>
-        ) : null}
-
-        {doc.experience.length ? <SectionHeading style={headingStyle}>{HEADINGS.experience}</SectionHeading> : null}
-        {doc.experience.map((e) => (
-          <div key={e.id} style={gap}>
-            <p style={{ fontWeight: 700 }}>{[e.title, e.company].filter(Boolean).join(" — ") || "Role"}</p>
-            {dates(e.start_date, e.end_date, e.current) || e.location ? (
-              <p style={meta}>{[dates(e.start_date, e.end_date, e.current), e.location].filter(Boolean).join(" | ")}</p>
-            ) : null}
-            <Bullets items={e.bullets} />
-          </div>
-        ))}
-
-        {doc.education.length ? <SectionHeading style={headingStyle}>{HEADINGS.education}</SectionHeading> : null}
-        {doc.education.map((d) => {
-          const degree = [d.degree, d.field_of_study].filter(Boolean).join(" in ");
-          const line = [degree ? d.institution : "", dates(d.start_date, d.end_date)].filter(Boolean).join(" | ");
-          return (
-            <div key={d.id} style={{ marginBottom: pt(3) }}>
-              <p style={{ fontWeight: 700 }}>{degree || d.institution}</p>
-              {line ? <p style={meta}>{line}</p> : null}
-              <Bullets items={d.details} />
-            </div>
-          );
-        })}
-
-        {groups.length ? <SectionHeading style={headingStyle}>{HEADINGS.skills}</SectionHeading> : null}
-        {groups.map((g) => (
-          <p key={g.category || "_"}>
-            {g.category ? `${g.category}: ` : ""}
-            {g.names.join(", ")}
-          </p>
-        ))}
-
-        {doc.projects.length ? <SectionHeading style={headingStyle}>{HEADINGS.projects}</SectionHeading> : null}
-        {doc.projects.map((p) => (
-          <div key={p.id} style={{ marginBottom: pt(3) }}>
-            <p style={{ fontWeight: 700 }}>{p.name || "Project"}</p>
-            {p.technologies.length ? <p style={meta}>{p.technologies.join(", ")}</p> : null}
-            {p.description ? <p>{p.description}</p> : null}
-            <Bullets items={p.bullets} />
-          </div>
-        ))}
-
-        {doc.certifications.length ? <SectionHeading style={headingStyle}>{HEADINGS.certifications}</SectionHeading> : null}
-        {doc.certifications.map((x) => (
-          <p key={x.id}>{[x.name, x.issuer, x.date].filter(Boolean).join(" — ")}</p>
+        {t.order.map((key) => (
+          <Fragment key={key}>{sections[key]}</Fragment>
         ))}
 
         {doc.other.map((o) => (

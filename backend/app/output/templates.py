@@ -8,6 +8,12 @@ systems can read it in order.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
+
+# Reading order of the standard sections. "Other" sections always come last.
+RESUME_ORDER = ("summary", "experience", "education", "skills", "projects", "certifications")
+# A CV leads with education and keeps everything; certifications and projects before skills.
+CV_ORDER = ("summary", "education", "experience", "projects", "certifications", "skills")
 
 
 @dataclass(frozen=True)
@@ -24,6 +30,8 @@ class Template:
     heading_rule: bool
     accent: str  # hex colour for headings; body text is always black
     center_header: bool = False  # name and contact line centred (still one column)
+    kind: Literal["resume", "cv"] = "resume"
+    order: tuple[str, ...] = RESUME_ORDER
 
 
 # The frontend preview mirrors these values in frontend/src/constants/templates.ts.
@@ -107,6 +115,37 @@ TEMPLATES: dict[str, Template] = {
         heading_rule=False,
         accent="#374151",
         center_header=True,
+    ),
+    "cv-academic": Template(
+        id="cv-academic",
+        name="Academic CV",
+        description="Serif CV that leads with education, then research and teaching roles.",
+        font="DejaVuSerif",
+        font_bold="DejaVuSerif-Bold",
+        body_size=10.5,
+        name_size=21,
+        heading_size=12,
+        margin_mm=20,
+        heading_rule=True,
+        accent="#7a1f3d",
+        center_header=True,
+        kind="cv",
+        order=CV_ORDER,
+    ),
+    "cv-professional": Template(
+        id="cv-professional",
+        name="Professional CV",
+        description="Full-length CV in clean sans-serif; experience first, every section kept.",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
+        body_size=10,
+        name_size=22,
+        heading_size=11.5,
+        margin_mm=18,
+        heading_rule=True,
+        accent="#0f5e63",
+        kind="cv",
+        order=("summary", "experience", "education", "projects", "certifications", "skills"),
     ),
 }
 

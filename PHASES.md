@@ -37,6 +37,7 @@ Status legend: ✅ Done · 🚧 In progress · ⏳ Not started · ⛔ Blocked on
 | 19 | Vivid visual redesign | ✅ |
 | 20 | Billing with Razorpay (test mode) | 🚧 steps 1–9 built and tested; step 10 needs test keys |
 | 21 | Career intelligence (Callback Insights, Market Map, Proof Board, 6-second scan) | ✅ |
+| 22 | Builders: CV Builder, Cover Letter Builder, Builders menu | ✅ |
 
 Phases 10–13 were added on 2026-10-13, after the LLM provider (D-03) was chosen. They build
 the AI parts that earlier phases left waiting on that decision. Each one keeps the
@@ -891,6 +892,29 @@ journey passes.
 
 ---
 
+## Phase 22: Builders
+
+- [x] **CV Builder** (`/cv-builder`): two CV templates, `cv-academic` (serif, education first) and
+      `cv-professional` (experience first, every section kept). Templates now carry a `kind` and a
+      section `order`, used by the PDF renderer, the ATS reading-order check and the browser preview,
+      so each stays in sync. A "CV sections" card shows which of Publications, Languages,
+      Conferences and talks, Awards, Teaching and References the resume already has.
+- [x] **Cover Letter Builder** (`/cover-letters`, `/cover-letters` CRUD + `export.pdf`, `letter-v1`,
+      migration `cover_letters`): a draft from a resume version and an optional saved job. The
+      opening reuses the resume's own summary; each body paragraph pairs a requirement the matcher
+      found strong evidence for with the full resume bullet behind it (never dates or titles).
+      Edited in place with a live A4 preview and an "Evidence in this draft" panel; the PDF uses the
+      chosen template's fonts and colour so it matches the resume.
+- [x] **Builders menu**: a "Builders" disclosure in the public header (desktop and phone) with
+      three cards and live page previews; a Builders group in the app navigation.
+
+**Verified:** 10 new backend tests (CV order and ATS order, draft quotes only real bullets,
+capitalisation, letter PDF text, CRUD, owner isolation), 3 new frontend tests; ruff, mypy, eslint,
+API types; axe WCAG 2.2 AA on the new screens in light and dark; no overflow at 375px; Playwright
+journey passes.
+
+---
+
 ## Progress log
 
 - 2026-10-12: PHASES.md created. Phase 1 completed and verified (see above). Phase 2 started.
@@ -929,3 +953,4 @@ journey passes.
   768px; no horizontal overflow at any width. Back links, disclosure toggles and small text links
   raised to the 24px minimum tap target (WCAG 2.5.8).
 - 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.
+- 2026-10-19: Phase 22 (CV Builder, Cover Letter Builder, Builders menu) built and verified.

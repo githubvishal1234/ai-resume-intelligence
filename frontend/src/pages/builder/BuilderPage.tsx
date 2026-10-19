@@ -20,7 +20,27 @@ const ICON = {
 };
 const STATUS_TEXT = { pass: "Passed", warn: "Could improve", fail: "Problem", skip: "Not checked" };
 
-export function BuilderPage() {
+/** Sections a CV usually adds on top of a resume; stored as extra sections on the resume. */
+const CV_SECTIONS = ["Publications", "Languages", "Conferences and talks", "Awards", "Teaching", "References"];
+
+const COPY = {
+  resume: {
+    title: "Resume Builder",
+    description: "Pick a resume and an ATS-safe template, check how screening software reads it, and download the PDF.",
+    photo: "builder" as const,
+  },
+  cv: {
+    title: "CV Builder",
+    description: "A full-length CV: education first for academic roles, every section kept, still readable by screening software.",
+    photo: "analysis" as const,
+  },
+};
+
+export function CvBuilderPage() {
+  return <BuilderPage kind="cv" />;
+}
+
+export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
   const resumes = useResumeList();
   const templates = useQuery({ queryKey: ["output", "templates"], queryFn: outputService.templates, staleTime: Infinity });
   const [params, setParams] = useSearchParams();
@@ -34,7 +54,7 @@ export function BuilderPage() {
   if (list.length === 0) {
     return (
       <div>
-        <PageHeader title="Resume Builder" />
+        <PageHeader title={COPY[kind].title} />
         <EmptyState
           title="No resume yet"
           description="Upload or create your master resume, then download it as an ATS-friendly PDF."
@@ -44,7 +64,8 @@ export function BuilderPage() {
     );
   }
   const resumeId = list.some((r) => r.id === params.get("resume")) ? (params.get("resume") as string) : list[0]!.id;
-  const template = templates.data.some((t) => t.id === params.get("template")) ? (params.get("template") as string) : templates.data[0]!.id;
+  const offered = templates.data.filter((t) => (t.kind ?? "resume") === kind);
+  const template = offered.some((t) => t.id === params.get("template")) ? (params.get("template") as string) : offered[0]!.id;
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     next.set(key, value);
@@ -55,11 +76,7 @@ export function BuilderPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Resume Builder"
-        photo="builder"
-        description="Pick a resume and an ATS-safe template, check how screening software reads it, and download the PDF."
-      />
+      <PageHeader title={COPY[kind].title} photo={COPY[kind].photo} description={COPY[kind].description} />
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         <div className="space-y-6">
           <Card aria-labelledby={`${id}-opts`}>
@@ -81,7 +98,7 @@ export function BuilderPage() {
               </select>
             </div>
             <p className="mt-4 text-label-md text-on-surface">
-              Template: <span className="text-primary">{templates.data.find((t) => t.id === template)?.name ?? template}</span>
+              Template: <span className="text-primary">{offered.find((t) => t.id === template)?.name ?? template}</span>
             </p>
             <a
               href={outputService.pdfUrl(resumeId, template)}
@@ -98,8 +115,37 @@ export function BuilderPage() {
         </div>
         <AtsPanel resumeId={resumeId} template={template} />
       </div>
-      <TemplateGallery resumeId={resumeId} templates={templates.data} value={template} onChange={(t) => update("template", t)} />
+      {kind === "cv" ? <CvSections resumeId={resumeId} /> : null}
+      <TemplateGallery resumeId={resumeId} templates={offered} value={template} onChange={(t) => update("template", t)} />
     </div>
+  );
+}
+
+function CvSections({ resumeId }: { resumeId: string }) {
+  const resume = useResume(resumeId);
+  if (!resume.data) return null;
+  const have = new Set(resume.data.content.other.map((o) => o.heading.trim().toLowerCase()));
+  return (
+    <Card className="mt-6" aria-labelledby="cv-sections">
+      <CardHeader
+        id="cv-sections"
+        title="CV sections"
+        description="A CV usually adds these to a resume. Add the ones that apply as extra sections in the editor; they print after the standard sections."
+      />
+      <ul className="flex flex-wrap gap-2">
+        {CV_SECTIONS.map((name) => {
+          const done = have.has(name.toLowerCase());
+          return (
+            <li key={name} className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3.5 text-label-md ${done ? "border-success-border bg-success-surface text-success-ink" : "border-hairline-strong text-on-surface-variant"}`}>
+              {done ? <CheckCircle2 className="size-4" aria-hidden /> : <MinusCircle className="size-4" aria-hidden />}
+              {name}
+              <span className="sr-only">{done ? " (added)" : " (not added)"}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <ButtonLink to={`/resumes/${resumeId}/edit`} className="mt-4">Add sections in the editor</ButtonLink>
+    </Card>
   );
 }
 

@@ -24,7 +24,7 @@ export function useMasterSummary() {
 }
 
 export function useResume(id: string) {
-  return useQuery({ queryKey: resumeKeys.detail(id), queryFn: () => resumeService.get(id) });
+  return useQuery({ queryKey: resumeKeys.detail(id), queryFn: () => resumeService.get(id), enabled: id !== "" });
 }
 
 export function useVersions(id: string) {

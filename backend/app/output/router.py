@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Response
 from pydantic import BaseModel
@@ -33,6 +33,7 @@ class TemplateOut(BaseModel):
     id: str
     name: str
     description: str
+    kind: Literal["resume", "cv"] = "resume"
 
 
 def _template(template_id: str) -> Template:
@@ -66,7 +67,8 @@ TemplateQuery = Annotated[str, Query(max_length=40)]
 def list_templates(auth: CurrentAuth) -> list[TemplateOut]:
     del auth  # signed-in users only, like every other app route
     return [
-        TemplateOut(id=t.id, name=t.name, description=t.description) for t in TEMPLATES.values()
+        TemplateOut(id=t.id, name=t.name, description=t.description, kind=t.kind)
+        for t in TEMPLATES.values()
     ]
 
 

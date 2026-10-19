@@ -57,8 +57,10 @@ export function QuickBuilderPage() {
   if (masters.isError) return <ErrorState error={masters.error} onRetry={() => void masters.refetch()} />;
   if (templates.isError) return <ErrorState error={templates.error} onRetry={() => void templates.refetch()} />;
   const userId = session.data?.user.id ?? "anonymous";
-  if (masters.master) return <FromMaster id={masters.master.id} templates={templates.data} userId={userId} />;
-  return <Builder templates={templates.data} userId={userId} />;
+  // CV templates have their own builder; the quick builder makes resumes.
+  const resumeTemplates = templates.data.filter((t) => (t.kind ?? "resume") === "resume");
+  if (masters.master) return <FromMaster id={masters.master.id} templates={resumeTemplates} userId={userId} />;
+  return <Builder templates={resumeTemplates} userId={userId} />;
 }
 
 function FromMaster({ id, templates, userId }: { id: string; templates: TemplateOption[]; userId: string }) {

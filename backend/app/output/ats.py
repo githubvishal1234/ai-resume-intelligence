@@ -102,18 +102,15 @@ def ats_check(
     )
 
     # 2. Section headings come out in reading order.
-    expected = [
-        HEADINGS[k]
-        for k, present in (
-            ("summary", bool(c.summary)),
-            ("experience", bool(c.experience)),
-            ("education", bool(c.education)),
-            ("skills", bool(c.skills)),
-            ("projects", bool(c.projects)),
-            ("certifications", bool(c.certifications)),
-        )
-        if present
-    ]
+    has_section = {
+        "summary": bool(c.summary),
+        "experience": bool(c.experience),
+        "education": bool(c.education),
+        "skills": bool(c.skills),
+        "projects": bool(c.projects),
+        "certifications": bool(c.certifications),
+    }
+    expected = [HEADINGS[k] for k in TEMPLATES[template_id].order if has_section[k]]
     lines = [ln.strip().lower() for ln in extracted.splitlines()]
     positions = [lines.index(h.lower()) if h.lower() in lines else -1 for h in expected]
     in_order = all(p >= 0 for p in positions) and positions == sorted(positions)

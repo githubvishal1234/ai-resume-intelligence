@@ -1,8 +1,10 @@
 import {
   BarChart3,
   BriefcaseBusiness,
+  FileSignature,
   FileText,
   GitCompareArrows,
+  GraduationCap,
   Hammer,
   LayoutDashboard,
   Map as MapIcon,
@@ -56,8 +58,16 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "AI Automation",
     items: [
       { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
-      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
       { id: "interview", label: "Interview Prep", icon: MessagesSquare, to: "/interview", phase: 8, phaseNote: "Interview" },
+    ],
+  },
+  {
+    id: "builders",
+    label: "Builders",
+    items: [
+      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
+      { id: "cv-builder", label: "CV Builder", icon: GraduationCap, to: "/cv-builder", phase: 22, phaseNote: "Builders" },
+      { id: "cover-letters", label: "Cover Letters", icon: FileSignature, to: "/cover-letters", phase: 22, phaseNote: "Builders" },
     ],
   },
   {

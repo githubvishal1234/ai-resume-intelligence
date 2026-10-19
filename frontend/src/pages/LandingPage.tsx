@@ -370,7 +370,7 @@ export function LandingPage() {
               <ButtonLink to={start} variant="primary">Use a template <ArrowRight className="size-4" aria-hidden /></ButtonLink>
             </div>
             <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATE_STYLES.map((t) => (
+              {TEMPLATE_STYLES.filter((t) => t.kind === "resume").map((t) => (
                 <li key={t.id} className="lift rounded-card bg-surface-container-lowest p-4 shadow-level-1">
                   <div className="rounded-control bg-surface p-4">
                     <ResumePaper doc={SAMPLE_RESUME} template={t.id} label={`Sample resume in the ${t.name} template`} />
