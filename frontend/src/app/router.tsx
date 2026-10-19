@@ -2,17 +2,15 @@ import type { ComponentType } from "react";
 import { createBrowserRouter, createMemoryRouter, type RouteObject } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/pages/auth/AuthLayout";
-import { LoginPage } from "@/pages/auth/LoginPage";
-import { ForgotPasswordPage, ResetPasswordPage } from "@/pages/auth/PasswordResetPages";
-import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PageLoading } from "@/components/ui/States";
 import { RedirectIfAuthed, RequireAuth } from "./RequireAuth";
 
 /**
- * Route-level code splitting: each screen loads on first visit. The shell, sign-in pages,
- * dashboard and not-found page stay in the main bundle so the first paint needs one request.
+ * Route-level code splitting: each screen loads on first visit. The shell, dashboard and
+ * not-found page stay in the main bundle. The sign-in pages are split out too, so their form
+ * libraries (zod, react-hook-form) stay off the landing page and the dashboard.
  */
 function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
   return { lazy: async () => ({ Component: (await load())[name] }) };
@@ -37,9 +35,9 @@ export const routes: RouteObject[] = [
       {
         element: <AuthLayout />,
         children: [
-          { path: "/login", element: <LoginPage /> },
-          { path: "/register", element: <RegisterPage /> },
-          { path: "/forgot-password", element: <ForgotPasswordPage /> },
+          { path: "/login", ...page(() => import("@/pages/auth/LoginPage"), "LoginPage") },
+          { path: "/register", ...page(() => import("@/pages/auth/RegisterPage"), "RegisterPage") },
+          { path: "/forgot-password", ...page(() => import("@/pages/auth/PasswordResetPages"), "ForgotPasswordPage") },
         ],
       },
     ],
@@ -48,7 +46,7 @@ export const routes: RouteObject[] = [
     // A reset link works whether or not this browser is signed in.
     HydrateFallback: AppLoading,
     element: <AuthLayout />,
-    children: [{ path: "/reset-password", element: <ResetPasswordPage /> }],
+    children: [{ path: "/reset-password", ...page(() => import("@/pages/auth/PasswordResetPages"), "ResetPasswordPage") }],
   },
   {
     HydrateFallback: AppLoading,
