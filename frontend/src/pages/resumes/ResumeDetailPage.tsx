@@ -2,6 +2,7 @@ import { Download, History, PenLine, ScanSearch, Trash2, UploadCloud } from "luc
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
+import { SixSecondScan } from "@/components/resume/SixSecondScan";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
@@ -47,6 +48,8 @@ export function ResumeDetailPage() {
       <Card className="mx-auto max-w-3xl">
         <ResumeView doc={r.content} />
       </Card>
+
+      <SixSecondScan doc={r.content} editTo={`/resumes/${r.id}/edit`} />
 
       <section className="mx-auto mt-8 max-w-3xl" aria-labelledby="danger-title">
         <h2 id="danger-title" className="mb-2 text-label-md text-on-surface">Delete</h2>

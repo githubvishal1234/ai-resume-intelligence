@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
+from datetime import date
 from xml.sax.saxutils import escape
 
 from reportlab.lib.colors import HexColor
@@ -22,7 +23,7 @@ from reportlab.platypus.flowables import Flowable
 
 from app.output import fonts
 from app.output.templates import HEADINGS, Template
-from app.resumes.content import ResumeContent
+from app.resumes.content import Contact, ResumeContent
 
 # Invisible characters that are dropped rather than reported.
 _INVISIBLE = {"\u200b", "\u200c", "\u200d", "\ufeff"}
@@ -126,10 +127,14 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
     def bullets(lines: list[str]) -> list[Flowable]:
         return [Paragraph(escape(_safe(b)), bullet, bulletText="•") for b in lines]
 
-    if c.summary:
-        section("summary")
-        story.append(_p(c.summary, base))
-    if c.experience:
+    def summary() -> None:
+        if c.summary:
+            section("summary")
+            story.append(_p(c.summary, base))
+
+    def experience() -> None:
+        if not c.experience:
+            return
         section("experience")
         for e in c.experience:
             head = " — ".join(p for p in (e.title, e.company) if p)
@@ -143,7 +148,10 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
             block.append(Spacer(1, 4))
             story.append(KeepTogether(block[:3]))
             story.extend(block[3:])
-    if c.education:
+
+    def education() -> None:
+        if not c.education:
+            return
         section("education")
         for d in c.education:
             degree = " in ".join(p for p in (d.degree, d.field_of_study) if p)
@@ -153,9 +161,12 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
             )
             if line:
                 story.append(_p(line, meta))
-            story += bullets(d.details)
+            story.extend(bullets(d.details))
             story.append(Spacer(1, 3))
-    if c.skills:
+
+    def skills() -> None:
+        if not c.skills:
+            return
         section("skills")
         groups: dict[str, list[str]] = {}
         for s in c.skills:
@@ -163,7 +174,10 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
         for category, names in groups.items():
             label = f"{category}: " if category else ""
             story.append(_p(label + ", ".join(names), base))
-    if c.projects:
+
+    def projects() -> None:
+        if not c.projects:
+            return
         section("projects")
         for p in c.projects:
             story.append(_p(p.name or "Project", entry))
@@ -171,12 +185,26 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
                 story.append(_p(", ".join(p.technologies), meta))
             if p.description:
                 story.append(_p(p.description, base))
-            story += bullets(p.bullets)
+            story.extend(bullets(p.bullets))
             story.append(Spacer(1, 3))
-    if c.certifications:
+
+    def certifications() -> None:
+        if not c.certifications:
+            return
         section("certifications")
         for x in c.certifications:
             story.append(_p(" — ".join(v for v in (x.name, x.issuer, x.date) if v), base))
+
+    sections: dict[str, Callable[[], None]] = {
+        "summary": summary,
+        "experience": experience,
+        "education": education,
+        "skills": skills,
+        "projects": projects,
+        "certifications": certifications,
+    }
+    for key in t.order:
+        sections[key]()
     for o in c.other:
         story.append(_p(o.heading or "Additional information", heading))
         if t.heading_rule:
@@ -197,4 +225,70 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
         creator="Resume Intelligence",
     )
     doc.build(story or [_p(" ", base)])
+    return out.getvalue()
+
+
+def render_letter(
+    contact: Contact,
+    recipient: str,
+    company: str,
+    body: str,
+    template: Template,
+    when: date,
+    title: str = "Cover letter",
+) -> bytes:
+    """A one-column cover letter in the template's fonts and colour, header matching the resume."""
+    t = template
+    fonts.register(t.font)
+    fonts.register(t.font_bold)
+    _safe = _make_safe(t)
+
+    def _p(text: str, style: ParagraphStyle) -> Paragraph:
+        return Paragraph(escape(_safe(text)), style)
+
+    accent = HexColor(t.accent)
+    base = ParagraphStyle(
+        "body", fontName=t.font, fontSize=t.body_size + 0.5, leading=(t.body_size + 0.5) * 1.45
+    )
+    align = TA_CENTER if t.center_header else TA_LEFT
+    name_style = ParagraphStyle(
+        "name", parent=base, fontName=t.font_bold, fontSize=t.name_size, leading=t.name_size * 1.2,
+        textColor=accent, alignment=align,
+    )  # fmt: skip
+    small = ParagraphStyle("contact", parent=base, fontSize=t.body_size, alignment=align)
+    para = ParagraphStyle("para", parent=base, spaceAfter=t.body_size * 0.9)
+
+    story: list[Flowable] = []
+    if contact.full_name:
+        story.append(_p(contact.full_name, name_style))
+    line = " | ".join(
+        p for p in (contact.email, contact.phone, contact.location, *contact.links) if p
+    )
+    if line:
+        story.append(_p(line, small))
+    if t.heading_rule:
+        story.append(HRFlowable(width="100%", thickness=0.6, color=accent, spaceBefore=6))
+    story.append(Spacer(1, 14))
+    story.append(_p(f"{when.day} {when.strftime('%B %Y')}", para))
+    for part in (recipient, company):
+        if part.strip():
+            story.append(_p(part, base))
+    story.append(Spacer(1, 10))
+    story.append(_p(f"Dear {recipient.strip() or 'Hiring Manager'},", para))
+    for chunk in [c.strip() for c in body.split("\n\n") if c.strip()]:
+        story.append(_p(" ".join(chunk.split()), para))
+    story.append(_p("Sincerely,", base))
+    story.append(Spacer(1, 4))
+    story.append(
+        _p(contact.full_name or " ", ParagraphStyle("sign", parent=base, fontName=t.font_bold))
+    )
+
+    out = io.BytesIO()
+    margin = (t.margin_mm + 4) * mm
+    doc = SimpleDocTemplate(
+        out, pagesize=A4, leftMargin=margin, rightMargin=margin, topMargin=margin,
+        bottomMargin=margin, title=_safe(title), author=_safe(contact.full_name),
+        creator="Resume Intelligence",
+    )  # fmt: skip
+    doc.build(story)
     return out.getvalue()

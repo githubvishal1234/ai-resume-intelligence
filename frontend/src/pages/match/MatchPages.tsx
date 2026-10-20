@@ -21,6 +21,7 @@ import {
   type SkillGap,
 } from "@/services/matchService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
+import { PlanProofButton } from "@/pages/insights/PlanProofButton";
 import { EvidenceList, JobMatchIndex, STATUS_ICON } from "./common";
 
 export function MatchIndexPage() {
@@ -296,6 +297,10 @@ export function GapPage() {
                               </span>
                               {g.covered_by_alternative ? (
                                 <span className="block text-body-sm text-on-surface-variant">Met by an alternative</span>
+                              ) : g.status !== "strong" ? (
+                                <span className="mt-1 block">
+                                  <PlanProofButton skill={g.skill} jobId={m.job_id} />
+                                </span>
                               ) : null}
                             </td>
                             <td className="hidden px-5 py-3 text-body-sm text-on-surface-variant sm:table-cell sm:px-6">

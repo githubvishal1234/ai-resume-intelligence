@@ -1206,6 +1206,164 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/outcomes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Outcomes */
+        get: operations["outcomes_api_v1_insights_outcomes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/market": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Market */
+        get: operations["market_api_v1_insights_market_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proofs/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggestions */
+        get: operations["suggestions_api_v1_proofs_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proofs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Proofs */
+        get: operations["list_proofs_api_v1_proofs_get"];
+        put?: never;
+        /** Create Proof */
+        post: operations["create_proof_api_v1_proofs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proofs/{proof_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Proof */
+        delete: operations["delete_proof_api_v1_proofs__proof_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Proof */
+        patch: operations["update_proof_api_v1_proofs__proof_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cover-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Letters */
+        get: operations["list_letters_api_v1_cover_letters_get"];
+        put?: never;
+        /** Create Letter */
+        post: operations["create_letter_api_v1_cover_letters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cover-letters/{letter_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Letter */
+        get: operations["get_letter_api_v1_cover_letters__letter_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Letter */
+        delete: operations["delete_letter_api_v1_cover_letters__letter_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Letter */
+        patch: operations["update_letter_api_v1_cover_letters__letter_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/cover-letters/{letter_id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate Letter */
+        post: operations["regenerate_letter_api_v1_cover_letters__letter_id__regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cover-letters/{letter_id}/export.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Letter */
+        get: operations["export_letter_api_v1_cover_letters__letter_id__export_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1696,6 +1854,21 @@ export interface components {
             /** Source Url */
             source_url?: string | null;
         };
+        /**
+         * CreateLetterIn
+         * @description Without `resume_id` the active master resume is used. `job_id` is optional.
+         */
+        CreateLetterIn: {
+            /** Resume Id */
+            resume_id?: string | null;
+            /** Job Id */
+            job_id?: string | null;
+            /**
+             * Template
+             * @default classic
+             */
+            template: string;
+        };
         /** CreateMatchIn */
         CreateMatchIn: {
             /** Resume Id */
@@ -1713,6 +1886,19 @@ export interface components {
             job_id: string;
             /** Resume Id */
             resume_id?: string | null;
+        };
+        /** CreateProofIn */
+        CreateProofIn: {
+            /** Skill */
+            skill: string;
+            /**
+             * Kind
+             * @default project
+             * @enum {string}
+             */
+            kind: "project" | "certification" | "writeup";
+            /** Job Id */
+            job_id?: string | null;
         };
         /** CreateResumeIn */
         CreateResumeIn: {
@@ -1864,6 +2050,29 @@ export interface components {
         FinalizeIn: {
             /** Title */
             title?: string | null;
+        };
+        /** FunnelOut */
+        FunnelOut: {
+            /** Sent */
+            sent: number;
+            /** Responded */
+            responded: number;
+            /** Interviewed */
+            interviewed: number;
+            /** Offers */
+            offers: number;
+            /** Response Rate */
+            response_rate: number | null;
+            /** Interview Rate */
+            interview_rate: number | null;
+        };
+        /** GroupOut */
+        GroupOut: {
+            /** Label */
+            label: string;
+            funnel: components["schemas"]["FunnelOut"];
+            /** Enough Data */
+            enough_data: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2069,6 +2278,77 @@ export interface components {
              */
             skill_count: number;
         };
+        /** LetterOut */
+        LetterOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Company */
+            company: string;
+            /** Template */
+            template: string;
+            /** Resume Id */
+            resume_id: string | null;
+            /** Job Id */
+            job_id: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Recipient Name */
+            recipient_name: string;
+            /** Body */
+            body: string;
+            /** Evidence */
+            evidence: components["schemas"]["LetterPointOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Method Version
+             * @default letter-v1
+             */
+            method_version: string;
+        };
+        /** LetterPointOut */
+        LetterPointOut: {
+            /** Requirement */
+            requirement: string;
+            /** Excerpt */
+            excerpt: string;
+            /** Source */
+            source: string;
+        };
+        /** LetterSummaryOut */
+        LetterSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Company */
+            company: string;
+            /** Template */
+            template: string;
+            /** Resume Id */
+            resume_id: string | null;
+            /** Job Id */
+            job_id: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** LiveOut */
         LiveOut: {
             /** Status */
@@ -2083,6 +2363,20 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** MarketOut */
+        MarketOut: {
+            /** Method Version */
+            method_version: string;
+            /** Jobs Analyzed */
+            jobs_analyzed: number;
+            /** Has Master */
+            has_master: boolean;
+            /** Coverage */
+            coverage: number | null;
+            top_gap: components["schemas"]["SkillDemandOut"] | null;
+            /** Skills */
+            skills: components["schemas"]["SkillDemandOut"][];
         };
         /** MatchOut */
         MatchOut: {
@@ -2218,6 +2512,22 @@ export interface components {
             heading: string;
             /** Lines */
             lines?: string[];
+        };
+        /** OutcomesOut */
+        OutcomesOut: {
+            /** Method Version */
+            method_version: string;
+            /** Min Sample */
+            min_sample: number;
+            total: components["schemas"]["FunnelOut"];
+            /** By Resume */
+            by_resume: components["schemas"]["GroupOut"][];
+            /** By Match */
+            by_match: components["schemas"]["GroupOut"][];
+            /** Median Days To Response */
+            median_days_to_response: number | null;
+            /** Unsent */
+            unsent: number;
         };
         /** PasswordChange */
         PasswordChange: {
@@ -2431,6 +2741,44 @@ export interface components {
             technologies?: string[];
             /** Bullets */
             bullets?: string[];
+        };
+        /** ProofOut */
+        ProofOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Skill */
+            skill: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "project" | "certification" | "writeup";
+            /** Title */
+            title: string;
+            /** Plan */
+            plan: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "todo" | "doing" | "done";
+            /** Job Id */
+            job_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Evidence Status */
+            evidence_status?: ("strong" | "partial" | "missing") | null;
         };
         /** Question */
         Question: {
@@ -2710,6 +3058,25 @@ export interface components {
              */
             category: string;
         };
+        /** SkillDemandOut */
+        SkillDemandOut: {
+            /** Name */
+            name: string;
+            /** Category */
+            category: string;
+            /** Jobs */
+            jobs: number;
+            /** Required In */
+            required_in: number;
+            /** Weight */
+            weight: number;
+            /** Status */
+            status: ("strong" | "partial" | "missing") | null;
+            /** Evidence */
+            evidence: string | null;
+            /** Job Titles */
+            job_titles: string[];
+        };
         /** SkillGap */
         SkillGap: {
             /** Skill */
@@ -2776,6 +3143,27 @@ export interface components {
             current_end: string | null;
             /** Cancel At Period End */
             cancel_at_period_end: boolean;
+        };
+        /** SuggestionOut */
+        SuggestionOut: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "project" | "certification" | "writeup";
+            /** Title */
+            title: string;
+            /** Plan */
+            plan: string[];
+        };
+        /** SuggestionsOut */
+        SuggestionsOut: {
+            /** Method Version */
+            method_version: string;
+            /** Skill */
+            skill: string;
+            /** Suggestions */
+            suggestions: components["schemas"]["SuggestionOut"][];
         };
         /** TailoringSessionOut */
         TailoringSessionOut: {
@@ -2875,6 +3263,12 @@ export interface components {
             name: string;
             /** Description */
             description: string;
+            /**
+             * Kind
+             * @default resume
+             * @enum {string}
+             */
+            kind: "resume" | "cv";
         };
         /** UnreadCountOut */
         UnreadCountOut: {
@@ -2923,6 +3317,28 @@ export interface components {
             company?: string | null;
             /** Location */
             location?: string | null;
+        };
+        /** UpdateLetterIn */
+        UpdateLetterIn: {
+            /** Title */
+            title?: string | null;
+            /** Recipient Name */
+            recipient_name?: string | null;
+            /** Company */
+            company?: string | null;
+            /** Body */
+            body?: string | null;
+            /** Template */
+            template?: string | null;
+        };
+        /** UpdateProofIn */
+        UpdateProofIn: {
+            /** Title */
+            title?: string | null;
+            /** Plan */
+            plan?: string | null;
+            /** Status */
+            status?: ("todo" | "doing" | "done") | null;
         };
         /** UserOut */
         UserOut: {
@@ -5407,6 +5823,413 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BillingOut"];
+                };
+            };
+        };
+    };
+    outcomes_api_v1_insights_outcomes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutcomesOut"];
+                };
+            };
+        };
+    };
+    market_api_v1_insights_market_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketOut"];
+                };
+            };
+        };
+    };
+    suggestions_api_v1_proofs_suggestions_get: {
+        parameters: {
+            query: {
+                skill: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_proofs_api_v1_proofs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProofOut"][];
+                };
+            };
+        };
+    };
+    create_proof_api_v1_proofs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProofIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProofOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_proof_api_v1_proofs__proof_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proof_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_proof_api_v1_proofs__proof_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proof_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProofIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProofOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_letters_api_v1_cover_letters_get: {
+        parameters: {
+            query?: {
+                job_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterSummaryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_letter_api_v1_cover_letters_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLetterIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_letter_api_v1_cover_letters__letter_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_letter_api_v1_cover_letters__letter_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_letter_api_v1_cover_letters__letter_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLetterIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_letter_api_v1_cover_letters__letter_id__regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_letter_api_v1_cover_letters__letter_id__export_pdf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                letter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

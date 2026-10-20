@@ -194,6 +194,17 @@ describe("editing", () => {
   });
 });
 
+describe("CV quick add", () => {
+  it("adds a CV section heading in one click and hides it once present", async () => {
+    mockApi([me, { path: `/resumes/${RESUME_ID}`, body: DETAIL }]);
+    renderApp(`/resumes/${RESUME_ID}/edit`);
+    await userEvent.click(await screen.findByRole("button", { name: "Publications" }));
+    expect(screen.getByDisplayValue("Publications")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publications" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Languages" })).toBeInTheDocument();
+  });
+});
+
 describe("analysis", () => {
   it("groups checks and shows the score with text", async () => {
     mockApi([

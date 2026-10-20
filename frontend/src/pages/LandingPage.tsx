@@ -20,6 +20,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { ScoreRing } from "@/components/ui/Score";
 import { PRODUCT_NAME } from "@/constants/branding";
 import { PHOTOS, photoSrcSet } from "@/constants/images";
+import { OnlyHereSection } from "@/pages/landing/OnlyHereSection";
 import { TEMPLATE_STYLES } from "@/constants/templates";
 import { motionAllowed } from "@/hooks/useCountUp";
 import { useSession } from "@/hooks/useSession";
@@ -107,7 +108,7 @@ export function LandingPage() {
       </a>
       <p className="bg-ink-deep px-4 py-2.5 text-center text-body-md text-on-ink">
         <span className="mr-2 rounded-full bg-accent px-2 py-0.5 text-label-sm font-bold text-on-accent">NEW</span>
-        Six ATS-safe templates and a guided seven-step builder.
+        New: Callback Insights, Market Map, Proof Board and the Recruiter 6-second scan.
       </p>
       <PublicHeader signedIn={signedIn} />
 
@@ -156,17 +157,17 @@ export function LandingPage() {
 
             <div className="relative min-h-[460px] animate-rise [animation-delay:120ms] sm:min-h-[540px]">
               <div className="absolute inset-y-8 left-12 right-4 overflow-hidden rounded-[40px_40px_40px_140px] bg-surface-container-high shadow-level-3">
-                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[38%_30%]" />
+                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[20%_30%]" />
               </div>
-              <div aria-hidden className="absolute left-4 top-0 size-28 rounded-full bg-accent" />
-              <div className="absolute right-0 top-12 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+              <div aria-hidden className="absolute -right-2 -top-2 size-16 rounded-full bg-accent sm:top-0 sm:size-28" />
+              <div className="absolute bottom-36 left-0 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
                 <ScoreRing value={84} size={76} label="Example match score" />
                 <div>
                   <p className="font-semibold">Match score</p>
                   <p className="text-body-md text-on-surface-variant">Senior Backend Engineer</p>
                 </div>
               </div>
-              <div aria-hidden className="absolute left-0 top-56 w-60 animate-float-slow rounded-card bg-surface-container-lowest p-4 shadow-level-3">
+              <div aria-hidden className="absolute left-0 top-4 w-56 animate-float-slow sm:w-60 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
                 <p className="flex items-center gap-2 font-semibold"><span className="flex size-7 items-center justify-center rounded-control bg-success-surface"><Check className="size-4 text-success" strokeWidth={3} /></span>ATS check passed</p>
                 <p className="mt-1.5 text-body-sm text-on-surface-variant">Headings read in order. Contact details found. One page.</p>
               </div>
@@ -357,6 +358,8 @@ export function LandingPage() {
         </section>
 
         {/* Templates */}
+        <OnlyHereSection eyebrow={eyebrow} h2={h2} />
+
         <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 bg-surface-container-low py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -367,7 +370,7 @@ export function LandingPage() {
               <ButtonLink to={start} variant="primary">Use a template <ArrowRight className="size-4" aria-hidden /></ButtonLink>
             </div>
             <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATE_STYLES.map((t) => (
+              {TEMPLATE_STYLES.filter((t) => t.kind === "resume").map((t) => (
                 <li key={t.id} className="lift rounded-card bg-surface-container-lowest p-4 shadow-level-1">
                   <div className="rounded-control bg-surface p-4">
                     <ResumePaper doc={SAMPLE_RESUME} template={t.id} label={`Sample resume in the ${t.name} template`} />

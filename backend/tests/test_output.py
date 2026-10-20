@@ -31,7 +31,13 @@ def test_every_template_renders_extractable_text_in_order(template: str) -> None
     text = _text(pdf)
     for value in ("Priya Raman", "priya.raman@example.com", "Acme Analytics", "Brightpath Labs"):
         assert value in text
-    order = [text.index(h) for h in ("Summary", "Experience", "Education", "Skills")]
+    names = {
+        "summary": "Summary",
+        "experience": "Experience",
+        "education": "Education",
+        "skills": "Skills",
+    }
+    order = [text.index(names[k]) for k in TEMPLATES[template].order if k in names]
     assert order == sorted(order)
     report = ats_check(content, pdf, template)
     statuses = {c.id: c.status for c in report.checks}
@@ -144,3 +150,12 @@ def test_export_requires_auth_and_ownership(
     assert other.get(f"/api/v1/resumes/{master['id']}/ats").status_code == 404
     user_client.cookies.clear()
     assert user_client.get(f"/api/v1/resumes/{master['id']}/export.pdf").status_code == 401
+
+
+def test_academic_cv_leads_with_education_and_the_ats_check_follows_its_order() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    pdf = render_pdf(content, TEMPLATES["cv-academic"])
+    text = _text(pdf)
+    assert text.index("Education") < text.index("Experience")
+    statuses = {c.id: c.status for c in ats_check(content, pdf, "cv-academic").checks}
+    assert statuses["layout.order"] == "pass"

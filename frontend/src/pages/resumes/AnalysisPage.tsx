@@ -40,7 +40,7 @@ export function AnalysisPage() {
 
   return (
     <div>
-      <PageHeader title="Resume analysis" description={`${resume.data.title} · version ${a.version}`}
+      <PageHeader title="Resume analysis" photo="analysis" description={`${resume.data.title} · version ${a.version}`}
         back={{ to: `/resumes/${resumeId}`, label: resume.data.title }}
         actions={<ButtonLink to={`/resumes/${resumeId}/edit`} variant="primary">Edit resume</ButtonLink>} />
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">

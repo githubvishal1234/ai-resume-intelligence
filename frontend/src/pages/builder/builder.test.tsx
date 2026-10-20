@@ -77,3 +77,29 @@ describe("Resume Builder", () => {
     expect(within(empty.parentElement as HTMLElement).getByRole("link", { name: "Upload resume" })).toHaveAttribute("href", "/resumes/upload");
   });
 });
+
+describe("CV Builder", () => {
+  it("offers only CV templates and lists the CV sections the resume still lacks", { timeout: 20000 }, async () => {
+    const withPubs = {
+      ...detail(MASTER, "master", "Master resume"),
+      content: { ...detail(MASTER, "master", "Master resume").content, other: [{ id: "o1", heading: "Publications", lines: ["A paper"] }] },
+    };
+    mockApi([
+      me,
+      { path: "/resumes", body: [summary(MASTER, "master", "Master resume")] },
+      { path: "/output/templates", body: [...TEMPLATES, { id: "cv-academic", name: "Academic CV", description: "Education first.", kind: "cv" }] },
+      { path: `/resumes/${MASTER}`, body: withPubs },
+      { path: `/resumes/${MASTER}/ats?template=cv-academic`, body: report("cv-academic", 100) },
+    ]);
+    renderApp("/cv-builder");
+    expect(await screen.findByRole("heading", { name: "CV Builder" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Download PDF/ })).toHaveAttribute(
+      "href",
+      `/api/v1/resumes/${MASTER}/export.pdf?template=cv-academic`,
+    );
+    expect(screen.queryByRole("radio", { name: /Classic/ })).not.toBeInTheDocument();
+    const chip = (name: string) => screen.findByText((_, el) => el?.tagName === "LI" && (el.textContent ?? "").startsWith(name));
+    expect(await chip("Publications")).toHaveTextContent("(added)");
+    expect(await chip("Languages")).toHaveTextContent("(not added)");
+  });
+});

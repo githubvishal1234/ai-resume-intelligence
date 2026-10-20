@@ -1,8 +1,13 @@
 import {
+  BarChart3,
   BriefcaseBusiness,
+  FileSignature,
   FileText,
   GitCompareArrows,
+  GraduationCap,
+  Hammer,
   LayoutDashboard,
+  Map as MapIcon,
   MessagesSquare,
   Network,
   PenLine,
@@ -45,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, to: "/jobs", phase: 3, phaseNote: "Job Intelligence" },
       { id: "job-match", label: "Job Match", icon: GitCompareArrows, to: "/match", phase: 4, phaseNote: "Matching" },
       { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, to: "/skill-gaps", phase: 4, phaseNote: "Matching" },
+      { id: "market", label: "Market Map", icon: MapIcon, to: "/market", phase: 21, phaseNote: "Career intelligence" },
     ],
   },
   {
@@ -52,8 +58,16 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "AI Automation",
     items: [
       { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
-      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
       { id: "interview", label: "Interview Prep", icon: MessagesSquare, to: "/interview", phase: 8, phaseNote: "Interview" },
+    ],
+  },
+  {
+    id: "builders",
+    label: "Builders",
+    items: [
+      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
+      { id: "cv-builder", label: "CV Builder", icon: GraduationCap, to: "/cv-builder", phase: 22, phaseNote: "Builders" },
+      { id: "cover-letters", label: "Cover Letters", icon: FileSignature, to: "/cover-letters", phase: 22, phaseNote: "Builders" },
     ],
   },
   {
@@ -61,6 +75,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Pipeline",
     items: [
       { id: "applications", label: "Applications", icon: BriefcaseBusiness, to: "/applications", phase: 7, phaseNote: "Applications" },
+      { id: "insights", label: "Callback Insights", icon: BarChart3, to: "/insights", phase: 21, phaseNote: "Career intelligence" },
+      { id: "proofs", label: "Proof Board", icon: Hammer, to: "/proofs", phase: 21, phaseNote: "Career intelligence" },
     ],
   },
   {

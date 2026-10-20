@@ -3,17 +3,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { expectPdf, importMaster, PASSWORD, watchConsole } from "./helpers";
 
 const fixtures = path.join(import.meta.dirname, "fixtures");
-const PASSWORD = "correct-horse-battery-staple";
 
 test("sign up, import a resume, match and tailor for a job, download the PDF", async ({ page }) => {
   let masterUrl = "";
-  const consoleErrors: string[] = [];
-  page.on("console", (m) => {
-    // 401 from /auth/me before sign-up is the expected "signed out" answer.
-    if (m.type() === "error" && !m.text().includes("401")) consoleErrors.push(m.text());
-  });
+  const consoleErrors = watchConsole(page);
 
   await test.step("sign up from the product page", async () => {
     await page.goto("/");
@@ -29,13 +25,7 @@ test("sign up, import a resume, match and tailor for a job, download the PDF", a
   });
 
   await test.step("import a resume and save it as the master", async () => {
-    await page.goto("/resumes/upload");
-    await page.getByLabel("Resume file").setInputFiles(path.join(fixtures, "resume.txt"));
-    await expect(page.getByRole("heading", { name: "Review your resume" })).toBeVisible();
-    await expect(page.getByLabel("Professional summary")).toHaveValue(/Backend engineer with 6 years/);
-    await page.getByRole("button", { name: "Save as master resume" }).click();
-    await expect(page).toHaveURL(/\/resumes\/[0-9a-f-]{36}$/);
-    masterUrl = page.url();
+    masterUrl = await importMaster(page);
   });
 
   await test.step("analyze a job posting", async () => {
@@ -66,11 +56,7 @@ test("sign up, import a resume, match and tailor for a job, download the PDF", a
   await test.step("download a PDF that is really a PDF", async () => {
     await page.goto("/builder");
     await expect(page.getByRole("img", { name: /ATS checks: \d+ out of 100/ })).toBeVisible();
-    const href = await page.getByRole("link", { name: /Download PDF/ }).getAttribute("href");
-    expect(href).toBeTruthy();
-    const pdf = await page.request.get(href!);
-    expect(pdf.ok()).toBe(true);
-    expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+    await expectPdf(page, await page.getByRole("link", { name: /Download PDF/ }).getAttribute("href"));
   });
 
   expect(consoleErrors).toEqual([]);

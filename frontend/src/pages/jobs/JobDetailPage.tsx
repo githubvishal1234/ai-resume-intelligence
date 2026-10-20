@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { JobLettersCard } from "@/pages/letters/JobLettersCard";
 import { Field, Input } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill, type PillTone } from "@/components/ui/Pill";
@@ -134,6 +135,7 @@ export function JobDetailPage() {
         </div>
 
         <div className="space-y-6">
+          <JobLettersCard jobId={jobId} />
           <Card aria-labelledby="skills-title">
             <CardHeader id="skills-title" title="Skills" description="Recognized from a fixed skills vocabulary." />
             {a.skills.length === 0 ? (

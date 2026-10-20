@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BrandMark } from "./BrandMark";
+import { BuildersMenu } from "./BuildersMenu";
 
 /** Header for the public pages (product page and pricing). */
 export function PublicHeader({ signedIn }: { signedIn: boolean }) {
@@ -10,17 +11,20 @@ export function PublicHeader({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <a href="/welcome" className="min-w-0">
+        <a href="/welcome" className="min-w-0 max-sm:[&_span]:sr-only">
           <BrandMark />
         </a>
-        <nav aria-label="Site" className="ml-6 hidden items-center gap-6 text-body-md text-on-surface-variant lg:flex">
-          <a href="/welcome#how" className={section}>How it works</a>
+        <nav aria-label="Site" className="ml-6 hidden items-center gap-5 whitespace-nowrap text-body-md text-on-surface-variant lg:flex">
+          <BuildersMenu />
+          <a href="/welcome#how" className={cn(section, "hidden xl:inline")}>How it works</a>
           <a href="/welcome#features" className={section}>Features</a>
+          <a href="/welcome#only-here" className={section}>Only here</a>
           <a href="/welcome#templates" className={section}>Templates</a>
           <NavLink to="/pricing" className={({ isActive }) => cn(section, isActive && "font-medium text-primary")}>Pricing</NavLink>
-          <a href="/welcome#faq" className={section}>FAQ</a>
+          <a href="/welcome#faq" className={cn(section, "hidden xl:inline")}>FAQ</a>
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          <BuildersMenu className="text-body-md text-on-surface-variant lg:hidden" />
           <NavLink to="/pricing" className={({ isActive }) => cn("py-2 text-body-md text-on-surface-variant hover:text-primary lg:hidden", isActive && "font-medium text-primary")}>
             Pricing
           </NavLink>
