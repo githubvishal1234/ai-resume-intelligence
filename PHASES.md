@@ -954,3 +954,4 @@ journey passes.
   raised to the 24px minimum tap target (WCAG 2.5.8).
 - 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.
 - 2026-10-19: Phase 22 (CV Builder, Cover Letter Builder, Builders menu) built and verified.
+- 2026-10-20: Profile Builder (`/profile-builder`, `profile-v1`, in the browser): three headline options, an About section and top skills from the resume's own wording, with LinkedIn length counters, copy buttons and a live preview; fourth card in the Builders menu (whose text no longer inherits the header's no-wrap).

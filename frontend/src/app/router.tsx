@@ -75,6 +75,7 @@ export const routes: RouteObject[] = [
           { path: "/skill-gaps", ...page(() => import("@/pages/match/MatchPages"), "GapIndexPage") },
           { path: "/tailor", ...page(() => import("@/pages/tailor/TailorIndexPage"), "TailorIndexPage") },
           { path: "/cv-builder", ...page(() => import("@/pages/builder/BuilderPage"), "CvBuilderPage") },
+          { path: "/profile-builder", ...page(() => import("@/pages/builder/ProfileBuilderPage"), "ProfileBuilderPage") },
           { path: "/cover-letters", ...page(() => import("@/pages/letters/CoverLetterPages"), "CoverLettersPage") },
           { path: "/cover-letters/:letterId", ...page(() => import("@/pages/letters/CoverLetterPages"), "CoverLetterEditPage") },
           { path: "/builder", ...page(() => import("@/pages/builder/BuilderPage"), "BuilderPage") },
