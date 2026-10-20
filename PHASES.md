@@ -954,3 +954,4 @@ journey passes.
   raised to the 24px minimum tap target (WCAG 2.5.8).
 - 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.
 - 2026-10-19: Phase 22 (CV Builder, Cover Letter Builder, Builders menu) built and verified.
+- 2026-10-20: Global search: the header search box now searches the user's own resumes (titles and text), jobs, applications, cover letters and proof tasks (`GET /search`, owner-scoped substring match, LIKE wildcards literal), with an accessible combobox (arrows, Enter, Escape, Ctrl/Cmd+K or /).
