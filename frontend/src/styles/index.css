@@ -112,6 +112,7 @@
   --color-ink-deep-indigo: #1a33c2;
   --color-on-ink: #ffffff;
   --color-on-ink-muted: #dce2ff;
+  --color-on-ink-success: #b5ebd3;
 
   /* Motion (all switched off under prefers-reduced-motion, see the end of this file). */
   --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;

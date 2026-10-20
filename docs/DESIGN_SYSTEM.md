@@ -13,7 +13,8 @@ so screens restyle by changing values, not class names.
   surface, border and ink variants: success, warning, critical and info.
 - **Fixed colors:** `band` (the brand blue) and `ink-deep` (navy) do not change with the theme,
   so white `on-ink` text on them keeps its contrast. Page header bands, the Pro plan card and
-  the dark landing sections use them.
+  the dark landing sections use them. `on-ink-success` is the fixed green for success text on
+  `ink-deep`; the themed `success-*` tokens turn dark in dark mode and fail there.
 - **Type:** DM Sans for UI, Sora for display (headings use weight 700–800 and tight tracking),
   JetBrains Mono for code-like readouts. All fonts are bundled locally through Fontsource, so
   the CSP stays same-origin. Scale tokens: `display-lg`, `headline-lg|md|sm`, `body-lg|md|sm`,
