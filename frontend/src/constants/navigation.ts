@@ -7,6 +7,7 @@ import {
   GitCompareArrows,
   GraduationCap,
   Hammer,
+  IdCard,
   LayoutDashboard,
   Map as MapIcon,
   MessagesSquare,
@@ -70,6 +71,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
       { id: "cv-builder", label: "CV Builder", icon: GraduationCap, to: "/cv-builder", phase: 22, phaseNote: "Builders" },
       { id: "cover-letters", label: "Cover Letters", icon: FileSignature, to: "/cover-letters", phase: 22, phaseNote: "Builders" },
+      { id: "profile-builder", label: "Profile Builder", icon: IdCard, to: "/profile-builder", phase: 23, phaseNote: "Builders" },
     ],
   },
   {
