@@ -1,9 +1,10 @@
-import { LogOut, Menu, Search } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { Outlet, useNavigation } from "react-router-dom";
 import { useLogout, useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/Button";
 import { BrandMark, BrandIcon } from "./BrandMark";
+import { GlobalSearch } from "./GlobalSearch";
 import { MobileTabBar } from "./MobileTabBar";
 import { NavDrawer } from "./NavDrawer";
 import { NavList } from "./NavList";
@@ -65,17 +66,7 @@ export function AppShell() {
           </button>
           <BrandIcon className="size-7 lg:hidden" />
 
-          <div className="relative ml-auto hidden w-full max-w-sm md:ml-0 md:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-placeholder" aria-hidden />
-            <input
-              type="search"
-              disabled
-              aria-label="Search"
-              title="Global search is planned for a later phase."
-              placeholder="Search — not available yet"
-              className="h-10 w-full cursor-not-allowed rounded-control border border-hairline bg-surface-container-low pl-9 pr-3 text-body-md placeholder:text-placeholder"
-            />
-          </div>
+          <GlobalSearch />
 
           <div className="ml-auto flex items-center gap-3">
             <NotificationBell />
