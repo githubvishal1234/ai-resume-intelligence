@@ -5,8 +5,10 @@ import { ButtonLink } from "@/components/ui/Button";
 import { CardHeader } from "@/components/ui/Card";
 import { PhotoBanner } from "@/components/ui/PhotoBanner";
 import { Pill } from "@/components/ui/Pill";
+import { useMarket, useOutcomes } from "@/hooks/useInsights";
 import { useMasterSummary } from "@/hooks/useResumes";
 import { useSession } from "@/hooks/useSession";
+import { AtAGlance } from "@/pages/dashboard/AtAGlance";
 
 const NEXT_STEPS: { icon: typeof FileText; title: string; body: string; phase: number; to?: string }[] = [
   { icon: FileText, title: "Create your master resume", body: "Build it in a few minutes with the quick builder, or upload the one you have.", phase: 2, to: "/resumes/new" },
@@ -21,11 +23,20 @@ export function DashboardPage() {
   const session = useSession();
   const firstName = session.data?.user.display_name.split(/\s+/)[0] ?? "";
   const { master } = useMasterSummary();
+  const market = useMarket();
+  const outcomes = useOutcomes();
+  // A step is done only when the data shows it; the others stay "Available".
+  const done: Record<number, boolean> = {
+    2: Boolean(master),
+    3: Boolean(market.data?.jobs_analyzed),
+    7: Boolean(outcomes.data && outcomes.data.total.sent + outcomes.data.unsent > 0),
+  };
   const steps = NEXT_STEPS.map((step) =>
     step.phase === 2 && master
       ? { ...step, title: "Your master resume", body: `Version ${master.current_version}. Keep it current; every tailored resume starts here.`, to: `/resumes/${master.id}` }
       : step,
   );
+  const doneCount = steps.filter((s) => done[s.phase]).length;
   return (
     <div className="space-y-6">
       <PhotoBanner
@@ -53,9 +64,15 @@ export function DashboardPage() {
         }
       />
 
+      <AtAGlance />
+
       <div className="grid gap-6 xl:grid-cols-3">
         <section className="xl:col-span-2" aria-labelledby="steps-title">
-          <CardHeader id="steps-title" title="Getting started" description="Six steps from your resume to the interview." />
+          <CardHeader
+            id="steps-title"
+            title="Getting started"
+            description={`Six steps from your resume to the interview. ${doneCount} of 6 done.`}
+          />
           <ol className="grid gap-3 sm:grid-cols-2">
             {steps.map(({ icon: Icon, title, body, phase, to }, index) => (
               <li
@@ -67,7 +84,7 @@ export function DashboardPage() {
                   <span className="flex size-11 items-center justify-center rounded-control bg-primary-fixed text-primary transition-colors group-hover:bg-primary group-hover:text-on-primary">
                     <Icon className="size-5" aria-hidden />
                   </span>
-                  {to ? <Pill tone="matched">Available</Pill> : <Pill tone="neutral">Phase {phase}</Pill>}
+                  {done[phase] ? <Pill tone="matched">Done</Pill> : to ? <Pill tone="brand">Available</Pill> : <Pill tone="neutral">Phase {phase}</Pill>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="inline-flex rounded-full bg-accent/30 px-2.5 py-0.5 text-label-sm font-bold text-on-surface">Step {index + 1}</p>
