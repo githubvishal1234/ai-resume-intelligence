@@ -15,6 +15,7 @@ from app.matching.router import router as matching_router
 from app.output.router import router as output_router
 from app.proofs.router import router as proofs_router
 from app.resumes.router import router as resumes_router
+from app.stories.router import router as stories_router
 from app.tailoring.router import router as tailoring_router
 
 api_router = APIRouter(prefix="/api/v1")
@@ -35,3 +36,4 @@ api_router.include_router(billing_router)
 api_router.include_router(insights_router)
 api_router.include_router(proofs_router)
 api_router.include_router(coverletters_router)
+api_router.include_router(stories_router)

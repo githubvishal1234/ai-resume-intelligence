@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   BriefcaseBusiness,
   FileSignature,
   FileText,
@@ -59,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
       { id: "interview", label: "Interview Prep", icon: MessagesSquare, to: "/interview", phase: 8, phaseNote: "Interview" },
+      { id: "stories", label: "Story Bank", icon: BookOpen, to: "/stories", phase: 23, phaseNote: "Interview" },
     ],
   },
   {

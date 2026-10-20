@@ -954,3 +954,4 @@ journey passes.
   raised to the 24px minimum tap target (WCAG 2.5.8).
 - 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.
 - 2026-10-19: Phase 22 (CV Builder, Cover Letter Builder, Builders menu) built and verified.
+- 2026-10-20: Interview Story Bank (`/stories`, `stories-v1`, migration `stories`): STAR stories started from evidenced resume lines (action verbatim, result = the clause with a measured outcome, situation and task left to the user), eight themes with coverage, and matching stories shown beside each practice question.
