@@ -113,7 +113,7 @@ function AiAssist({ item }: { item: ResumeImport }) {
           </p>
           {ai.dropped.length ? (
             <details className="mt-2">
-              <summary className="cursor-pointer text-label-md text-primary">Show what was left out</summary>
+              <summary className="cursor-pointer py-1 text-label-md text-primary">Show what was left out</summary>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {ai.dropped.map((d) => (
                   <li key={d} className="break-words">{d}</li>

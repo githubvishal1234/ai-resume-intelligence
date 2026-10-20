@@ -131,7 +131,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
       </div>
       {c.evidence.length ? (
         <details className="mt-3">
-          <summary className="cursor-pointer text-label-md text-primary">Evidence from your resume</summary>
+          <summary className="cursor-pointer py-1 text-label-md text-primary">Evidence from your resume</summary>
           <EvidenceList evidence={c.evidence} />
         </details>
       ) : null}

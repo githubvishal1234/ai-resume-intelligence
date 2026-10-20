@@ -894,3 +894,6 @@ unsafe deserialization; the Phase 9 auth, CSRF and upload controls still hold).
 - 2026-10-19: Performance pass: nginx gzip (was off), 800px photo copies with srcset and lazy
   loading, sign-in pages split from the entry bundle (zod/react-hook-form off the landing page and
   dashboard; entry 120 to 86 kB gzipped), meta description and robots.txt (Lighthouse SEO 100).
+- 2026-10-19: Mobile and responsive pass: all 28 routes (with real data) checked at 320, 375 and
+  768px; no horizontal overflow at any width. Back links, disclosure toggles and small text links
+  raised to the 24px minimum tap target (WCAG 2.5.8).

@@ -255,7 +255,7 @@ function Evidence({ question: q }: { question: Question }) {
 function Tips({ question: q, open = false }: { question: Question; open?: boolean }) {
   return (
     <details className="mt-3" open={open}>
-      <summary className="cursor-pointer text-label-md text-primary">How to answer</summary>
+      <summary className="cursor-pointer py-1 text-label-md text-primary">How to answer</summary>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-body-md text-on-surface">
         {q.tips.map((t) => (
           <li key={t}>{t}</li>

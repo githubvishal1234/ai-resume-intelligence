@@ -200,7 +200,7 @@ export function JobDetailPage() {
               </div>
             </dl>
             <details className="mt-4">
-              <summary className="cursor-pointer text-label-md text-primary">Show the original text</summary>
+              <summary className="cursor-pointer py-1 text-label-md text-primary">Show the original text</summary>
               <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-control bg-surface-container-low p-3 font-sans text-body-sm">
                 {j.raw_text}
               </pre>
@@ -359,7 +359,7 @@ function AiAnalysis({ job: j }: { job: JobDetail }) {
           </p>
           {a.ai_dropped.length ? (
             <details className="mt-2">
-              <summary className="cursor-pointer text-label-md text-primary">Show what was left out</summary>
+              <summary className="cursor-pointer py-1 text-label-md text-primary">Show what was left out</summary>
               <ul className="mt-1 list-disc space-y-1 pl-5">
                 {a.ai_dropped.map((d) => (
                   <li key={d} className="break-words">{d}</li>

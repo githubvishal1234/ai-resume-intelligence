@@ -15,7 +15,7 @@ export function PageHeader({ title, description, back, actions, photo }: {
   return (
     <header className="mb-6 space-y-2">
       {back ? (
-        <Link to={back.to} className="inline-flex items-center gap-1 text-label-md text-on-surface-variant hover:text-primary">
+        <Link to={back.to} className="-my-1 inline-flex min-h-6 items-center gap-1 text-label-md text-on-surface-variant hover:text-primary">
           <ArrowLeft className="size-4" aria-hidden />
           {back.label}
         </Link>
