@@ -32,6 +32,7 @@ import {
   type PrepDetail,
   type Question,
 } from "@/services/interviewService";
+import { MatchingStories } from "@/pages/stories/MatchingStories";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
 
 
@@ -533,6 +534,7 @@ function AnswerCard({
       <p className="mt-1 text-body-sm text-on-surface-variant">Why: {q.why}</p>
       <Evidence question={q} />
       <Tips question={q} />
+      <MatchingStories question={q} />
 
       <div className="mt-5 space-y-1.5">
         <label htmlFor={`${id}-a`} className="block text-label-md text-on-surface">
