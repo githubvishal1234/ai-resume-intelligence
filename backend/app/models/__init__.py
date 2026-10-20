@@ -10,6 +10,7 @@ from app.models.password_reset import PasswordResetToken
 from app.models.proof import ProofTask
 from app.models.resume import Resume, ResumeFile, ResumeImport, ResumeVersion
 from app.models.session import UserSession
+from app.models.story import Story
 from app.models.tailoring import TailoringChange, TailoringSession
 from app.models.user import User
 
@@ -32,6 +33,7 @@ __all__ = [
     "ResumeFile",
     "ResumeImport",
     "ResumeVersion",
+    "Story",
     "Subscription",
     "TailoringChange",
     "TailoringSession",

@@ -87,6 +87,7 @@ export const routes: RouteObject[] = [
           { path: "/insights", ...page(() => import("@/pages/insights/CallbackInsightsPage"), "CallbackInsightsPage") },
           { path: "/market", ...page(() => import("@/pages/insights/MarketMapPage"), "MarketMapPage") },
           { path: "/proofs", ...page(() => import("@/pages/insights/ProofBoardPage"), "ProofBoardPage") },
+          { path: "/stories", ...page(() => import("@/pages/stories/StoryBankPage"), "StoryBankPage") },
           { path: "/interview", ...page(() => import("@/pages/interview/InterviewPages"), "InterviewIndexPage") },
           { path: "/interview/:prepId", ...page(() => import("@/pages/interview/InterviewPages"), "PrepPage") },
           { path: "/interview/sessions/:sessionId", ...page(() => import("@/pages/interview/InterviewPages"), "PracticePage") },
