@@ -954,3 +954,4 @@ journey passes.
   raised to the 24px minimum tap target (WCAG 2.5.8).
 - 2026-10-19: Phase 21 (career intelligence: Callback Insights, Market Map, Proof Board, 6-second scan) built and verified.
 - 2026-10-19: Phase 22 (CV Builder, Cover Letter Builder, Builders menu) built and verified.
+- 2026-10-20: Dashboard refresh: an "At a glance" row with live reply rate, market coverage and biggest gap, proof progress and cover letters (each a link, with a first step when empty), and "Getting started" steps marked Done when the data shows it.
