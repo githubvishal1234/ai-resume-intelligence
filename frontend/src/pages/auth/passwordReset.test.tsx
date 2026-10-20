@@ -22,6 +22,8 @@ describe("password reset", () => {
     ]);
     renderApp("/login");
     await userEvent.click(await screen.findByRole("link", { name: "Forgot your password?" }));
+    // The page loads lazily; until it arrives the sign-in form (with its own Email field) stays up.
+    await screen.findByRole("heading", { name: "Reset your password" });
     await userEvent.type(await screen.findByLabelText("Email"), "ada@example.com");
     await userEvent.click(screen.getByRole("button", { name: "Send reset link" }));
     expect(await screen.findByText("Check your email")).toBeInTheDocument();

@@ -10,7 +10,7 @@ export function PublicHeader({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <a href="/welcome" aria-label="Home" className="min-w-0">
+        <a href="/welcome" className="min-w-0">
           <BrandMark />
         </a>
         <nav aria-label="Site" className="ml-6 hidden items-center gap-6 text-body-md text-on-surface-variant lg:flex">

@@ -19,7 +19,7 @@ import { ResumePaper } from "@/components/resume/ResumePaper";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScoreRing } from "@/components/ui/Score";
 import { PRODUCT_NAME } from "@/constants/branding";
-import { PHOTOS } from "@/constants/images";
+import { PHOTOS, photoSrcSet } from "@/constants/images";
 import { TEMPLATE_STYLES } from "@/constants/templates";
 import { motionAllowed } from "@/hooks/useCountUp";
 import { useSession } from "@/hooks/useSession";
@@ -156,7 +156,7 @@ export function LandingPage() {
 
             <div className="relative min-h-[460px] animate-rise [animation-delay:120ms] sm:min-h-[540px]">
               <div className="absolute inset-y-8 left-12 right-4 overflow-hidden rounded-[40px_40px_40px_140px] bg-surface-container-high shadow-level-3">
-                <img src={PHOTOS.interview} alt="" decoding="async" className="size-full object-cover object-[38%_30%]" />
+                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[38%_30%]" />
               </div>
               <div aria-hidden className="absolute left-4 top-0 size-28 rounded-full bg-accent" />
               <div className="absolute right-0 top-12 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">

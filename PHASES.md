@@ -891,3 +891,6 @@ unsafe deserialization; the Phase 9 auth, CSRF and upload controls still hold).
 - 2026-10-16: Repository pushed to GitHub (private), default branch `main`, CI green. Phase 20 (Razorpay billing) planned.
 - 2026-10-16: Phase 20 steps 1–9 built and tested (Razorpay billing, plan limits). Step 10 waits on Razorpay test keys.
 - 2026-10-16: Billing security review (4 issues fixed) and end-to-end tests (Playwright, real API and database) added to CI.
+- 2026-10-19: Performance pass: nginx gzip (was off), 800px photo copies with srcset and lazy
+  loading, sign-in pages split from the entry bundle (zod/react-hook-form off the landing page and
+  dashboard; entry 120 to 86 kB gzipped), meta description and robots.txt (Lighthouse SEO 100).

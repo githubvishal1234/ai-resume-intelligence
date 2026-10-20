@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { PHOTOS, type PhotoName } from "@/constants/images";
+import { PHOTOS_SMALL, type PhotoName } from "@/constants/images";
 import { cn } from "@/lib/cn";
 
 /**
@@ -43,7 +43,8 @@ export function PhotoBanner({
           ) : null}
         </div>
         <div className="hidden h-36 w-56 shrink-0 animate-float overflow-hidden rounded-[24px_24px_24px_72px] ring-4 ring-on-ink/20 md:block">
-          <img src={PHOTOS[photo]} alt="" decoding="async" className="size-full object-cover" />
+          {/* Lazy, so phones (where this frame is hidden) never download it. */}
+          <img src={PHOTOS_SMALL[photo]} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
         </div>
       </div>
     </div>
