@@ -27,10 +27,83 @@ import { SAMPLE_RESUME } from "@/lib/resumeHelpers";
 
 const FIELDS = ["Software engineering", "Data & analytics", "Product design", "Marketing", "Sales", "Finance", "Operations", "Healthcare", "Education", "Customer support"];
 
+/** "What the ATS read": a two-column resume flattened left to right, so the columns interleave. */
+function ScrambledScene() {
+  return (
+    <div className="grid grid-cols-2 gap-2.5 text-[9px] leading-snug">
+      <div className="rounded-[6px] border border-hairline bg-surface-container-low p-2">
+        <p className="text-[10px] font-bold text-on-surface">Priya Raman</p>
+        <p className="text-on-surface-variant">Backend Engineer</p>
+        <div className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-2 border-t border-hairline pt-1.5 text-on-surface-variant">
+          <p className="font-bold text-on-surface">Skills</p>
+          <p className="font-bold text-on-surface">Experience</p>
+          <p>Python</p>
+          <p>Acme Corp</p>
+          <p>SQL</p>
+          <p>2021–now</p>
+          <p>Docker</p>
+          <p>Cut latency 40%</p>
+        </div>
+      </div>
+      <div className="rounded-[6px] bg-surface-container-highest p-2 font-mono text-on-surface">
+        <p className="mb-1 text-[8px] uppercase tracking-wider text-on-surface-variant">What the ATS read</p>
+        <p>Skills Experience</p>
+        <p>Python Acme Corp</p>
+        <p><span className="bg-critical-border/50">SQL 2021–now</span></p>
+        <p>Docker Cut latency</p>
+        <p className="mt-1 text-on-surface-variant">Job title: <span className="text-critical-ink">none</span></p>
+      </div>
+    </div>
+  );
+}
+
+/** A real-looking posting checked against a resume: two required skills aren't there. */
+function MismatchScene() {
+  const reqs: [string, boolean, boolean][] = [["Python", true, true], ["PostgreSQL", true, true], ["Kubernetes", false, true], ["AWS", false, true], ["GraphQL", true, false]];
+  return (
+    <div className="text-[10px] leading-snug">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="font-bold text-on-surface">Senior Backend Engineer</p>
+        <p className="shrink-0 font-mono text-warning-ink">Match 54%</p>
+      </div>
+      <p className="text-on-surface-variant">Northwind Retail · Bengaluru · Hybrid</p>
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-container-highest"><div className="h-full w-[54%] bg-warning" /></div>
+      <ul className="mt-2 flex flex-wrap gap-1">
+        {reqs.map(([name, has, required]) => (
+          <li key={name} className={cn("inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5", has ? "border-hairline text-on-surface-variant" : "border-warning-border bg-warning-border/40 font-semibold text-warning-ink")}>
+            {has ? <Check className="size-2.5 text-success" strokeWidth={3} /> : <X className="size-2.5" strokeWidth={3} />}
+            {name}
+            {required ? <span>· req</span> : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** An inflated bullet next to the line it was "improved" from. */
+function ClaimScene() {
+  const hot = "rounded-[3px] bg-info-border/60 px-0.5 font-semibold text-info-ink";
+  return (
+    <div className="space-y-2 text-[10px] leading-snug">
+      <div className="rounded-[6px] border border-hairline bg-surface-container-low p-2">
+        <p className="text-[8px] uppercase tracking-wider text-on-surface-variant">Rewritten bullet</p>
+        <p className="mt-0.5 text-on-surface">
+          <span className={hot}>Spearheaded</span> a <span className={hot}>company-wide</span> AI platform, growing revenue <span className={hot}>3x</span>.
+        </p>
+      </div>
+      <div className="rounded-[6px] border border-dashed border-hairline-strong p-2">
+        <p className="text-[8px] uppercase tracking-wider text-on-surface-variant">Your master resume says</p>
+        <p className="mt-0.5 text-on-surface-variant">Built an internal Slack bot that answers HR questions for 120 staff.</p>
+      </div>
+    </div>
+  );
+}
+
 const PROBLEMS = [
-  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "bg-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink" },
-  { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "bg-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink" },
-  { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "bg-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink" },
+  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "bg-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink", scene: <ScrambledScene /> },
+  { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "bg-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink", scene: <MismatchScene /> },
+  { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "bg-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink", scene: <ClaimScene /> },
 ];
 
 const STEPS = [
@@ -184,10 +257,9 @@ export function LandingPage() {
           <ul className="mt-14 grid gap-6 md:grid-cols-3">
             {PROBLEMS.map((p) => (
               <li key={p.title} className={cn("lift flex flex-col gap-3 rounded-card p-7", p.tone)}>
-                <div aria-hidden className="relative h-32 overflow-hidden rounded-card bg-surface-container-lowest p-4">
-                  <div className="h-2.5 w-1/2 rounded bg-on-surface" />
-                  <div className="mt-3 space-y-2"><div className="h-1.5 rounded bg-surface-container-highest" /><div className="h-1.5 w-4/5 rounded bg-surface-container-highest" /><div className="h-1.5 w-11/12 rounded bg-surface-container-highest" /></div>
-                  <span className={cn("absolute bottom-3 right-3 rounded-full px-2.5 py-1 text-label-sm font-bold", p.tagTone)}>{p.tag}</span>
+                <div aria-hidden className="relative min-h-44 rounded-card bg-surface-container-lowest p-3.5 pb-10 shadow-level-1">
+                  {p.scene}
+                  <span className={cn("absolute bottom-2.5 right-3 rounded-full px-2.5 py-1 text-label-sm font-bold", p.tagTone)}>{p.tag}</span>
                 </div>
                 <h3 className="mt-1 font-display text-headline-sm font-bold">{p.title}</h3>
                 <p className="text-body-md text-on-surface-variant">{p.body}</p>
