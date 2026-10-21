@@ -1,5 +1,4 @@
 import {
-  AlertTriangle,
   ArrowRight,
   BriefcaseBusiness,
   Check,
@@ -17,7 +16,6 @@ import { Link } from "react-router-dom";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { ButtonLink } from "@/components/ui/Button";
-import { ScoreRing } from "@/components/ui/Score";
 import { PRODUCT_NAME } from "@/constants/branding";
 import { PHOTOS, photoSrcSet } from "@/constants/images";
 import { OnlyHereSection } from "@/pages/landing/OnlyHereSection";
@@ -160,21 +158,6 @@ export function LandingPage() {
                 <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[20%_30%]" />
               </div>
               <div aria-hidden className="absolute -right-2 -top-2 size-16 rounded-full bg-accent sm:top-0 sm:size-28" />
-              <div className="absolute bottom-36 left-0 flex animate-float items-center gap-3 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
-                <ScoreRing value={84} size={76} label="Example match score" />
-                <div>
-                  <p className="font-semibold">Match score</p>
-                  <p className="text-body-md text-on-surface-variant">Senior Backend Engineer</p>
-                </div>
-              </div>
-              <div aria-hidden className="absolute left-0 top-4 w-56 animate-float-slow sm:w-60 rounded-card bg-surface-container-lowest p-4 shadow-level-3">
-                <p className="flex items-center gap-2 font-semibold"><span className="flex size-7 items-center justify-center rounded-control bg-success-surface"><Check className="size-4 text-success" strokeWidth={3} /></span>ATS check passed</p>
-                <p className="mt-1.5 text-body-sm text-on-surface-variant">Headings read in order. Contact details found. One page.</p>
-              </div>
-              <div aria-hidden className="absolute bottom-6 right-2 w-72 animate-float rounded-card bg-surface-container-lowest p-4 shadow-level-3 [animation-delay:1s]">
-                <p className="text-body-md">Cut API latency by <mark className="rounded bg-warning-border px-1 text-on-surface">40%</mark> with Redis caching.</p>
-                <p className="mt-2 flex items-center gap-1.5 text-body-sm font-semibold text-critical-ink"><AlertTriangle className="size-3.5" />"40%" isn't in your master resume</p>
-              </div>
             </div>
           </div>
         </section>
