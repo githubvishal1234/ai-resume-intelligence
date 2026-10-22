@@ -42,6 +42,7 @@ class FakeOpenAI:
                     {
                         "path": self.path,
                         "auth": self.headers.get("Authorization"),
+                        "agent": self.headers.get("User-Agent"),
                         "body": json.loads(self.rfile.read(length)),
                     }
                 )
@@ -133,6 +134,7 @@ def test_structured_request_and_parsed_result(
     sent = openai_server.requests[0]
     assert sent["path"] == "/v1/chat/completions"
     assert sent["auth"] == f"Bearer {KEY}"
+    assert sent["agent"] == "ResumeIntelligence/1.0"  # not urllib's default, which Groq blocks
     body = sent["body"]
     assert body["model"] == "gpt-test"
     assert body["max_completion_tokens"] == 200
@@ -266,3 +268,16 @@ def test_json_object_mode_puts_the_schema_in_a_system_message(
     openai_server.ok('{"notes": ["no score"]}')
     with pytest.raises(LLMOutputInvalid):
         get_llm_provider(s).generate_structured(Answer, MESSAGES)
+
+
+def test_reasoning_effort_is_sent_only_when_set(
+    openai_settings: Settings, openai_server: FakeOpenAI
+) -> None:
+    openai_server.ok('{"score": 4, "notes": []}')
+    openai_server.ok('{"score": 4, "notes": []}')
+    get_llm_provider(openai_settings).generate_structured(Answer, MESSAGES)
+    low = openai_settings.model_copy(update={"llm_reasoning_effort": "low"})
+    get_llm_provider(low).generate_structured(Answer, MESSAGES)
+    first, second = (r["body"] for r in openai_server.requests)
+    assert "reasoning_effort" not in first  # models without reasoning would reject it
+    assert second["reasoning_effort"] == "low"
