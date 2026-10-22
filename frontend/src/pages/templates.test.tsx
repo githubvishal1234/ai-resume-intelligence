@@ -24,3 +24,21 @@ describe("Template gallery", () => {
     expect(screen.getByRole("link", { name: /Academic CV/ })).toHaveAttribute("href", "/cv-builder?template=cv-academic");
   });
 });
+
+describe("Template gallery layouts", () => {
+  it("filters by layout and photo, and labels ATS-friendly designs", async () => {
+    const user = userEvent.setup();
+    mockApi([{ path: "/auth/me", ...NOT_AUTHED }]);
+    renderApp("/templates");
+    const resumes = TEMPLATE_STYLES.filter((t) => t.kind === "resume").length;
+    await screen.findByText(/Showing/);
+    await user.click(within(screen.getByRole("group", { name: "Layout" })).getByRole("radio", { name: "Sidebar" }));
+    expect(screen.getByText(/Showing/)).toHaveTextContent(`Showing 12 of ${resumes}`); // Sidebar and Portfolio, 6 colours each
+    expect(screen.getAllByText("ATS-friendly")).toHaveLength(12);
+    await user.click(within(screen.getByRole("group", { name: "Photo" })).getByRole("radio", { name: "With photo" }));
+    expect(screen.getByText(/Showing/)).toHaveTextContent(`Showing 6 of ${resumes}`); // Portfolio only
+    await user.click(within(screen.getByRole("group", { name: "Layout" })).getByRole("radio", { name: "One column" }));
+    expect(screen.getByRole("link", { name: /Use this template: Portrait · Teal/ })).toHaveAttribute("href", "/resumes/new?template=portrait-teal");
+    expect(screen.queryByText("ATS-friendly")).not.toBeInTheDocument();
+  });
+});

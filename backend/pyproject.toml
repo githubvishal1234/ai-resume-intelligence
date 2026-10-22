@@ -17,6 +17,7 @@ dependencies = [
   "pypdf>=5.0",
   "python-docx>=1.1",
   "reportlab>=4.2",
+  "pillow>=13.0",  # profile photos: re-encoding uploads and the round crop in PDFs
 ]
 
 [project.optional-dependencies]

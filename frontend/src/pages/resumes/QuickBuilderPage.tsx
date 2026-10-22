@@ -13,6 +13,7 @@ import { Notice } from "@/components/ui/Notice";
 import { ErrorState, PageLoading } from "@/components/ui/States";
 import { DEFAULT_TEMPLATE, TEMPLATE_STYLES } from "@/constants/templates";
 import { useCreateResume, useMasterSummary, useResume, useSaveContent } from "@/hooks/useResumes";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { useSession } from "@/hooks/useSession";
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { cn } from "@/lib/cn";
@@ -33,7 +34,7 @@ import { emptyResume, newId, type Education, type Experience, type ResumeDetail,
 import { PageHeader } from "./common";
 
 const STEPS: { id: StepId; label: string; title: string; description: string }[] = [
-  { id: "style", label: "Style", title: "Pick a style", description: "Every template is single-column and readable by applicant tracking systems. You can switch at any time." },
+  { id: "style", label: "Style", title: "Pick a style", description: "Every template is real text that applicant tracking systems can read; one-column designs are the safest. You can switch at any time." },
   { id: "contact", label: "Contact", title: "How can employers reach you?", description: "Use a professional email address. A city is enough for location." },
   { id: "experience", label: "Experience", title: "Your work experience", description: "Most recent first. Internships, freelance and volunteer work all count." },
   { id: "education", label: "Education", title: "Your education", description: "Your highest degree is usually enough." },
@@ -73,6 +74,7 @@ function FromMaster({ id, templates, userId }: { id: string; templates: Template
 function Builder({ templates, userId, master }: { templates: TemplateOption[]; userId: string; master?: ResumeDetail }) {
   const navigate = useNavigate();
   const draftKey = `quick-builder:${userId}`;
+  const photo = useProfilePhoto();
   const [initial] = useState<Draft>(() => {
     if (master) return { doc: master.content, template: DEFAULT_TEMPLATE, title: master.title, step: 1 };
     return readDraft<Draft>(draftKey) ?? { doc: emptyResume(), template: DEFAULT_TEMPLATE, title: "Master resume", step: 0 };
@@ -225,7 +227,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
           </Card>
           {showPreview ? (
             <div className="mt-6 space-y-2 lg:hidden">
-              <ResumePaper doc={previewDoc} template={template} />
+              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           ) : null}
@@ -238,7 +240,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                 <span aria-hidden className="size-2 animate-pulse rounded-full bg-success" />
                 Live preview · {TEMPLATE_STYLES.find((t) => t.id === template)?.name ?? template}
               </p>
-              <ResumePaper doc={previewDoc} template={template} />
+              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           </aside>

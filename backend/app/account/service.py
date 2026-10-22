@@ -14,6 +14,7 @@ from datetime import datetime
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.account.photo import photo_key
 from app.auth.repository import AuditRepository
 from app.auth.service import WeakPassword
 from app.billing.service import BillingService
@@ -112,6 +113,8 @@ class AccountService:
         keys = list(
             self.db.scalars(select(ResumeFile.storage_key).where(ResumeFile.owner_id == user_id))
         )
+        if self.storage.exists(photo_key(user_id)):
+            keys.append(photo_key(user_id))
         self.db.execute(delete(User).where(User.id == user_id))
         # Kept without the user: the audit trail records that a deletion happened, not who.
         self.audit.record(

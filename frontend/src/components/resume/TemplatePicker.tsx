@@ -1,6 +1,9 @@
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useId, useState } from "react";
-import { templateStyle } from "@/constants/templates";
+import { Notice } from "@/components/ui/Notice";
+import { atsLevel, templateStyle } from "@/constants/templates";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
 import { ResumePaper } from "./ResumePaper";
@@ -26,6 +29,8 @@ export function TemplatePicker({
 }) {
   const name = useId();
   const [filters, setFilters] = useState(NO_FILTERS);
+  const photo = useProfilePhoto();
+  const chosen = templateStyle(value);
   // Filters only help once there are many; the chosen template always stays visible.
   const filterable = templates.length > 8;
   const shown = filterable ? templates.filter((t) => t.id === value || matches(t.id, filters)) : templates;
@@ -33,6 +38,16 @@ export function TemplatePicker({
     <fieldset>
       <legend className="sr-only">{legend}</legend>
       {filterable ? <TemplateFilters value={filters} onChange={setFilters} className="mb-5" /> : null}
+      {chosen.photo && !photo.url && !photo.isPending ? (
+        <Notice tone="info" title="This template shows a photo" className="mb-5">
+          Add one in <Link to="/settings" className="font-semibold underline">Settings → Profile photo</Link>. Without it, the PDF simply has no photo.
+        </Notice>
+      ) : null}
+      {atsLevel(chosen) === "friendly" ? (
+        <Notice tone="info" title={`${chosen.name} is ATS-friendly, not ATS-safe`} className="mb-5">
+          Its text reads in order, but some older screening systems handle columns and tables less well. For large employers&apos; online forms, a one-column template is safest.
+        </Notice>
+      ) : null}
       <div className={cn("grid gap-4", columns)}>
         {shown.map((t) => {
           const selected = t.id === value;
@@ -47,7 +62,7 @@ export function TemplatePicker({
             >
               <input type="radio" name={name} value={t.id} checked={selected} onChange={() => onChange(t.id)} className="sr-only" />
               <div className="overflow-hidden rounded-control bg-surface-container-low p-3">
-                <ResumePaper doc={doc} template={t.id} label={`${t.name} template preview`} />
+                <ResumePaper doc={doc} template={t.id} label={`${t.name} template preview`} photoUrl={photo.url} />
               </div>
               <div className="flex items-start justify-between gap-2 px-1">
                 <span>

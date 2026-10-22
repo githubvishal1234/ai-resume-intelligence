@@ -5,7 +5,8 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { matches, NO_FILTERS, TemplateFilters, type Filters } from "@/components/resume/TemplateFilters";
 import { Button } from "@/components/ui/Button";
-import { TEMPLATE_STYLES } from "@/constants/templates";
+import { Pill } from "@/components/ui/Pill";
+import { atsLevel, TEMPLATE_STYLES } from "@/constants/templates";
 import { useSession } from "@/hooks/useSession";
 import { cn } from "@/lib/cn";
 import { SAMPLE_RESUME } from "@/lib/resumeHelpers";
@@ -31,10 +32,11 @@ export function TemplatesPage() {
         <div className="max-w-3xl animate-rise">
           <p className="text-label-md font-semibold uppercase tracking-wider text-primary">Templates</p>
           <h1 className="mt-2 font-display text-[40px] font-extrabold leading-tight tracking-[-0.035em] sm:text-[52px]">
-            {TEMPLATE_STYLES.length} templates, every one ATS-safe
+            {TEMPLATE_STYLES.length} templates, all readable by screening software
           </h1>
           <p className="mt-3 text-body-lg text-on-surface-variant">
-            Colour bands, side stripes, ribbons and classic serif. Every design is a single column of real text, so screening software reads it top to bottom.
+            One-column classics, sidebars, timelines and photo layouts. Every design is real, selectable text in a fixed reading order. One-column designs are
+            ATS-safe; sidebar and timeline designs are ATS-friendly, labelled on each card.
           </p>
         </div>
 
@@ -81,7 +83,8 @@ export function TemplatesPage() {
                 <div className="flex items-start justify-between gap-2 px-1 pt-3">
                   <div className="min-w-0">
                     <h2 className="text-label-md font-semibold text-on-surface">{t.name}</h2>
-                    <p className="text-body-sm text-on-surface-variant">{t.category} · {t.serif ? "Serif" : "Sans-serif"}</p>
+                    <p className="text-body-sm text-on-surface-variant">{t.category} · {t.serif ? "Serif" : "Sans-serif"}{t.photo ? " · Photo" : ""}</p>
+                    <Pill tone={atsLevel(t) === "safe" ? "matched" : "neutral"} className="mt-1">{atsLevel(t) === "safe" ? "ATS-safe" : "ATS-friendly"}</Pill>
                   </div>
                   <span aria-hidden className="mt-1 size-4 shrink-0 rounded-full ring-1 ring-hairline-strong" style={{ background: t.accent }} />
                 </div>

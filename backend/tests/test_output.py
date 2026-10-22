@@ -78,7 +78,7 @@ def test_pdf_keeps_non_western_text(template: str) -> None:
         experience=[Experience(title="Інженер", company="Straße GmbH", start_date="Jan 2020")],
     )
     pdf = render_pdf(content, TEMPLATES[template])
-    text = _text(pdf)
+    text = " ".join(_text(pdf).split())  # a narrow sidebar may wrap the name onto two lines
     for fragment in (
         "José Núñez Ødegård",
         "Привет",

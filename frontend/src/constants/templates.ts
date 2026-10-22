@@ -6,6 +6,9 @@
 export type SectionKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications";
 export const RESUME_ORDER: SectionKey[] = ["summary", "experience", "education", "skills", "projects", "certifications"];
 export const CV_ORDER: SectionKey[] = ["summary", "education", "experience", "projects", "certifications", "skills"];
+/** Sidebar layouts: these sections sit in the sidebar, which the PDF draws (and an ATS reads) first. */
+export const SIDEBAR_SECTIONS: SectionKey[] = ["skills", "certifications", "education"];
+export const SIDEBAR_ORDER: SectionKey[] = [...SIDEBAR_SECTIONS, "summary", "experience", "projects"];
 
 export type TemplateStyle = {
   id: string;
@@ -21,8 +24,20 @@ export type TemplateStyle = {
   rule: boolean;
   accent: string;
   center: boolean;
-  /** "banner": name on a solid accent band; "stripe": an accent bar down the page's left edge. */
-  header: "plain" | "banner" | "stripe";
+  /**
+   * "banner": name on a solid accent band; "stripe": an accent bar down the page's left edge;
+   * "split": name left, contact stacked right; "monogram": initials in an accent square.
+   */
+  header: "plain" | "banner" | "stripe" | "split" | "monogram";
+  layout: "single" | "sidebar" | "timeline";
+  /** Sidebar background: the accent colour (white text) or a light tint of it. */
+  sidebarFill: "solid" | "tint";
+  /** Shows the user's profile photo, if they uploaded one. */
+  photo: boolean;
+  /** Each role's dates right-aligned on its title line. */
+  datesRight: boolean;
+  /** Skills in three columns instead of comma lists. */
+  skillsGrid: boolean;
   /** Section headings on a light tint of the accent. */
   band: boolean;
   /** For the gallery's filters. */
@@ -32,7 +47,13 @@ export type TemplateStyle = {
 
 export type TemplateCategory = "Professional" | "Modern" | "Creative" | "Simple";
 
-type Base = Omit<TemplateStyle, "header" | "band">;
+type Layout = Pick<TemplateStyle, "layout" | "sidebarFill" | "photo" | "datesRight" | "skillsGrid">;
+const SINGLE: Layout = { layout: "single", sidebarFill: "solid", photo: false, datesRight: false, skillsGrid: false };
+
+/** "safe": one column of text. "friendly": sidebar or timeline, read in order but in columns. */
+export const atsLevel = (t: Pick<TemplateStyle, "layout">) => (t.layout === "single" ? "safe" : "friendly");
+
+type Base = Omit<TemplateStyle, "header" | "band" | keyof Layout>;
 
 const ORIGINALS: Base[] = [
   { id: "classic", kind: "resume", order: RESUME_ORDER, name: "Classic", description: "Clean sans-serif, generous spacing, ruled section headings.", serif: false, bodyPt: 10.5, namePt: 20, headingPt: 11.5, marginMm: 18, rule: true, accent: "#1f2a44", center: false, category: "Professional", colour: "Navy" },
@@ -55,7 +76,8 @@ export const PALETTES: Record<string, string> = {
   charcoal: "#374151",
 };
 
-type Design = Omit<TemplateStyle, "id" | "accent" | "colour" | "kind" | "order">;
+type Design = Omit<TemplateStyle, "id" | "accent" | "colour" | "kind" | "order" | keyof Layout> &
+  Partial<Layout> & { order?: SectionKey[] };
 
 /** Designs offered in every palette; mirrors DESIGNS in backend/app/output/templates.py. */
 const DESIGNS: Record<string, Design> = {
@@ -64,19 +86,27 @@ const DESIGNS: Record<string, Design> = {
   ribbon: { name: "Ribbon", description: "Section headings on soft colour ribbons, plenty of white space.", category: "Modern", serif: false, bodyPt: 10, namePt: 21, headingPt: 11, marginMm: 16, rule: false, center: false, header: "plain", band: true },
   elegant: { name: "Elegant", description: "Serif type, a centred name and soft colour ribbons.", category: "Creative", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: false, center: true, header: "plain", band: true },
   statement: { name: "Statement", description: "Serif name on a colour band with ruled serif headings.", category: "Professional", serif: true, bodyPt: 10.5, namePt: 23, headingPt: 12, marginMm: 17, rule: true, center: true, header: "banner", band: false },
+  sidebar: { name: "Sidebar", description: "A solid colour sidebar with contact, skills and education.", category: "Modern", serif: false, bodyPt: 9.5, namePt: 19, headingPt: 11, marginMm: 13, rule: true, center: false, header: "plain", band: false, layout: "sidebar", order: SIDEBAR_ORDER },
+  portfolio: { name: "Portfolio", description: "A soft sidebar with your photo, contact and skills.", category: "Creative", serif: false, bodyPt: 9.5, namePt: 18, headingPt: 11, marginMm: 13, rule: true, center: false, header: "plain", band: false, layout: "sidebar", sidebarFill: "tint", photo: true, order: SIDEBAR_ORDER },
+  timeline: { name: "Timeline", description: "Roles on a timeline, dates in the margin, colour headings.", category: "Creative", serif: false, bodyPt: 9.5, namePt: 22, headingPt: 11.5, marginMm: 15, rule: false, center: false, header: "plain", band: false, layout: "timeline", skillsGrid: true },
+  split: { name: "Split", description: "Name on the left, contact on the right, dates aligned right.", category: "Professional", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, center: false, header: "split", band: false, datesRight: true },
+  monogram: { name: "Monogram", description: "Serif type with your initials in a colour square.", category: "Professional", serif: true, bodyPt: 10, namePt: 21, headingPt: 12, marginMm: 17, rule: true, center: false, header: "monogram", band: false, datesRight: true },
+  ledger: { name: "Ledger", description: "Compact and tidy: dates right, skills in a three-column grid.", category: "Simple", serif: false, bodyPt: 9.5, namePt: 18, headingPt: 10.5, marginMm: 13, rule: true, center: false, header: "plain", band: false, datesRight: true, skillsGrid: true },
+  portrait: { name: "Portrait", description: "One column with your photo beside the name.", category: "Modern", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, center: false, header: "plain", band: false, photo: true },
 };
 
 const title = (s: string) => s[0]!.toUpperCase() + s.slice(1);
 
 export const TEMPLATE_STYLES: TemplateStyle[] = [
-  ...ORIGINALS.map((t) => ({ ...t, header: "plain" as const, band: false })),
+  ...ORIGINALS.map((t) => ({ ...t, ...SINGLE, header: "plain" as const, band: false })),
   ...Object.entries(DESIGNS).flatMap(([design, d]) =>
     Object.entries(PALETTES).map(([palette, accent]) => ({
+      ...SINGLE,
       ...d,
       id: `${design}-${palette}`,
       name: `${d.name} · ${title(palette)}`,
       kind: "resume" as const,
-      order: RESUME_ORDER,
+      order: d.order ?? RESUME_ORDER,
       accent,
       colour: title(palette),
     })),

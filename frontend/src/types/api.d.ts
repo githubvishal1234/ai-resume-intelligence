@@ -289,6 +289,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Photo */
+        get: operations["get_photo_api_v1_account_photo_get"];
+        /** Put Photo */
+        put: operations["put_photo_api_v1_account_photo_put"];
+        post?: never;
+        /** Delete Photo */
+        delete: operations["delete_photo_api_v1_account_photo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/capabilities": {
         parameters: {
             query?: never;
@@ -1696,6 +1715,14 @@ export interface components {
             /** Ai Daily Limit */
             ai_daily_limit: number;
             subscription: components["schemas"]["SubscriptionOut"] | null;
+        };
+        /** Body_put_photo_api_v1_account_photo_put */
+        Body_put_photo_api_v1_account_photo_put: {
+            /**
+             * File
+             * @description JPEG, PNG or WebP, at most 5 MB
+             */
+            file: string;
         };
         /** Body_upload_job_api_v1_jobs_upload_post */
         Body_upload_job_api_v1_jobs_upload_post: {
@@ -4059,6 +4086,73 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProWaitlistOut"];
                 };
+            };
+        };
+    };
+    get_photo_api_v1_account_photo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_photo_api_v1_account_photo_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_put_photo_api_v1_account_photo_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_photo_api_v1_account_photo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
