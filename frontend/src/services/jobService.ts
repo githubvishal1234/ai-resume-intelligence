@@ -67,7 +67,6 @@ export const jobService = {
     form.append("file", file);
     return detail(await api.post<S["JobDetailOut"]>("/jobs/upload", form));
   },
-  fromUrl: async (url: string) => detail(await api.post<S["JobDetailOut"]>("/jobs/from-url", { url })),
   update: async (id: string, meta: { title: string; company: string; location: string }) =>
     detail(await api.patch<S["JobDetailOut"]>(`/jobs/${id}`, meta)),
   reanalyze: async (id: string) => detail(await api.post<S["JobDetailOut"]>(`/jobs/${id}/reanalyze`)),
