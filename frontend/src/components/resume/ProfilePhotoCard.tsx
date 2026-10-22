@@ -4,28 +4,25 @@ import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { useProfilePhoto, useRemovePhoto, useUploadPhoto } from "@/hooks/useProfilePhoto";
+import { cn } from "@/lib/cn";
 
-/** Upload or remove the profile photo that photo templates (Portrait, Portfolio) show. */
-export function ProfilePhotoCard() {
+/** The photo (or a placeholder) with Upload / Replace / Remove. One photo per account. */
+export function PhotoUploader({ size = "md" }: { size?: "sm" | "md" }) {
   const { url } = useProfilePhoto();
   const upload = useUploadPhoto();
   const remove = useRemovePhoto();
   const input = useRef<HTMLInputElement>(null);
   const error = upload.error ?? remove.error;
+  const avatar = size === "sm" ? "size-14" : "size-20";
 
   return (
-    <Card aria-labelledby="photo-title">
-      <CardHeader
-        id="photo-title"
-        title="Profile photo"
-        description="Optional. Shown only by photo templates such as Portrait and Portfolio. Common in India, Europe and the Gulf; many other employers prefer none."
-      />
+    <div>
       <div className="flex flex-wrap items-center gap-4">
         {url ? (
-          <img src={url} alt="Your profile photo" className="size-20 rounded-full object-cover ring-1 ring-hairline" />
+          <img src={url} alt="Your profile photo" className={cn(avatar, "rounded-full object-cover ring-1 ring-hairline")} />
         ) : (
-          <span className="flex size-20 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
-            <UserRound className="size-8" aria-hidden />
+          <span className={cn(avatar, "flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant")}>
+            <UserRound className="size-7" aria-hidden />
             <span className="sr-only">No photo yet</span>
           </span>
         )}
@@ -43,7 +40,7 @@ export function ProfilePhotoCard() {
               e.target.value = "";
             }}
           />
-          <Button variant="secondary" size="sm" loading={upload.isPending} icon={<ImageUp className="size-4" aria-hidden />} onClick={() => input.current?.click()}>
+          <Button variant={url ? "secondary" : "primary"} size="sm" loading={upload.isPending} icon={<ImageUp className="size-4" aria-hidden />} onClick={() => input.current?.click()}>
             {url ? "Replace photo" : "Upload photo"}
           </Button>
           {url ? (
@@ -59,6 +56,20 @@ export function ProfilePhotoCard() {
           <ApiErrorText error={error} />
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** Settings card for the profile photo that photo templates (Portrait, Portfolio) show. */
+export function ProfilePhotoCard() {
+  return (
+    <Card aria-labelledby="photo-title">
+      <CardHeader
+        id="photo-title"
+        title="Profile photo"
+        description="Optional. Shown only by photo templates such as Portrait and Portfolio. Common in India, Europe and the Gulf; many other employers prefer none."
+      />
+      <PhotoUploader />
     </Card>
   );
 }

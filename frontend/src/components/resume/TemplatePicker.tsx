@@ -1,11 +1,11 @@
 import { Check } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useId, useState } from "react";
 import { Notice } from "@/components/ui/Notice";
 import { atsLevel, templateStyle } from "@/constants/templates";
 import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
+import { PhotoUploader } from "./ProfilePhotoCard";
 import { ResumePaper } from "./ResumePaper";
 import { matches, NO_FILTERS, TemplateFilters } from "./TemplateFilters";
 
@@ -38,10 +38,16 @@ export function TemplatePicker({
     <fieldset>
       <legend className="sr-only">{legend}</legend>
       {filterable ? <TemplateFilters value={filters} onChange={setFilters} className="mb-5" /> : null}
-      {chosen.photo && !photo.url && !photo.isPending ? (
-        <Notice tone="info" title="This template shows a photo" className="mb-5">
-          Add one in <Link to="/settings" className="font-semibold underline">Settings → Profile photo</Link>. Without it, the PDF simply has no photo.
-        </Notice>
+      {chosen.photo ? (
+        <section aria-labelledby={`${name}-photo`} className="mb-5 rounded-card border border-hairline bg-surface-container-low p-4">
+          <h3 id={`${name}-photo`} className="text-label-md font-semibold text-on-surface">
+            {chosen.name} shows your photo
+          </h3>
+          <p className="mb-3 mt-1 text-body-sm text-on-surface-variant">
+            {photo.url ? "It appears in the preview and the PDF. One photo is used for every photo template." : "Add one to see it in the preview and the PDF. Without it, the PDF simply has no photo."}
+          </p>
+          <PhotoUploader size="sm" />
+        </section>
       ) : null}
       {atsLevel(chosen) === "friendly" ? (
         <Notice tone="info" title={`${chosen.name} is ATS-friendly, not ATS-safe`} className="mb-5">

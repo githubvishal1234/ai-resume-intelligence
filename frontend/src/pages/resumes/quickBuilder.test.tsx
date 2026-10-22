@@ -134,3 +134,27 @@ describe("Quick Resume Builder", () => {
     expect(save).toHaveAccessibleName(/Add your name in the Contact step first/);
   });
 });
+
+describe("Photo templates", () => {
+  it("offers a photo upload right where a photo template is chosen", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/resumes", body: [] },
+      { path: "/output/templates", body: [...TEMPLATES, { id: "portrait-teal", name: "Portrait · Teal", description: "Photo beside the name." }] },
+      { path: "/account/photo", status: 204 },
+      { method: "PUT", path: "/account/photo", status: 204 },
+    ]);
+    renderApp("/resumes/new");
+    expect(await screen.findByRole("heading", { name: "Pick a style" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload photo" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Portrait · Teal template preview/ }));
+    const panel = screen.getByRole("region", { name: /shows your photo/ });
+    expect(panel).toHaveTextContent("Without it, the PDF simply has no photo.");
+    const file = new File(["fake"], "me.png", { type: "image/png" });
+    const input = panel.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await user.upload(input, file);
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.path === "/account/photo")).toBe(true));
+  });
+});
