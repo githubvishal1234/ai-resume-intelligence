@@ -34,7 +34,7 @@ def _put(client: TestClient, data: bytes, name: str = "me.png") -> Any:
 
 
 def test_upload_is_re_encoded_as_a_square_jpeg_without_metadata(user_client: TestClient) -> None:
-    assert user_client.get(API).status_code == 404
+    assert user_client.get(API).status_code == 204
     assert _put(user_client, _image("JPEG", exif=True), "me.jpg").status_code == 204
     got = user_client.get(API)
     assert got.status_code == 200 and got.headers["content-type"] == "image/jpeg"
@@ -42,7 +42,7 @@ def test_upload_is_re_encoded_as_a_square_jpeg_without_metadata(user_client: Tes
         assert (im.format, im.size) == ("JPEG", (600, 600))
         assert not im.getexif()  # the camera make (and any GPS) is gone
     assert user_client.delete(API).status_code == 204
-    assert user_client.get(API).status_code == 404
+    assert user_client.get(API).status_code == 204
 
 
 def test_only_real_jpeg_png_or_webp_images_are_accepted(user_client: TestClient) -> None:
@@ -56,7 +56,7 @@ def test_only_real_jpeg_png_or_webp_images_are_accepted(user_client: TestClient)
 def test_each_user_sees_only_their_own_photo(app: FastAPI, user_client: TestClient) -> None:
     assert _put(user_client, _image()).status_code == 204
     other = login_as(app, "eve@example.com")
-    assert other.get(API).status_code == 404
+    assert other.get(API).status_code == 204
 
 
 def test_photo_templates_draw_it_and_the_ats_check_notes_it(user_client: TestClient) -> None:

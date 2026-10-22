@@ -8,7 +8,7 @@ const key = ["account", "photo"] as const;
 /** The signed-in user's photo as a Blob, or null when none is uploaded. */
 async function fetchPhoto(): Promise<Blob | null> {
   const response = await fetch(`/api/v1${PHOTO}`, { credentials: "include" });
-  if (response.status === 404) return null;
+  if (response.status === 204) return null; // no photo uploaded
   if (!response.ok) throw new Error("Could not load the photo.");
   return response.blob();
 }

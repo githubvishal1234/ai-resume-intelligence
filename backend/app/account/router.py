@@ -20,7 +20,6 @@ from app.auth.deps import CurrentAuth
 from app.auth.router import check_rate_limit
 from app.auth.schemas import UserOut
 from app.core.config import Settings, get_settings
-from app.core.errors import NotFound
 from app.db.session import get_db
 from app.storage.base import get_storage
 
@@ -121,8 +120,8 @@ async def put_photo(
 @router.get("/photo", response_class=Response)
 def get_photo(service: Service) -> Response:
     photo = load_photo(service.storage, service.user.id)
-    if photo is None:
-        raise NotFound("No photo uploaded.")
+    if photo is None:  # a normal state, not an error: no 404 for browsers to log
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     return Response(photo, media_type="image/jpeg", headers={"cache-control": "private, no-cache"})
 
 
