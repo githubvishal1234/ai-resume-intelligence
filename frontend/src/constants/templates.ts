@@ -21,17 +21,66 @@ export type TemplateStyle = {
   rule: boolean;
   accent: string;
   center: boolean;
+  /** "banner": name on a solid accent band; "stripe": an accent bar down the page's left edge. */
+  header: "plain" | "banner" | "stripe";
+  /** Section headings on a light tint of the accent. */
+  band: boolean;
+  /** For the gallery's filters. */
+  category: TemplateCategory;
+  colour: string;
 };
 
+export type TemplateCategory = "Professional" | "Modern" | "Creative" | "Simple";
+
+type Base = Omit<TemplateStyle, "header" | "band">;
+
+const ORIGINALS: Base[] = [
+  { id: "classic", kind: "resume", order: RESUME_ORDER, name: "Classic", description: "Clean sans-serif, generous spacing, ruled section headings.", serif: false, bodyPt: 10.5, namePt: 20, headingPt: 11.5, marginMm: 18, rule: true, accent: "#1f2a44", center: false, category: "Professional", colour: "Navy" },
+  { id: "modern", kind: "resume", order: RESUME_ORDER, name: "Modern", description: "Indigo headings, a large name and ruled sections.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, accent: "#3730a3", center: false, category: "Modern", colour: "Indigo" },
+  { id: "executive", kind: "resume", order: RESUME_ORDER, name: "Executive", description: "Serif type, centred name and navy ruled headings.", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: true, accent: "#1f2a44", center: true, category: "Professional", colour: "Navy" },
+  { id: "minimal", kind: "resume", order: RESUME_ORDER, name: "Minimal", description: "Centred header, wide margins and quiet grey headings.", serif: false, bodyPt: 10, namePt: 18, headingPt: 11, marginMm: 20, rule: false, accent: "#374151", center: true, category: "Simple", colour: "Charcoal" },
+  { id: "compact", kind: "resume", order: RESUME_ORDER, name: "Compact", description: "Tighter spacing to fit more on a page; plain headings.", serif: false, bodyPt: 9.5, namePt: 16, headingPt: 10.5, marginMm: 13, rule: false, accent: "#000000", center: false, category: "Simple", colour: "Black" },
+  { id: "serif", kind: "resume", order: RESUME_ORDER, name: "Serif", description: "Serif type for a traditional look, ruled headings.", serif: true, bodyPt: 11, namePt: 20, headingPt: 12, marginMm: 18, rule: true, accent: "#000000", center: false, category: "Professional", colour: "Black" },
+  { id: "cv-academic", kind: "cv", order: CV_ORDER, name: "Academic CV", description: "Serif CV that leads with education, then research and teaching roles.", serif: true, bodyPt: 10.5, namePt: 21, headingPt: 12, marginMm: 20, rule: true, accent: "#7a1f3d", center: true, category: "Professional", colour: "Burgundy" },
+  { id: "cv-professional", kind: "cv", order: ["summary", "experience", "education", "projects", "certifications", "skills"], name: "Professional CV", description: "Full-length CV in clean sans-serif; experience first, every section kept.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 18, rule: true, accent: "#0f5e63", center: false, category: "Professional", colour: "Teal" },
+];
+
+/** Colour families for the generated designs; mirrors PALETTES in backend/app/output/templates.py. */
+export const PALETTES: Record<string, string> = {
+  navy: "#1f3a5f",
+  teal: "#0f6366",
+  burgundy: "#8a1c3b",
+  forest: "#2f6b3a",
+  plum: "#5b3aa8",
+  charcoal: "#374151",
+};
+
+type Design = Omit<TemplateStyle, "id" | "accent" | "colour" | "kind" | "order">;
+
+/** Designs offered in every palette; mirrors DESIGNS in backend/app/output/templates.py. */
+const DESIGNS: Record<string, Design> = {
+  banner: { name: "Banner", description: "Name and contact on a solid colour band, ruled headings.", category: "Modern", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, center: false, header: "banner", band: false },
+  stripe: { name: "Stripe", description: "A colour stripe down the left edge and colour headings.", category: "Creative", serif: false, bodyPt: 10, namePt: 22, headingPt: 12, marginMm: 18, rule: false, center: false, header: "stripe", band: false },
+  ribbon: { name: "Ribbon", description: "Section headings on soft colour ribbons, plenty of white space.", category: "Modern", serif: false, bodyPt: 10, namePt: 21, headingPt: 11, marginMm: 16, rule: false, center: false, header: "plain", band: true },
+  elegant: { name: "Elegant", description: "Serif type, a centred name and soft colour ribbons.", category: "Creative", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: false, center: true, header: "plain", band: true },
+  statement: { name: "Statement", description: "Serif name on a colour band with ruled serif headings.", category: "Professional", serif: true, bodyPt: 10.5, namePt: 23, headingPt: 12, marginMm: 17, rule: true, center: true, header: "banner", band: false },
+};
+
+const title = (s: string) => s[0]!.toUpperCase() + s.slice(1);
+
 export const TEMPLATE_STYLES: TemplateStyle[] = [
-  { id: "classic", kind: "resume", order: RESUME_ORDER, name: "Classic", description: "Clean sans-serif, generous spacing, ruled section headings.", serif: false, bodyPt: 10.5, namePt: 20, headingPt: 11.5, marginMm: 18, rule: true, accent: "#1f2a44", center: false },
-  { id: "modern", kind: "resume", order: RESUME_ORDER, name: "Modern", description: "Indigo headings, a large name and ruled sections.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, accent: "#3730a3", center: false },
-  { id: "executive", kind: "resume", order: RESUME_ORDER, name: "Executive", description: "Serif type, centred name and navy ruled headings.", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: true, accent: "#1f2a44", center: true },
-  { id: "minimal", kind: "resume", order: RESUME_ORDER, name: "Minimal", description: "Centred header, wide margins and quiet grey headings.", serif: false, bodyPt: 10, namePt: 18, headingPt: 11, marginMm: 20, rule: false, accent: "#374151", center: true },
-  { id: "compact", kind: "resume", order: RESUME_ORDER, name: "Compact", description: "Tighter spacing to fit more on a page; plain headings.", serif: false, bodyPt: 9.5, namePt: 16, headingPt: 10.5, marginMm: 13, rule: false, accent: "#000000", center: false },
-  { id: "serif", kind: "resume", order: RESUME_ORDER, name: "Serif", description: "Serif type for a traditional look, ruled headings.", serif: true, bodyPt: 11, namePt: 20, headingPt: 12, marginMm: 18, rule: true, accent: "#000000", center: false },
-  { id: "cv-academic", kind: "cv", order: CV_ORDER, name: "Academic CV", description: "Serif CV that leads with education, then research and teaching roles.", serif: true, bodyPt: 10.5, namePt: 21, headingPt: 12, marginMm: 20, rule: true, accent: "#7a1f3d", center: true },
-  { id: "cv-professional", kind: "cv", order: ["summary", "experience", "education", "projects", "certifications", "skills"], name: "Professional CV", description: "Full-length CV in clean sans-serif; experience first, every section kept.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 18, rule: true, accent: "#0f5e63", center: false },
+  ...ORIGINALS.map((t) => ({ ...t, header: "plain" as const, band: false })),
+  ...Object.entries(DESIGNS).flatMap(([design, d]) =>
+    Object.entries(PALETTES).map(([palette, accent]) => ({
+      ...d,
+      id: `${design}-${palette}`,
+      name: `${d.name} · ${title(palette)}`,
+      kind: "resume" as const,
+      order: RESUME_ORDER,
+      accent,
+      colour: title(palette),
+    })),
+  ),
 ];
 
 /** Sections a CV usually adds on top of a resume; stored as extra ("other") sections. */
