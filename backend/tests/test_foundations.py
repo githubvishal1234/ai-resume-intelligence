@@ -110,7 +110,7 @@ def test_capabilities_endpoint_reports_not_configured(auth_client: TestClient) -
     assert body["ai"]["configured"] is False
     assert body["email"]["configured"] is False
     assert body["benchmarks"]["available"] is False
-    assert body["job_sources"]["external_adapters"] == []
+    assert body["job_sources"]["external_adapters"] == ["greenhouse", "lever", "ashby", "jsonld"]
 
 
 def test_email_not_configured_raises(settings: Settings) -> None:

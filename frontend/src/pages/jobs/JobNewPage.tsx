@@ -204,8 +204,9 @@ function UrlForm({ onCreated, onFallback }: { onCreated: (id: string) => void; o
   return (
     <Card>
       <p className="mb-4 text-body-md text-on-surface-variant">
-        Reading postings directly from job sites is not switched on: each site has to be approved first. Until then,
-        links fall back to pasting the text.
+        Paste a link to one job on a company's careers page. Postings on Greenhouse, Lever and Ashby are read through their
+        public job-board APIs, and other careers pages work when they publish standard job details. LinkedIn, Indeed and
+        Naukri don't allow other apps to read their postings, so for those, paste the text instead.
       </p>
       {unsupported ? (
         <Notice
@@ -233,7 +234,7 @@ function UrlForm({ onCreated, onFallback }: { onCreated: (id: string) => void; o
               id={id}
               type="url"
               inputMode="url"
-              placeholder="https://"
+              placeholder="https://boards.greenhouse.io/company/jobs/123"
               aria-describedby={describedBy}
               invalid={invalid}
               {...register("url")}

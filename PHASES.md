@@ -135,9 +135,10 @@ frontend UI kit, app shell, API client and session hooks.
 - [x] Add a job by pasting text (50 to 50,000 characters) or uploading a PDF / DOCX / TXT file.
       Uploads reuse the Phase 2 file checks. Title, company and location are optional; the title
       is taken from the posting when left empty.
-- [x] Links: `POST /jobs/from-url` goes through the job-source adapter registry. No source is
-      approved yet (D-05), so every link returns `JOB_SOURCE_NOT_SUPPORTED`. The UI then offers
-      to paste the description instead and keeps the link with the saved job.
+- [x] Links: `POST /jobs/from-url` goes through the job-source adapter registry (D-05, decided
+      2026-10-22; see the progress log). A link that can't be read returns
+      `JOB_SOURCE_NOT_SUPPORTED` with the reason; the UI then offers to paste the description
+      instead and keeps the link with the saved job.
 - [x] Deterministic analysis (`jd-rules-v1`):
   - Requirements split into required / preferred / nice-to-have, using the posting's own
     section headings and wording ("preferred", "a plus"). Without headings it works sentence
@@ -158,8 +159,6 @@ frontend UI kit, app shell, API client and session hooks.
 - [x] Job Analyzer is enabled in the navigation, and the dashboard step links to it.
 
 **Not done here, by decision**
-- Fetching postings from job sites waits on D-05 (which sites, on what terms). Adding one is a
-  single `JobSourceAdapter` plus a registry entry.
 - AI-assisted requirement extraction waits on D-03. The analyzer output is a plain model, so a
   provider-backed analyzer can produce the same shape.
 - Uploaded JD files are not stored; only their extracted text is kept.
@@ -958,3 +957,4 @@ journey passes.
 - 2026-10-20: Interview Story Bank (`/stories`, `stories-v1`, migration `stories`): STAR stories started from evidenced resume lines (action verbatim, result = the clause with a measured outcome, situation and task left to the user), eight themes with coverage, and matching stories shown beside each practice question.
 - 2026-10-20: Profile Builder (`/profile-builder`, `profile-v1`, in the browser): three headline options, an About section and top skills from the resume's own wording, with LinkedIn length counters, copy buttons and a live preview; fourth card in the Builders menu (whose text no longer inherits the header's no-wrap).
 - 2026-10-20: Dashboard refresh: an "At a glance" row with live reply rate, market coverage and biggest gap, proof progress and cover letters (each a link, with a first step when empty), and "Getting started" steps marked Done when the data shows it.
+- 2026-10-22: Job links (D-05 decided): Greenhouse, Lever and Ashby postings are read through their public job-board APIs, and other career pages through their schema.org `JobPosting` markup when robots.txt allows. Title, company and location are filled only when the source states them. LinkedIn, Indeed, Naukri and similar are refused without a request, with a paste prompt. Fetching is https-only to public addresses (redirects re-checked), capped at 10 s and 2 MB.
