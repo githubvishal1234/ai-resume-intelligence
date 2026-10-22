@@ -17,7 +17,6 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { ButtonLink } from "@/components/ui/Button";
 import { PRODUCT_NAME } from "@/constants/branding";
-import { PHOTOS, photoSrcSet } from "@/constants/images";
 import { OnlyHereSection } from "@/pages/landing/OnlyHereSection";
 import { TEMPLATE_STYLES } from "@/constants/templates";
 import { motionAllowed } from "@/hooks/useCountUp";
@@ -101,13 +100,13 @@ function ClaimScene() {
 }
 
 const PROBLEMS = [
-  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "bg-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink", scene: <ScrambledScene /> },
-  { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "bg-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink", scene: <MismatchScene /> },
-  { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "bg-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink", scene: <ClaimScene /> },
+  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "ring-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink", scene: <ScrambledScene /> },
+  { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "ring-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink", scene: <MismatchScene /> },
+  { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "ring-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink", scene: <ClaimScene /> },
 ];
 
 const STEPS = [
-  { title: "Pick a template", body: "Six single-column designs that applicant tracking systems can read. Switch any time." },
+  { title: "Pick a template", body: `${TEMPLATE_STYLES.length} single-column designs that applicant tracking systems can read. Switch any time.` },
   { title: "Answer short questions", body: "Contact, experience, education, skills. Tips flag weak bullet points as you type." },
   { title: "Download and check", body: "Get a PDF and see exactly what screening software reads from it." },
 ];
@@ -138,7 +137,7 @@ const FAQ = [
   { q: "Can I start from my existing resume?", a: "Yes. Upload a PDF, DOCX or TXT file. You review everything that was read before anything is saved." },
   { q: "Do I need AI to use it?", a: "No. The builder, job analysis, matching, tailoring and interview questions all work with built-in rules. When AI is switched on for your account, it adds rewrites and extra questions, and those are checked against your resume too." },
   { q: "Who can see my resume?", a: "Only you, when signed in. You can delete your account, and with it every resume and uploaded file, from Settings at any time." },
-  { q: "Is it free?", a: "Yes. The free plan includes the builder, all six templates, the ATS check, matching and tailoring. Pro adds AI help and is on a waitlist for now." },
+  { q: "Is it free?", a: "Yes. The free plan includes the builder, every template, the ATS check, matching and tailoring. Pro adds AI help and is on a waitlist for now." },
 ];
 
 const DEMO_BULLET = "Built a payments API in Python and PostgreSQL serving 3 regional banks.";
@@ -161,9 +160,59 @@ function demoTip(typed: string, full: string): { text: string; tone: string } {
   return { text: "Start with an action verb: Built, Led, Designed…", tone: "bg-info-surface text-info-ink" };
 }
 
-const eyebrow = "text-label-md font-semibold uppercase tracking-wider text-primary";
-const h2 = "font-display text-[32px] font-extrabold leading-[1.1] tracking-[-0.03em] sm:text-[44px]";
-const stepPill = "inline-block rounded-full bg-primary-fixed px-3 py-1 text-label-md font-semibold text-primary";
+const eyebrow = "inline-flex items-center gap-2 font-mono text-label-sm font-medium uppercase tracking-[0.16em] text-primary before:size-1.5 before:rounded-full before:bg-current before:content-['']";
+/** The same eyebrow on the dark ink panels (cn doesn't merge classes, so the colour is swapped here). */
+const eyebrowOnInk = eyebrow.replace("text-primary", "text-on-ink-success");
+const h2 = "font-display text-[32px] font-bold leading-[1.08] tracking-[-0.035em] text-balance sm:text-[44px]";
+const stepPill = "font-mono text-label-sm font-medium uppercase tracking-[0.16em] text-primary";
+const h3 = "mt-3 font-display text-[28px] font-bold leading-tight tracking-[-0.025em]";
+/** Neutral stage behind a feature illustration. */
+const stage = "relative overflow-hidden rounded-panel border border-hairline bg-surface-container-low p-6 sm:p-8";
+
+/** The hero's product shot, built from the real preview component rather than a screenshot. */
+function HeroProduct() {
+  const reqs: [string, string, string][] = [
+    ["Python, PostgreSQL", "Shown in a role", "bg-success"],
+    ["REST API design", "Shown in a role", "bg-success"],
+    ["Redis", "Only listed", "bg-warning"],
+    ["Kubernetes", "Missing", "bg-critical"],
+  ];
+  return (
+    <div aria-hidden className="card overflow-hidden shadow-level-3">
+      <div className="flex items-center gap-1.5 border-b border-hairline bg-surface-container-low px-4 py-2.5">
+        {[0, 1, 2].map((i) => <span key={i} className="size-2.5 rounded-full bg-hairline-strong" />)}
+        <p className="ml-3 truncate font-mono text-label-sm text-on-surface-variant">tailor / senior-backend-engineer · northwind</p>
+      </div>
+      <div className="grid sm:grid-cols-[1.1fr_1fr]">
+        <div className="bg-surface-container p-4 sm:p-5">
+          <ResumePaper doc={SAMPLE_RESUME} template="classic" />
+        </div>
+        <div className="space-y-4 border-t border-hairline p-4 sm:border-l sm:border-t-0 sm:p-5">
+          <div>
+            <p className="font-mono text-label-sm uppercase tracking-[0.14em] text-on-surface-variant">Match score</p>
+            <p className="mt-1 font-display text-[34px] font-bold leading-none tracking-tight tnum">84<span className="text-body-md font-medium text-on-surface-variant">/100</span></p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container-high"><div className="h-full w-[84%] animate-fill rounded-full bg-primary" /></div>
+          </div>
+          <ul className="space-y-2 text-body-sm">
+            {reqs.map(([name, status, dot]) => (
+              <li key={name} className="flex items-center gap-2">
+                <span className={cn("size-1.5 shrink-0 rounded-full", dot)} />
+                <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                <span className="shrink-0 text-on-surface-variant">{status}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="rounded-control border border-critical-border bg-critical-surface px-3 py-2 text-body-sm text-critical-ink">
+            <span className="font-semibold">Flagged:</span> "40%" isn't in your master resume
+          </div>
+          <p className="flex items-center gap-1.5 border-t border-hairline pt-3 text-body-sm text-on-surface-variant">
+            <FileCheck2 className="size-4 text-success" /> ATS read-back passed · 1 page
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function LandingPage() {
   const signedIn = Boolean(useSession().data);
@@ -177,71 +226,59 @@ export function LandingPage() {
       <a href="#landing-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:bg-primary focus:px-3 focus:py-2 focus:text-on-primary">
         Skip to content
       </a>
-      <p className="bg-ink-deep px-4 py-2.5 text-center text-body-md text-on-ink">
-        <span className="mr-2 rounded-full bg-accent px-2 py-0.5 text-label-sm font-bold text-on-accent">NEW</span>
-        New: Callback Insights, Market Map, Proof Board and the Recruiter 6-second scan.
+      <p className="border-b border-hairline bg-surface px-4 py-2 text-center text-body-sm text-on-surface-variant">
+        <span className="mr-2 rounded-full border border-primary-fixed-dim bg-primary-fixed px-2 py-0.5 font-mono text-label-sm font-medium uppercase tracking-wider text-on-primary-fixed">New</span>
+        Callback Insights, Market Map, Proof Board and the Recruiter 6-second scan.{" "}
+        <a href="#only-here" className="font-medium text-on-surface underline-offset-4 hover:underline">See what's new</a>
       </p>
       <PublicHeader signedIn={signedIn} />
 
       <main id="landing-main">
         {/* Hero */}
-        <section className="relative overflow-hidden bg-surface">
-          <svg aria-hidden viewBox="0 0 520 520" className="pointer-events-none absolute -right-36 -top-40 size-[520px] animate-spin-slow opacity-60">
-            <circle cx="260" cy="260" r="250" fill="none" className="stroke-primary-fixed-dim" strokeWidth="2" strokeDasharray="6 14" />
-            <circle cx="260" cy="260" r="180" fill="none" className="stroke-primary-fixed-dim" strokeWidth="2" strokeDasharray="2 10" />
-          </svg>
-          <div aria-hidden className="pointer-events-none absolute -bottom-28 -left-20 size-80 rounded-full bg-surface-container-high" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-24 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-20">
+        <section className="relative isolate overflow-hidden bg-surface">
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-grid text-on-surface [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]" />
+          <div aria-hidden className="pointer-events-none absolute -top-48 left-1/2 -z-10 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pb-24 pt-14 grid-cols-[minmax(0,1fr)] sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:pt-20">
             <div className="animate-rise">
-              <p className="inline-flex items-center gap-2.5 rounded-full border border-hairline bg-surface-container-lowest py-1.5 pl-1.5 pr-3.5 text-body-md font-medium text-on-surface-variant">
-                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-on-primary"><Check className="size-3.5" strokeWidth={3} aria-hidden /></span>
+              <p className="inline-flex items-center gap-2 rounded-full border border-hairline bg-surface-container-lowest py-1 pl-1 pr-3 text-body-sm font-medium text-on-surface-variant shadow-level-1">
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-on-primary"><Check className="size-3" strokeWidth={3} aria-hidden /></span>
                 Every line checked against your own resume
               </p>
-              <h1 className="mt-6 font-display text-[42px] font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-[60px] lg:text-[68px]">
-                Build a resume that gets{" "}
-                <span className="relative whitespace-nowrap text-primary">
-                  read
-                  <svg aria-hidden viewBox="0 0 300 20" preserveAspectRatio="none" className="absolute inset-x-0 -bottom-2 h-4 w-full">
-                    <path d="M4 14 C 80 2, 220 2, 296 12" fill="none" className="stroke-accent" strokeWidth="8" strokeLinecap="round" />
-                  </svg>
-                </span>
-                , and back up every line.
+              <h1 className="mt-6 font-display text-[42px] font-bold leading-[1.02] tracking-[-0.045em] text-balance sm:text-[58px] lg:text-[64px]">
+                Build a resume that gets <span className="text-primary">read</span>, and back up every line.
               </h1>
-              <p className="mt-6 max-w-xl text-[19px] leading-relaxed text-on-surface-variant">
+              <p className="mt-6 max-w-xl text-[18px] leading-relaxed text-on-surface-variant">
                 Answer a few short questions, watch your resume take shape in a professional template, and download an ATS-friendly PDF.
                 Then tailor it to each job without making anything up.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <ButtonLink to={start} variant="primary" className="lift h-14 px-7 text-body-lg">
+                <ButtonLink to={start} variant="primary" className="h-12 px-6 text-body-lg shadow-brand">
                   Build my resume <ArrowRight className="size-5" aria-hidden />
                 </ButtonLink>
-                <a href="#templates" className="lift inline-flex h-14 items-center gap-2 rounded-control border border-hairline-strong bg-surface-container-lowest px-6 text-body-lg font-semibold text-on-surface">
+                <Link to="/templates" className="inline-flex h-12 items-center gap-2 rounded-control border border-hairline-strong bg-surface-container-lowest px-5 text-body-lg font-semibold text-on-surface shadow-level-1 hover:bg-surface-container-low">
                   See the templates
-                </a>
+                </Link>
               </div>
               <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-body-md text-on-surface-variant">
-                {["6 ATS-safe templates", "Live preview as you type", "Nothing invented for you"].map((t) => (
+                {[`${TEMPLATE_STYLES.length} ATS-safe templates`, "Live preview as you type", "Nothing invented for you"].map((t) => (
                   <li key={t} className="flex items-center gap-2"><Check className="size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />{t}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="relative min-h-[460px] animate-rise [animation-delay:120ms] sm:min-h-[540px]">
-              <div className="absolute inset-y-8 left-12 right-4 overflow-hidden rounded-[40px_40px_40px_140px] bg-surface-container-high shadow-level-3">
-                <img src={PHOTOS.interview} srcSet={photoSrcSet("interview")} sizes="(min-width: 1024px) 45vw, 90vw" alt="" decoding="async" fetchPriority="high" className="size-full object-cover object-[20%_30%]" />
-              </div>
-              <div aria-hidden className="absolute -right-2 -top-2 size-16 rounded-full bg-accent sm:top-0 sm:size-28" />
+            <div className="animate-rise [animation-delay:120ms]">
+              <HeroProduct />
             </div>
           </div>
         </section>
 
         {/* Fields strip: decorative, so the duplicate copy for the loop is hidden from assistive tech */}
-        <section aria-label="Skill suggestions for your field" className="overflow-hidden border-y border-hairline py-5">
-          <div className="flex w-max animate-marquee gap-12 whitespace-nowrap font-display text-headline-sm font-bold text-on-surface-variant hover:[animation-play-state:paused]">
+        <section aria-label="Skill suggestions for your field" className="overflow-hidden border-y border-hairline bg-surface-container-lowest py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <div className="flex w-max animate-marquee gap-12 whitespace-nowrap text-body-lg font-medium text-on-surface-variant hover:[animation-play-state:paused]">
             {[0, 1].map((copy) => (
               <ul key={copy} aria-hidden={copy === 1 || undefined} className="flex gap-12">
                 {FIELDS.map((f) => (
-                  <li key={f} className="flex items-center gap-12">{f}<span aria-hidden className="text-accent">✦</span></li>
+                  <li key={f} className="flex items-center gap-12">{f}<span aria-hidden className="size-1 rounded-full bg-outline" /></li>
                 ))}
               </ul>
             ))}
@@ -256,14 +293,14 @@ export function LandingPage() {
           </div>
           <ul className="mt-14 grid gap-6 md:grid-cols-3">
             {PROBLEMS.map((p) => (
-              <li key={p.title} className={cn("lift flex flex-col gap-3 rounded-card p-7", p.tone)}>
-                <div aria-hidden className="relative min-h-44 rounded-card bg-surface-container-lowest p-3.5 pb-10 shadow-level-1">
+              <li key={p.title} className="card lift flex flex-col gap-3 p-5 sm:p-6">
+                <div aria-hidden className={cn("relative min-h-44 rounded-control border border-hairline bg-surface-container-lowest p-3.5 pb-10 ring-4", p.tone)}>
                   {p.scene}
                   <span className={cn("absolute bottom-2.5 right-3 rounded-full px-2.5 py-1 text-label-sm font-bold", p.tagTone)}>{p.tag}</span>
                 </div>
-                <h3 className="mt-1 font-display text-headline-sm font-bold">{p.title}</h3>
+                <h3 className="mt-2 font-display text-headline-sm font-semibold">{p.title}</h3>
                 <p className="text-body-md text-on-surface-variant">{p.body}</p>
-                <p className="mt-auto flex items-start gap-2 border-t border-on-surface/10 pt-4 font-semibold"><Check className="mt-0.5 size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />{p.fix}</p>
+                <p className="mt-auto flex items-start gap-2 border-t border-hairline pt-4 font-medium"><Check className="mt-0.5 size-4 shrink-0 text-success" strokeWidth={3} aria-hidden />{p.fix}</p>
               </li>
             ))}
           </ul>
@@ -271,28 +308,28 @@ export function LandingPage() {
 
         {/* Guided builder band */}
         <section id="how" aria-labelledby="how-title" className="scroll-mt-20 px-4 sm:px-6">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[36px] bg-primary px-6 py-14 text-on-primary sm:px-12 lg:py-18">
-            <svg aria-hidden viewBox="0 0 420 420" className="pointer-events-none absolute -bottom-40 -left-32 size-[420px] animate-spin-slow opacity-25">
-              <circle cx="210" cy="210" r="200" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 12" />
-            </svg>
+          <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-panel bg-ink-deep px-6 py-14 text-on-ink ring-1 ring-on-ink/10 sm:px-12 lg:py-18">
+            <div aria-hidden className="absolute inset-0 -z-10 bg-grid text-on-ink [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
+            <div aria-hidden className="absolute -top-32 left-1/2 -z-10 h-72 w-[640px] -translate-x-1/2 rounded-full bg-[#10b981]/20 blur-3xl" />
             <div className="relative mx-auto max-w-3xl text-center">
-              <h2 id="how-title" className={h2}>From a blank page to a PDF in three steps</h2>
-              <p className="mt-4 text-body-lg opacity-90">Seven short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
+              <p className={eyebrowOnInk}>How it works</p>
+              <h2 id="how-title" className={cn(h2, "mt-3")}>From a blank page to a PDF in three steps</h2>
+              <p className="mt-4 text-body-lg text-on-ink-muted">Seven short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
             </div>
             <ol className="relative mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-3">
               {STEPS.map(({ title, body }, i) => (
-                <li key={title} className="rounded-card bg-on-primary/10 p-5 ring-1 ring-on-primary/25">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-accent font-display font-bold text-on-accent tnum">{i + 1}</span>
-                  <h3 className="mt-3 font-display text-headline-sm font-bold">{title}</h3>
-                  <p className="mt-1 text-body-md opacity-90">{body}</p>
+                <li key={title} className="rounded-card bg-on-ink/[0.04] p-5 ring-1 ring-on-ink/10">
+                  <span className="font-mono text-label-md text-on-ink-success tnum">0{i + 1}</span>
+                  <h3 className="mt-3 font-display text-headline-sm font-semibold">{title}</h3>
+                  <p className="mt-1 text-body-md text-on-ink-muted">{body}</p>
                 </li>
               ))}
             </ol>
-            <figure className="relative mx-auto mt-8 max-w-4xl rounded-card bg-surface-container-lowest p-5 text-on-surface shadow-level-3 sm:p-6">
+            <figure className="card relative mx-auto mt-8 max-w-4xl p-5 text-on-surface shadow-level-3 sm:p-6">
               <figcaption className="sr-only">An example of the builder's tips on a bullet point.</figcaption>
               <div aria-hidden>
                 <p className="text-body-md font-semibold">Bullet point · Backend Engineer, Fintrail</p>
-                <div className="mt-2 min-h-16 rounded-control border-2 border-primary px-4 py-3 text-body-lg">
+                <div className="mt-2 min-h-16 rounded-control border border-primary px-4 py-3 text-body-lg shadow-focus">
                   {typed}
                   <span className="ml-px inline-block h-5 w-0.5 translate-y-1 animate-pulse bg-primary" />
                 </div>
@@ -300,7 +337,7 @@ export function LandingPage() {
               </div>
             </figure>
             <div className="relative mt-10 text-center">
-              <ButtonLink to={start} className="lift h-14 border-transparent bg-surface-container-lowest px-7 text-body-lg">Build my resume</ButtonLink>
+              <ButtonLink to={start} variant="primary" className="h-12 px-6 text-body-lg">Build my resume <ArrowRight className="size-5" aria-hidden /></ButtonLink>
             </div>
           </div>
         </section>
@@ -315,11 +352,11 @@ export function LandingPage() {
           <div className="mt-20 grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className={stepPill}>Import</p>
-              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Start from the resume you have</h3>
+              <h3 className={h3}>Start from the resume you have</h3>
               <p className="mt-3 text-body-lg text-on-surface-variant">Upload a PDF, DOCX or TXT. Every section is read into an editable form with a confidence level, and nothing is saved until you've reviewed it.</p>
             </div>
-            <div aria-hidden className="rounded-panel bg-surface p-7">
-              <div className="rounded-card bg-surface-container-lowest p-5 shadow-level-2">
+            <div aria-hidden className={stage}>
+              <div className="card p-5 shadow-level-2">
                 <div className="flex items-center gap-3 rounded-control border-2 border-dashed border-primary-fixed-dim p-3">
                   <span className="flex h-12 w-10 items-center justify-center rounded-md bg-critical text-label-sm font-bold text-on-primary">PDF</span>
                   <div className="min-w-0 flex-1"><p className="font-semibold">my-resume.pdf</p><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container"><div className="h-full w-full animate-fill rounded-full bg-primary" /></div></div>
@@ -335,9 +372,9 @@ export function LandingPage() {
           </div>
 
           <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
-            <div aria-hidden className="order-last rounded-panel bg-warning-surface p-7 lg:order-first">
-              <div className="rounded-card bg-surface-container-lowest p-5 shadow-level-2">
-                <div className="flex items-center justify-between"><p className="font-semibold">Required · 4 of 5 met</p><span className="font-display font-extrabold text-primary tnum">84/100</span></div>
+            <div aria-hidden className={cn(stage, "order-last lg:order-first")}>
+              <div className="card p-5 shadow-level-2">
+                <div className="flex items-center justify-between"><p className="font-semibold">Required · 4 of 5 met</p><span className="font-display font-bold text-primary tnum">84/100</span></div>
                 <ul className="mt-3 space-y-2.5 text-body-md">
                   {[["Python and PostgreSQL", "Strong", "Shown in a role", "bg-info-surface text-info-ink"], ["Redis or Memcached", "Only listed", "In Skills, but no role shows it", "bg-warning-surface text-warning-ink"], ["Kubernetes in production", "Missing", "Not found in your resume", "bg-critical-surface text-critical-ink"]].map(([t, s, e, tone]) => (
                     <li key={t} className="rounded-control border border-hairline p-3"><div className="flex justify-between gap-3"><span className="font-medium">{t}</span><span className={cn("whitespace-nowrap rounded-full px-2.5 py-0.5 text-label-sm font-bold", tone)}>{s}</span></div><p className="mt-1 text-body-sm text-on-surface-variant">{e}</p></li>
@@ -347,7 +384,7 @@ export function LandingPage() {
             </div>
             <div>
               <p className={stepPill}>Match</p>
-              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">See exactly where you stand for a job</h3>
+              <h3 className={h3}>See exactly where you stand for a job</h3>
               <p className="mt-3 text-body-lg text-on-surface-variant">A match score with evidence for every requirement: shown in a role, only listed, or missing. Gaps are ranked so you know what to fix first.</p>
             </div>
           </div>
@@ -355,18 +392,18 @@ export function LandingPage() {
           <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className={stepPill}>Tailor</p>
-              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Tailor for each job, without making things up</h3>
+              <h3 className={h3}>Tailor for each job, without making things up</h3>
               <p className="mt-3 text-body-lg text-on-surface-variant">Reorder and reword for each job. Changes that add numbers, tools or names your resume doesn't contain are flagged before you can accept them.</p>
-              <div role="group" aria-label="Compare versions" className="mt-6 inline-flex gap-1 rounded-full bg-surface p-1">
+              <div role="group" aria-label="Compare versions" className="mt-6 inline-flex gap-1 rounded-full border border-hairline bg-surface-container-low p-1">
                 {[["Original", false], ["Tailored", true]].map(([label, value]) => (
-                  <button key={String(label)} type="button" aria-pressed={tailored === value} onClick={() => setTailored(Boolean(value))} className={cn("h-11 rounded-full px-5 font-semibold transition-colors", tailored === value ? "bg-ink-deep text-on-ink" : "text-on-surface")}>
+                  <button key={String(label)} type="button" aria-pressed={tailored === value} onClick={() => setTailored(Boolean(value))} className={cn("h-10 rounded-full px-5 font-semibold transition-colors", tailored === value ? "bg-surface-container-lowest text-on-surface shadow-level-2" : "text-on-surface-variant")}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="rounded-panel bg-success-surface p-7">
-              <div key={String(tailored)} className="animate-pop space-y-2.5 rounded-card bg-surface-container-lowest p-5 shadow-level-2 text-body-md">
+            <div className={stage}>
+              <div key={String(tailored)} className="card animate-pop space-y-2.5 p-5 text-body-md shadow-level-2">
                 <p className="text-label-sm font-bold uppercase tracking-wider text-on-surface-variant">{tailored ? "Tailored for Senior Backend Engineer" : "Master resume (never changed)"}</p>
                 {tailored ? (
                   <>
@@ -386,26 +423,26 @@ export function LandingPage() {
           </div>
 
           <div className="mt-24 grid items-center gap-12 lg:grid-cols-2">
-            <div aria-hidden className="order-last flex items-center justify-center gap-5 rounded-panel bg-surface p-7 lg:order-first">
-              <div className="w-[46%] animate-float"><ResumePaper doc={SAMPLE_RESUME} template="modern" label="An example resume made with the builder" /></div>
-              <div className="min-w-0 flex-1 rounded-card bg-ink-deep p-4 font-mono text-code-sm leading-6 text-on-ink">
-                <p className="mb-1 text-accent">What screening software reads</p>
+            <div aria-hidden className={cn(stage, "order-last flex items-center justify-center gap-5 lg:order-first")}>
+              <div className="w-[46%]"><ResumePaper doc={SAMPLE_RESUME} template="classic" label="An example resume made with the builder" /></div>
+              <div className="min-w-0 flex-1 rounded-card bg-ink-deep p-4 font-mono text-code-sm leading-6 text-on-ink ring-1 ring-on-ink/10">
+                <p className="mb-1 text-on-ink-success">$ ats read resume.pdf</p>
                 <p>1 Name and contact</p><p>2 Summary</p><p>3 Experience</p><p>4 Education</p><p>5 Skills</p>
                 <p className="mt-2 text-on-ink-success">✓ Headings in order</p>
               </div>
             </div>
             <div>
               <p className={stepPill}>Download</p>
-              <h3 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-[-0.02em]">Download a PDF, then see what an ATS sees</h3>
+              <h3 className={h3}>Download a PDF, then see what an ATS sees</h3>
               <p className="mt-3 text-body-lg text-on-surface-variant">The ATS check reads your PDF back the way screening software does, in order, so you know the text, headings and contact details all come through.</p>
             </div>
           </div>
 
           <ul className="mt-24 grid gap-5 md:grid-cols-3">
             {MORE.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="lift rounded-card border border-hairline bg-surface-container-lowest p-6 shadow-level-1">
-                <span className="flex size-11 items-center justify-center rounded-control bg-primary-fixed text-primary"><Icon className="size-5" aria-hidden /></span>
-                <h3 className="mt-4 font-display text-headline-sm font-bold">{title}</h3>
+              <li key={title} className="card lift p-6">
+                <span className="flex size-10 items-center justify-center rounded-control border border-hairline bg-surface-container-low text-primary"><Icon className="size-5" aria-hidden /></span>
+                <h3 className="mt-4 font-display text-headline-sm font-semibold">{title}</h3>
                 <p className="mt-1.5 text-body-md text-on-surface-variant">{body}</p>
               </li>
             ))}
@@ -413,25 +450,26 @@ export function LandingPage() {
         </section>
 
         {/* Templates */}
-        <OnlyHereSection eyebrow={eyebrow} h2={h2} />
+        <OnlyHereSection eyebrow={eyebrowOnInk} h2={h2} />
 
-        <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 bg-surface-container-low py-24">
+        <section id="templates" aria-labelledby="templates-title" className="scroll-mt-20 border-y border-hairline bg-surface-container-low py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 id="templates-title" className={h2}>Six templates, one click apart</h2>
-                <p className="mt-3 max-w-2xl text-body-lg text-on-surface-variant">All single-column with real, selectable text, so screening software reads them top to bottom.</p>
+                <p className={eyebrow}>Templates</p>
+                <h2 id="templates-title" className={cn(h2, "mt-3")}>{TEMPLATE_STYLES.length} templates, one click apart</h2>
+                <p className="mt-3 max-w-2xl text-body-lg text-on-surface-variant">Colour bands, side stripes, ribbons and classic serif. All single-column with real, selectable text, so screening software reads them top to bottom.</p>
               </div>
-              <ButtonLink to={start} variant="primary">Use a template <ArrowRight className="size-4" aria-hidden /></ButtonLink>
+              <ButtonLink to="/templates" variant="primary">Browse all templates <ArrowRight className="size-4" aria-hidden /></ButtonLink>
             </div>
             <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {TEMPLATE_STYLES.filter((t) => t.kind === "resume").map((t) => (
-                <li key={t.id} className="lift rounded-card bg-surface-container-lowest p-4 shadow-level-1">
-                  <div className="rounded-control bg-surface p-4">
+              {["classic", "banner-forest", "executive", "stripe-charcoal", "elegant-teal", "statement-navy"].map((id) => TEMPLATE_STYLES.find((t) => t.id === id)!).map((t) => (
+                <li key={t.id} className="card lift p-3">
+                  <div className="rounded-control bg-surface-container p-4">
                     <ResumePaper doc={SAMPLE_RESUME} template={t.id} label={`Sample resume in the ${t.name} template`} />
                   </div>
-                  <h3 className="mt-4 font-semibold text-on-surface">{t.name}</h3>
-                  <p className="text-body-sm text-on-surface-variant">{t.description}</p>
+                  <h3 className="mt-3 px-1 font-semibold text-on-surface">{t.name}</h3>
+                  <p className="px-1 pb-1 text-body-sm text-on-surface-variant">{t.description}</p>
                 </li>
               ))}
             </ul>
@@ -442,19 +480,20 @@ export function LandingPage() {
         <section aria-labelledby="compare-title" className="mx-auto max-w-5xl px-4 py-24 sm:px-6">
           <h2 id="compare-title" className={cn(h2, "text-center")}>The builder vs writing it alone</h2>
           <div className="mt-12 grid gap-6 md:grid-cols-2">
-            <div className="rounded-panel bg-primary p-8 text-on-primary shadow-brand">
-              <p className="font-display text-headline-md font-extrabold">With {PRODUCT_NAME}</p>
+            <div className="card relative overflow-hidden p-8 ring-1 ring-primary/30">
+              <div aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
+              <p className="font-display text-headline-md font-semibold">With {PRODUCT_NAME}</p>
               <ul className="mt-5 space-y-3.5">
                 {WITH_US.map((w) => (
-                  <li key={w} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent"><Check className="size-3.5" strokeWidth={3} aria-hidden /></span>{w}</li>
+                  <li key={w} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary"><Check className="size-3.5" strokeWidth={3} aria-hidden /></span>{w}</li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-panel border border-hairline bg-surface-container-low p-8">
-              <p className="font-display text-headline-md font-extrabold">Writing it alone</p>
+            <div className="rounded-card border border-dashed border-hairline-strong p-8">
+              <p className="font-display text-headline-md font-semibold">Writing it alone</p>
               <ul className="mt-5 space-y-3.5 text-on-surface-variant">
                 {ALONE.map((a) => (
-                  <li key={a} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-critical-surface text-critical"><X className="size-3.5" strokeWidth={3} aria-hidden /></span>{a}</li>
+                  <li key={a} className="flex items-start gap-3"><span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant"><X className="size-3.5" strokeWidth={3} aria-hidden /></span>{a}</li>
                 ))}
               </ul>
             </div>
@@ -463,7 +502,8 @@ export function LandingPage() {
 
         {/* Honest by design */}
         <section aria-labelledby="trust-title" className="px-4 sm:px-6">
-          <div className="mx-auto grid max-w-6xl gap-10 rounded-[36px] bg-ink-deep p-8 text-on-ink sm:p-12 lg:grid-cols-[1fr_1.4fr]">
+          <div className="relative isolate mx-auto grid max-w-6xl gap-10 overflow-hidden rounded-panel bg-ink-deep p-8 text-on-ink ring-1 ring-on-ink/10 sm:p-12 lg:grid-cols-[1fr_1.4fr]">
+            <div aria-hidden className="absolute inset-0 -z-10 bg-grid text-on-ink [mask-image:linear-gradient(to_right,black,transparent_60%)]" />
             <div>
               <h2 id="trust-title" className={h2}>Honest by design</h2>
               <p className="mt-3 text-body-lg text-on-ink-muted">Recruiters check. Your resume should hold up when they do.</p>
@@ -475,7 +515,7 @@ export function LandingPage() {
                 { icon: Trash2, title: "Your data, your call", body: "Delete your account, resumes and uploaded files from Settings whenever you want." },
               ].map(({ icon: Icon, title, body }) => (
                 <li key={title} className="flex gap-4">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-accent text-on-accent"><Icon className="size-5" aria-hidden /></span>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-on-ink/[0.06] text-on-ink-success ring-1 ring-on-ink/10"><Icon className="size-5" aria-hidden /></span>
                   <div>
                     <h3 className="text-body-lg font-semibold">{title}</h3>
                     <p className="text-body-md text-on-ink-muted">{body}</p>
@@ -495,10 +535,10 @@ export function LandingPage() {
             </div>
             <div className="space-y-3">
               {FAQ.map(({ q, a }) => (
-                <details key={q} className="group rounded-card border border-hairline bg-surface-container-lowest p-5 shadow-level-1">
+                <details key={q} className="card group p-5">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-body-lg font-semibold">
                     {q}
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-primary transition-transform group-open:rotate-45"><Plus className="size-4" aria-hidden /></span>
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-hairline text-on-surface-variant transition-transform group-open:rotate-45"><Plus className="size-4" aria-hidden /></span>
                   </summary>
                   <p className="mt-3 text-body-md text-on-surface-variant">{a}</p>
                 </details>
@@ -509,30 +549,30 @@ export function LandingPage() {
 
         {/* Final call to action */}
         <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
-          <div className="relative isolate mx-auto flex max-w-6xl flex-wrap items-center gap-8 overflow-hidden rounded-[36px] bg-ink-deep px-8 py-14 sm:px-14">
-            <div aria-hidden className="absolute -right-16 -top-16 -z-10 size-64 rounded-full bg-primary" />
-            <div aria-hidden className="absolute -bottom-24 right-40 -z-10 size-44 rounded-full bg-accent" />
+          <div className="relative isolate mx-auto flex max-w-6xl flex-wrap items-center gap-8 overflow-hidden rounded-panel bg-ink-deep px-8 py-14 ring-1 ring-on-ink/10 sm:px-14">
+            <div aria-hidden className="absolute inset-0 -z-10 bg-grid text-on-ink [mask-image:radial-gradient(ellipse_at_right,black,transparent_70%)]" />
+            <div aria-hidden className="absolute -right-24 top-1/2 -z-10 h-72 w-96 -translate-y-1/2 rounded-full bg-[#10b981]/25 blur-3xl" />
             <div className="min-w-0 flex-[2_1_420px]">
               <h2 id="cta-title" className={cn(h2, "text-on-ink")}>Your next resume is a few minutes away</h2>
               <p className="mt-3 text-body-lg text-on-ink-muted">Start with a template, or upload the resume you already have.</p>
             </div>
             <div className="flex flex-[1_1_260px] flex-wrap gap-3">
-              <ButtonLink to={start} className="lift h-14 border-transparent bg-surface-container-lowest px-7 text-body-lg">Build my resume <ArrowRight className="size-5" aria-hidden /></ButtonLink>
-              <Link to="/pricing" className="inline-flex h-14 items-center rounded-control border border-on-ink/50 px-6 text-body-lg font-semibold text-on-ink">See pricing</Link>
+              <ButtonLink to={start} className="h-12 border-transparent bg-[#ffffff] px-6 text-body-lg text-[#0c0f0e] hover:bg-[#f5f5f4]">Build my resume <ArrowRight className="size-5" aria-hidden /></ButtonLink>
+              <Link to="/pricing" className="inline-flex h-12 items-center rounded-control border border-on-ink/25 px-5 text-body-lg font-semibold text-on-ink hover:bg-on-ink/[0.06]">See pricing</Link>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="bg-ink-deep py-8 text-on-ink-muted">
+      <footer className="border-t border-hairline py-8 text-on-surface-variant">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-body-sm sm:px-6">
           <p>© {new Date().getFullYear()} {PRODUCT_NAME}</p>
           <p>
-            Photos from <a href="https://unsplash.com" className="underline hover:text-on-ink" rel="noreferrer noopener" target="_blank">Unsplash</a>
+            Photos from <a href="https://unsplash.com" className="underline hover:text-on-surface" rel="noreferrer noopener" target="_blank">Unsplash</a>
             {" · "}
-            <Link to="/pricing" className="underline hover:text-on-ink">Pricing</Link>
+            <Link to="/pricing" className="underline hover:text-on-surface">Pricing</Link>
             {" · "}
-            <Link to="/login" className="underline hover:text-on-ink">Sign in</Link>
+            <Link to="/login" className="underline hover:text-on-surface">Sign in</Link>
           </p>
         </div>
       </footer>
