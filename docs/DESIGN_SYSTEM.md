@@ -61,10 +61,14 @@ Scores below 60 are **critical** (red), 60–79 **warning** (amber), and 80 or a
 | `TemplatePicker` (`components/resume`) | Radio group of templates, each a live `ResumePaper`. Used by the quick builder and the Resume Builder. |
 
 ## Resume templates
-The PDF templates live in `backend/app/output/templates.py`; the preview copies their values in
-`frontend/src/constants/templates.ts`. When a template is added or changed, update both.
-All are single column with title-case standard headings (the ATS check relies on them).
+There are **80 templates**: 78 resumes and 2 CVs. The PDF templates live in
+`backend/app/output/templates.py`; the preview copies their values in
+`frontend/src/constants/templates.ts`. When a template is added or changed, update both. Every
+template is real, selectable text with title-case standard headings in a fixed reading order (the
+ATS check relies on them). The public gallery is `/templates`, filtered by style, layout, photo,
+colour, font and header.
 
+### The six originals
 | Template | Type | Header | Headings |
 |---|---|---|---|
 | Classic | Sans | Left | Navy, ruled |
@@ -73,6 +77,57 @@ All are single column with title-case standard headings (the ATS check relies on
 | Minimal | Sans | Centred, wide margins | Grey, no rule |
 | Compact | Sans | Left, tight spacing | Black, no rule |
 | Serif | Serif | Left | Black, ruled |
+
+The two CV templates (Academic CV, Professional CV) lead with education and keep every section.
+
+### Designs in six colours
+Each design below comes in navy, teal, burgundy, forest, plum and charcoal (`PALETTES`), so ids
+are `<design>-<palette>`, e.g. `banner-teal`. 12 designs × 6 = 72 templates. Every palette keeps
+white text above 4.5:1, which a test checks.
+
+| Design | Layout | Header | What sets it apart |
+|---|---|---|---|
+| Banner | One column | Name and contact on a solid colour band | Ruled headings |
+| Stripe | One column | Plain, accent stripe down the left edge | Colour headings |
+| Ribbon | One column | Plain | Headings on a light tint of the accent |
+| Elegant | One column | Centred, serif | Tinted heading ribbons |
+| Statement | One column | Serif name on a colour band, centred | Ruled serif headings |
+| Split | One column | Name left, contact stacked right | Dates right-aligned |
+| Monogram | One column | Initials in an accent square, serif | Dates right-aligned |
+| Ledger | One column | Plain, compact | Dates right-aligned, skills in a 3-column grid |
+| Portrait | One column | Photo beside the name | Ruled headings |
+| Sidebar | Sidebar | Name and contact at the top of a solid colour sidebar | Skills, certifications and education in the sidebar |
+| Portfolio | Sidebar | Photo, name and contact in a tinted sidebar | As Sidebar, with dark text |
+| Timeline | Timeline | Plain | Roles and education with dates in a gutter beside an accent line; skills grid |
+
+### Layouts and reading order
+- **One column:** sections in `RESUME_ORDER` (or `CV_ORDER`).
+- **Sidebar:** the PDF fills the sidebar frame first, then the main column (`SIDEBAR_ORDER`:
+  skills, certifications, education, then summary, experience, projects). Extracted text reads
+  sidebar then main, and the ATS heading-order check uses that order. Page 2 onward continues
+  the main column only. The preview mirrors this with a CSS grid.
+- **Timeline:** each role and education entry is a two-cell row, dates then content, so text
+  still reads dates, title, bullets.
+
+### ATS labels
+| Label | Templates | Meaning |
+|---|---|---|
+| ATS-safe | All one-column layouts | One column of text; the safest for any screening system |
+| ATS-friendly | Sidebar, Portfolio, Timeline | Read in a fixed order, but some older parsers handle columns and tables less well |
+
+`atsLevel()` in `constants/templates.ts` derives the label from the layout. It shows on gallery
+cards, and the template picker shows a notice when an ATS-friendly design is chosen. The ATS check
+adds a `layout.columns` warning for sidebar and timeline layouts.
+
+### Photos
+Portrait and Portfolio show the user's profile photo, which is optional: one photo per account,
+uploaded in Settings or inline in the template picker when a photo template is chosen. Uploads are
+re-encoded as a 600 px square JPEG with no metadata and drawn round in the PDF. Without a photo the
+PDF simply has none; previews show initials instead. The ATS check adds a `photo.included` warning
+when a photo is in the PDF.
+
+### Not offered
+No skill bars or proficiency ratings: they would show levels a resume doesn't contain.
 
 ## Pages with photos
 | Page | Photo |
