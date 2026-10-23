@@ -3445,6 +3445,8 @@ export interface components {
             /** Bullets */
             bullets: components["schemas"]["BulletOut"][];
             ai: components["schemas"]["AiStatusOut"];
+            /** Missing Skills */
+            missing_skills: string[];
         };
         /** TailoringSessionSummaryOut */
         TailoringSessionSummaryOut: {

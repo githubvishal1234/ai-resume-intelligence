@@ -53,6 +53,7 @@ const SESSION_BODY = {
   created_at: "2026-10-12T06:00:00Z",
   method_version: "tailor-rules-v1",
   ai: { configured: false, reason: "LLM_PROVIDER is not set." },
+  missing_skills: [] as string[],
   preview: PREVIEW,
   bullets: [] as { experience_id: string; role: string; index: number; text: string; change_id: string | null }[],
   changes: [
@@ -94,6 +95,17 @@ describe("Tailoring review", () => {
     expect(within(summary).getByRole("button", { name: /Rewrite with AI/ })).toHaveAttribute("aria-disabled", "true");
     // Nothing accepted: finishing is blocked with an explanation.
     expect(screen.getByRole("button", { name: /Create tailored resume/ })).toHaveAccessibleName(/Accept at least one change first/);
+  });
+
+  it("explains which job skills the resume doesn't show, and what to do", async () => {
+    mockApi([me, { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, missing_skills: ["Java", "Spring"] } }]);
+    renderApp(`/tailor/${SID}`);
+    const notice = await screen.findByText(/Your resume doesn't show 2 skills this job asks for/);
+    const box = notice.closest("[role]") ?? notice.parentElement!;
+    expect(box).toHaveTextContent("Java, Spring");
+    expect(box).toHaveTextContent("which is why there are so few changes");
+    expect(within(box as HTMLElement).getByRole("link", { name: "add them to your master resume" })).toHaveAttribute("href", `/resumes/${RESUME_ID}/edit`);
+    expect(within(box as HTMLElement).getByRole("link", { name: "Proof Board" })).toHaveAttribute("href", "/proofs");
   });
 
   it("accepts a change", async () => {

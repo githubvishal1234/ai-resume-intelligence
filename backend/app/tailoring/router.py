@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import EvidenceRef
 from app.models import Job, Resume, TailoringSession
+from app.tailoring.factcheck import known_skills
 from app.tailoring.proposer import EDITABLE_KINDS
 from app.tailoring.schemas import (
     AiStatusOut,
@@ -66,7 +67,9 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
     job = service.db.get(Job, row.job_id)
     master = service.db.get(Resume, row.master_resume_id)
     assert job is not None and master is not None
-    requirements = {r.id: r for r in JobAnalysis.model_validate(job.analysis).requirements}
+    analysis = JobAnalysis.model_validate(job.analysis)
+    requirements = {r.id: r for r in analysis.requirements}
+    shown = known_skills(service.base_content(row))
     configured, reason = service.ai()
     changes = [
         ChangeOut(
@@ -117,6 +120,7 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
         preview=service.preview(row),
         bullets=bullets,
         ai=AiStatusOut(configured=configured, reason=reason),
+        missing_skills=[s.name for s in analysis.skills if s.name not in shown],
     )
 
 

@@ -1,7 +1,7 @@
 import { ApiErrorText } from "@/components/ui/ApiErrorText";
 import { Check, PenLine, Sparkles, Trash2, X } from "lucide-react";
 import { useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -57,6 +57,15 @@ function Review({ session: s }: { session: Session }) {
       {!draft ? (
         <Notice tone="info" title={s.status === "finalized" ? "This session is finished" : "This session was discarded"} className="mb-4">
           {s.status === "finalized" ? "The tailored resume was created. Changes can no longer be reviewed here." : null}
+        </Notice>
+      ) : null}
+      {draft && s.missing_skills.length ? (
+        <Notice tone="info" title={`Your resume doesn't show ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} this job asks for`} className="mb-4">
+          <span className="font-semibold">{s.missing_skills.join(", ")}</span>. Tailoring only reorders and rewords what your master resume
+          already proves, so it can't add these{s.changes.length <= 2 ? ", which is why there are so few changes" : ""}. If you have them,{" "}
+          <Link to={`/resumes/${s.master_resume_id}/edit`} className="font-semibold underline">add them to your master resume</Link> with where
+          you used them, then start a new session. If you don&apos;t, the{" "}
+          <Link to="/proofs" className="font-semibold underline">Proof Board</Link> helps you build evidence for one.
         </Notice>
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">

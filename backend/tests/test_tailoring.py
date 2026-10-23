@@ -139,6 +139,8 @@ def test_session_lists_changes_with_reasons_requirements_and_ai_status(
     assert session["status"] == "draft"
     assert session["base_version"] == 1
     assert session["ai"]["configured"] is False
+    # The job's skills the master never shows: tailoring can't add them, so the page says so.
+    assert set(session["missing_skills"]) == {"AWS", "Django", "Kafka", "REST"}
     for change in session["changes"]:
         assert change["decision"] == "pending"
         assert change["reason"] and change["title"]

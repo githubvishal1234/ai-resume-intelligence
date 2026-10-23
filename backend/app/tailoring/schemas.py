@@ -91,3 +91,6 @@ class TailoringSessionOut(TailoringSessionSummaryOut):
     preview: ResumeContent
     bullets: list[BulletOut]
     ai: AiStatusOut
+    # The job's skills (required ones first) that the master resume doesn't show anywhere.
+    # Tailoring only reorders and rewords what the master proves, so it can't add these.
+    missing_skills: list[str]

@@ -62,6 +62,9 @@ class JobAnalysis(BaseModel):
 
 
 _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
+    # Job-board trailers (Naukri, LinkedIn): a skills tag cloud, the education block and the
+    # aggregator's disclaimer. None of them are requirements, so they are skipped like "about".
+    (re.compile(r"^(?:key skills|skills highlighted|education|disclaimer)\b.*", re.I), "about"),
     (
         re.compile(
             r".*\b(?:nice[- ]to[- ]haves?|bonus points|pluses|is a plus|would be a plus)\b.*|"
@@ -101,6 +104,14 @@ _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
         "about",
     ),
 ]
+# "Label: value" metadata rows that job boards append ("Role: ...", "UG: Any Graduate").
+_META_LINE = re.compile(
+    r"^(?:disclaimer|role|industry(?: type)?|department|employment type|role category|"
+    r"functional area|ug|pg|doctorate|job type|work mode|openings|applicants|posted)\s*:",
+    re.I,
+)
+# Lead-ins such as "Below are the required set of proficiencies which we are looking for".
+_INTRO_LINE = re.compile(r"^(?:below|following) (?:are|is)\b|\blooking for\s*:?$", re.I)
 _BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■➢➤►✓✔]|\d{1,2}[.)])\s+")
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*\+?\s*(?:years?|yrs?)\b", re.I)
 _PREFERRED_CUES = re.compile(
@@ -258,6 +269,8 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
             continue
         seen.add(key)
         skills = find_skills(item)
+        if _META_LINE.match(item) or (not skills and _INTRO_LINE.search(item)):
+            continue
         if section == "responsibilities":
             analysis.responsibilities.append(item[:600])
             continue

@@ -217,3 +217,59 @@ def test_other_users_cannot_see_or_change_a_job(app: FastAPI, user_client: TestC
     assert [r.status_code for r in attempts] == [404] * len(attempts)
     assert other.get(API).json() == []
     assert user_client.get(url).json()["title"] == job["title"]
+
+
+NAUKRI_JD = """Job Description
+
+Below are the required set of proficiencies which we are looking for
+- Core java concepts (Java 8 is required) like Multi-Threading and Design Patterns.
+- Must be good in Spring and microservices (spring boot, spring cloud, Netflix OSS).
+- Good Understanding of database concepts and ORM tools.
+
+o Must Have Skills
+
+Working Knowledge of JAVA 6 or Higher, J2EE, Spring, Spring Boot, Spring MVC
+Knowledge of HTML, HTML5, JavaScript, XML, XSLT
+
+Disclaimer: This job posting has been aggregated from an external source.
+Role: Full Stack Developer
+Industry Type: IT Services & Consulting
+Employment Type: Full Time, Permanent
+Education
+UG: Any Graduate
+PG: Any Postgraduate
+Key Skills
+html5spring cloudspring datajava technologiesormcore javajavascript
+"""
+
+
+def test_job_board_trailer_and_intro_are_not_requirements() -> None:
+    analysis = analyze_job(NAUKRI_JD, "Java Developer")
+    texts = [r.text for r in analysis.requirements]
+    assert len(texts) == 5
+    for noise in (
+        "Below are",
+        "Disclaimer",
+        "Role:",
+        "Industry",
+        "UG:",
+        "Key Skills",
+        "html5spring",
+    ):
+        assert not any(t.startswith(noise) for t in texts), noise
+    skills = {s.name for s in analysis.skills}
+    assert {
+        "Java",
+        "Spring",
+        "Microservices",
+        "Multithreading",
+        "Design Patterns",
+        "ORM",
+        "Netflix OSS",
+        "J2EE",
+        "XML",
+        "XSLT",
+        "HTML",
+        "JavaScript",
+    } <= skills
+    assert "Spring" in find_skills("Built services with Spring Boot and Spring Cloud")
