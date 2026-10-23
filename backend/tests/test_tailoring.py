@@ -41,6 +41,11 @@ def test_factual_check_accepts_facts_from_the_master() -> None:
     master = _master()
     assert check_text("Cut query latency by 40% on 2M requests/day with Python.", master) == []
     assert check_text("Engineer at Acme Analytics working with Kubernetes.", master) == []
+    # An opening verb is not part of a name, and AI hyphens (U+2011) match plain ones.
+    assert check_text("Engineered Acme Analytics cost‑cutting on Kubernetes.", master) == []
+    assert check_text("Kubernetes-driven, Python-enabled services.", master) == []
+    flags = check_text("Engineered Initech pipelines.", master)
+    assert [(f.kind, f.value) for f in flags] == [("name", "Initech")]
 
 
 def test_factual_check_flags_invented_facts() -> None:

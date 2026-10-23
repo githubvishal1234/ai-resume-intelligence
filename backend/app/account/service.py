@@ -21,7 +21,7 @@ from app.billing.service import BillingService
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
 from app.core.security import hash_password, verify_password
-from app.models import AuditLog, ResumeFile, User, UserSession
+from app.models import AuditLog, Resume, ResumeFile, User, UserSession
 from app.storage.base import StorageBackend
 
 logger = logging.getLogger(__name__)
@@ -115,6 +115,10 @@ class AccountService:
         )
         if self.storage.exists(photo_key(user_id)):
             keys.append(photo_key(user_id))
+        # Resumes go first. Deleting the user alone would make Postgres set
+        # resume_versions.created_by to NULL, an UPDATE the immutability trigger rejects;
+        # deleting the resumes removes their versions outright, which it allows.
+        self.db.execute(delete(Resume).where(Resume.owner_id == user_id))
         self.db.execute(delete(User).where(User.id == user_id))
         # Kept without the user: the audit trail records that a deletion happened, not who.
         self.audit.record(
