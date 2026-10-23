@@ -171,7 +171,7 @@ function Editor({ letter }: { letter: Letter }) {
     return () => window.removeEventListener("beforeunload", stop);
   }, [dirty]);
 
-  const contact = resume.data?.content.contact ?? { full_name: "", email: "", phone: "", location: "", links: [] };
+  const contact = resume.data?.content.contact ?? { full_name: "", headline: "", email: "", phone: "", location: "", links: [] };
   const words = draft.body.trim() ? draft.body.trim().split(/\s+/).length : 0;
 
   return (

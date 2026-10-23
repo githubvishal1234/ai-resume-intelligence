@@ -795,6 +795,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring/{session_id}/focus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Focus */
+        post: operations["focus_api_v1_tailoring__session_id__focus_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Skill */
+        post: operations["confirm_skill_api_v1_tailoring__session_id__skills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/accept-clean": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Clean */
+        post: operations["accept_clean_api_v1_tailoring__session_id__accept_clean_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tailoring/{session_id}/finalize": {
         parameters: {
             query?: never;
@@ -1803,7 +1854,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "rules" | "llm";
+            source: "rules" | "llm" | "user";
             /** Target Id */
             target_id: string | null;
             /** Title */
@@ -1880,6 +1931,16 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** ConfirmSkillIn */
+        ConfirmSkillIn: {
+            /** Skill */
+            skill: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
         /** Contact */
         Contact: {
             /**
@@ -1887,6 +1948,11 @@ export interface components {
              * @default
              */
             full_name: string;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
             /**
              * Email
              * @default
@@ -2998,6 +3064,8 @@ export interface components {
             certifications?: components["schemas"]["Certification"][];
             /** Other */
             other?: components["schemas"]["OtherSection"][];
+            /** Section Order */
+            section_order?: ("summary" | "experience" | "education" | "skills" | "projects" | "certifications")[];
         };
         /** ResumeDetailOut */
         ResumeDetailOut: {
@@ -5239,6 +5307,103 @@ export interface operations {
                 "application/json": components["schemas"]["RewriteBulletIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    focus_api_v1_tailoring__session_id__focus_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_skill_api_v1_tailoring__session_id__skills_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmSkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_clean_api_v1_tailoring__session_id__accept_clean_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

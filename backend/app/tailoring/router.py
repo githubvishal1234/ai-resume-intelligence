@@ -18,6 +18,7 @@ from app.tailoring.schemas import (
     AiStatusOut,
     BulletOut,
     ChangeOut,
+    ConfirmSkillIn,
     CreateTailoringIn,
     DecisionIn,
     FinalizeIn,
@@ -69,7 +70,7 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
     assert job is not None and master is not None
     analysis = JobAnalysis.model_validate(job.analysis)
     requirements = {r.id: r for r in analysis.requirements}
-    shown = known_skills(service.base_content(row))
+    shown = known_skills(service.facts(row))
     configured, reason = service.ai()
     changes = [
         ChangeOut(
@@ -156,6 +157,23 @@ def rewrite_bullet(
     session_id: uuid.UUID, body: RewriteBulletIn, service: Service
 ) -> TailoringSessionOut:
     return _out(service, service.rewrite_bullet(session_id, body.experience_id, body.bullet_index))
+
+
+@router.post("/{session_id}/focus", response_model=TailoringSessionOut)
+def focus(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
+    return _out(service, service.focus(session_id))
+
+
+@router.post("/{session_id}/skills", response_model=TailoringSessionOut)
+def confirm_skill(
+    session_id: uuid.UUID, body: ConfirmSkillIn, service: Service
+) -> TailoringSessionOut:
+    return _out(service, service.confirm_skill(session_id, body.skill, body.note))
+
+
+@router.post("/{session_id}/accept-clean", response_model=TailoringSessionOut)
+def accept_clean(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
+    return _out(service, service.accept_clean(session_id))
 
 
 @router.post("/{session_id}/finalize", response_model=TailoringSessionOut)

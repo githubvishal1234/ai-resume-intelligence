@@ -41,7 +41,7 @@ from reportlab.platypus import (
 from reportlab.platypus.flowables import Flowable
 
 from app.output import fonts
-from app.output.templates import HEADINGS, SIDEBAR_SECTIONS, Template
+from app.output.templates import HEADINGS, SIDEBAR_SECTIONS, Template, arrange
 from app.resumes.content import Contact, ResumeContent
 
 # Invisible characters that are dropped rather than reported.
@@ -114,6 +114,7 @@ def circle_photo(data: bytes, px: int = 360) -> io.BytesIO:
 class _Styles:
     base: ParagraphStyle
     name: ParagraphStyle
+    headline: ParagraphStyle
     contact: ParagraphStyle
     heading: ParagraphStyle
     entry: ParagraphStyle
@@ -141,6 +142,9 @@ def _styles(t: Template, prefix: str, text: Color, heading_colour: Color, band: 
             fontSize=t.name_size,
             leading=t.name_size * 1.2,
             alignment=align,
+        ),
+        headline=ParagraphStyle(
+            f"{prefix}headline", parent=base, fontName=t.font_bold, spaceBefore=1, alignment=align
         ),
         contact=ParagraphStyle(f"{prefix}contact", parent=base, spaceAfter=4, alignment=align),
         heading=ParagraphStyle(
@@ -228,8 +232,9 @@ def render_pdf(
     def header() -> list[Flowable]:
         s = main
         name = _p(c.contact.full_name, s.name) if c.contact.full_name else None
+        title = _p(c.contact.headline, s.headline) if c.contact.headline else None
         line = _p(contact, s.contact) if contact else None
-        block = [f for f in (name, line) if f]
+        block = [f for f in (name, title, line) if f]
         if not block:
             return []
         if t.header == "banner":
@@ -247,7 +252,8 @@ def render_pdf(
             return [band, Spacer(1, 4)]
         if t.header == "split" and name:
             right = _lines(contact_parts, s.meta_right) if contact_parts else ""
-            return [table([[name, right]], [main_w * 0.55, main_w * 0.45]), Spacer(1, 6)]
+            left = [f for f in (name, title) if f]
+            return [table([[left, right]], [main_w * 0.55, main_w * 0.45]), Spacer(1, 6)]
         if t.header == "monogram" and name:
             initials = "".join(w[0] for w in c.contact.full_name.split()[:2]).upper()
             mono_style = ParagraphStyle(
@@ -429,10 +435,12 @@ def render_pdf(
             side_story += [image, Spacer(1, 6)]
         if c.contact.full_name:
             side_story.append(_p(c.contact.full_name, side.name))
+        if c.contact.headline:
+            side_story.append(_p(c.contact.headline, side.headline))
         side_story += [Spacer(1, 4)] + [_p(x, side.meta) for x in contact_parts]
     else:
         main_story += header()
-    for key in t.order:
+    for key in arrange(t.order, list(c.section_order)):
         in_side = sidebar and key in SIDEBAR_SECTIONS
         target = side_story if in_side else main_story
         target += builders[key](side if in_side else main, side_w if in_side else main_w)

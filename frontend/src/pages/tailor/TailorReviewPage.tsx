@@ -1,18 +1,21 @@
 import { ApiErrorText } from "@/components/ui/ApiErrorText";
-import { Check, PenLine, Sparkles, Trash2, X } from "lucide-react";
+import { Check, CheckCheck, PenLine, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
 import { useId, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Input, Textarea } from "@/components/ui/Field";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
 import {
+  useAcceptClean,
+  useConfirmSkill,
   useDecide,
   useDiscardTailoring,
   useFinalize,
+  useFocus,
   useRewrite,
   useRewriteBullet,
   useTailoringSession,
@@ -59,17 +62,10 @@ function Review({ session: s }: { session: Session }) {
           {s.status === "finalized" ? "The tailored resume was created. Changes can no longer be reviewed here." : null}
         </Notice>
       ) : null}
-      {draft && s.missing_skills.length ? (
-        <Notice tone="info" title={`Your resume doesn't show ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} this job asks for`} className="mb-4">
-          <span className="font-semibold">{s.missing_skills.join(", ")}</span>. Tailoring only reorders and rewords what your master resume
-          already proves, so it can't add these{s.changes.length <= 2 ? ", which is why there are so few changes" : ""}. If you have them,{" "}
-          <Link to={`/resumes/${s.master_resume_id}/edit`} className="font-semibold underline">add them to your master resume</Link> with where
-          you used them, then start a new session. If you don&apos;t, the{" "}
-          <Link to="/proofs" className="font-semibold underline">Proof Board</Link> helps you build evidence for one.
-        </Notice>
-      ) : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <div className="space-y-4">
+          {draft && s.missing_skills.length ? <MissingSkills session={s} /> : null}
+          {draft ? <StrongFocus session={s} /> : null}
           <ol className="space-y-4" aria-label="Proposed changes">
             {s.changes.map((c, i) => (
               <li key={c.id} id={`change-${c.id}`}>
@@ -117,6 +113,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
         </h2>
         <div className="flex flex-wrap gap-2">
           {c.source === "llm" ? <Pill tone="brand">AI rewrite</Pill> : null}
+          {c.source === "user" ? <Pill tone="info">You confirmed</Pill> : null}
           {DECISION_PILL[c.decision]}
         </div>
       </div>
@@ -243,11 +240,41 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
 }
 
 function Diff({ change: c }: { change: TailoringChange }) {
-  if (c.kind === "summary" || c.kind === "rewrite_bullet") {
+  if (c.kind === "summary" || c.kind === "rewrite_bullet" || c.kind === "headline") {
     return (
       <div className="grid gap-3 md:grid-cols-2">
-        <Block label="Now">{text(c.original)}</Block>
+        <Block label="Now">{text(c.original) || <span className="text-on-surface-variant">None</span>}</Block>
         <Block label={c.edited ? "Your edit" : "Proposed"} highlight>{text(c.edited) || text(c.proposed)}</Block>
+      </div>
+    );
+  }
+  if (c.kind === "trim_bullets" || c.kind === "trim_projects") {
+    const kept = new Set(items(c.proposed).map((i) => i.text));
+    const left = items(c.original).filter((i) => !kept.has(i.text));
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        <Block label="Kept in this copy"><OrderedList values={[...kept]} /></Block>
+        <Block label="Left out of this copy" highlight>
+          <ul className="list-disc space-y-1 pl-5">{left.map((i) => <li key={i.text} className="line-through decoration-on-surface-variant/60">{i.text}</li>)}</ul>
+        </Block>
+      </div>
+    );
+  }
+  if (c.kind === "reorder_sections") {
+    return (
+      <Block label="Section order in this copy" highlight>
+        <OrderedList values={items(c.proposed).map((i) => i.text)} />
+      </Block>
+    );
+  }
+  if (c.kind === "confirm_skill") {
+    const note = typeof c.proposed.note === "string" ? c.proposed.note : "";
+    return (
+      <div>
+        <ul className="flex flex-wrap gap-1.5">
+          {items(c.proposed).map((i) => <li key={i.text}><Pill tone="matched">+ {i.text}</Pill></li>)}
+        </ul>
+        {note ? <p className="mt-2 text-body-sm text-on-surface-variant">Where you used it: {note}</p> : null}
       </div>
     );
   }
@@ -358,6 +385,103 @@ function BulletRewrites({ session: s }: { session: Session }) {
   );
 }
 
+function MissingSkills({ session: s }: { session: Session }) {
+  const confirm = useConfirmSkill(s.id);
+  const [open, setOpen] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const id = useId();
+  return (
+    <Card aria-labelledby={`${id}-title`}>
+      <CardHeader
+        id={`${id}-title`}
+        title={`This job asks for ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} your resume doesn't show`}
+        description="If you have one, say where you used it. It's added to this tailored copy only, and the rewrite may use it. Your master resume stays as it is."
+      />
+      {confirm.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-4">
+          <ApiErrorText error={confirm.error} />
+        </Notice>
+      ) : null}
+      <ul className="space-y-2">
+        {s.missing_skills.map((skill) => (
+          <li key={skill} className="rounded-control border border-hairline p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-body-md font-semibold text-on-surface">{skill}</span>
+              {open !== skill ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Plus className="size-4" aria-hidden />}
+                  onClick={() => {
+                    setOpen(skill);
+                    setNote("");
+                  }}
+                >
+                  I have this
+                </Button>
+              ) : null}
+            </div>
+            {open === skill ? (
+              <form
+                className="mt-3 space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  confirm.mutate({ skill, note }, { onSuccess: () => setOpen(null) });
+                }}
+              >
+                <Field label={`Where did you use ${skill}?`} hint="Optional, in your own words, like “Built a REST API in it for my final-year project”.">
+                  {({ id: fieldId, describedBy }) => (
+                    <Textarea id={fieldId} aria-describedby={describedBy} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+                  )}
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" size="sm" loading={confirm.isPending} icon={<Check className="size-4" aria-hidden />}>Add {skill}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOpen(null)}>Cancel</Button>
+                </div>
+              </form>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-body-sm text-on-surface-variant">
+        Only add skills you really have; interviewers will ask about them. Don&apos;t have one yet? The{" "}
+        <Link to="/proofs" className="font-semibold text-primary underline">Proof Board</Link> helps you build evidence for it.
+      </p>
+    </Card>
+  );
+}
+
+function StrongFocus({ session: s }: { session: Session }) {
+  const focus = useFocus(s.id);
+  const id = useId();
+  const done = s.changes.some((c) => c.kind === "headline");
+  return (
+    <Card aria-labelledby={`${id}-title`}>
+      <CardHeader
+        id={`${id}-title`}
+        title="Strong focus"
+        description="Reshape this copy around the job: a headline, a rewritten summary and bullets, unrelated bullets and projects left out, and projects first when they fit better. Nothing new is invented, and every change is yours to review."
+      />
+      {!s.ai.configured ? (
+        <Notice tone="info" title="AI rewriting is not set up" className="mb-4">
+          You'll get the headline, order and removals; the summary and bullets keep their wording.
+        </Notice>
+      ) : null}
+      {focus.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-4">
+          <ApiErrorText error={focus.error} />
+        </Notice>
+      ) : null}
+      <Button loading={focus.isPending} icon={<Target className="size-4" aria-hidden />} onClick={() => focus.mutate()}>
+        {done ? "Focus again" : "Focus on this job"}
+      </Button>
+      {s.missing_skills.length ? (
+        <p className="mt-2 text-body-sm text-on-surface-variant">Confirm any skills you have first, so the rewrite can use them.</p>
+      ) : null}
+    </Card>
+  );
+}
+
 function Block({ label, highlight, children }: { label: string; highlight?: boolean; children: React.ReactNode }) {
   return (
     <div className={highlight ? "rounded-control border border-primary-fixed-dim bg-primary-fixed/30 p-3" : "rounded-control border border-hairline bg-surface-container-low p-3"}>
@@ -383,6 +507,8 @@ function OrderedList({ values, moved }: { values: string[]; moved?: boolean[] })
 function Finish({ session: s, accepted }: { session: Session; accepted: number }) {
   const finalize = useFinalize(s.id);
   const discard = useDiscardTailoring(s.id);
+  const acceptClean = useAcceptClean(s.id);
+  const clean = s.changes.filter((c) => c.decision === "pending" && !c.flags.length).length;
   const navigate = useNavigate();
   const [title, setTitle] = useState(`${s.job_title}${s.job_company ? ` (${s.job_company})` : ""}`.slice(0, 200));
   const id = useId();
@@ -410,6 +536,11 @@ function Finish({ session: s, accepted }: { session: Session; accepted: number }
         >
           Create tailored resume
         </Button>
+        {clean ? (
+          <Button variant="secondary" loading={acceptClean.isPending} icon={<CheckCheck className="size-4" aria-hidden />} onClick={() => acceptClean.mutate()}>
+            Accept {clean} with no flags
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           loading={discard.isPending}

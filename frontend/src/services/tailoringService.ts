@@ -43,6 +43,10 @@ export const tailoringService = {
         bullet_index: bulletIndex,
       }),
     ),
+  focus: async (id: string) => withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/focus`)),
+  confirmSkill: async (id: string, skill: string, note: string) =>
+    withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/skills`, { skill, note })),
+  acceptClean: async (id: string) => withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/accept-clean`)),
   finalize: async (id: string, title?: string) =>
     withDoc(await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/finalize`, title ? { title } : {})),
   discard: (id: string) => api.post<void>(`/tailoring/${id}/discard`),

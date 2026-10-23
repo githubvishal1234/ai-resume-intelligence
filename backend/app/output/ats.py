@@ -17,7 +17,7 @@ from pypdf import PdfReader
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import parse_month
 from app.output.pdf import unsupported_characters
-from app.output.templates import HEADINGS, TEMPLATES
+from app.output.templates import HEADINGS, TEMPLATES, arrange
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 
@@ -115,7 +115,8 @@ def ats_check(
         "projects": bool(c.projects),
         "certifications": bool(c.certifications),
     }
-    expected = [HEADINGS[k] for k in TEMPLATES[template_id].order if has_section[k]]
+    order = arrange(TEMPLATES[template_id].order, list(c.section_order))
+    expected = [HEADINGS[k] for k in order if has_section[k]]
     lines = [ln.strip().lower() for ln in extracted.splitlines()]
     positions = [lines.index(h.lower()) if h.lower() in lines else -1 for h in expected]
     in_order = all(p >= 0 for p in positions) and positions == sorted(positions)

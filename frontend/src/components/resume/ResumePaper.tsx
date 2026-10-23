@@ -1,5 +1,5 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
-import { SIDEBAR_SECTIONS, templateStyle, type SectionKey } from "@/constants/templates";
+import { arrange, SIDEBAR_SECTIONS, templateStyle, type SectionKey } from "@/constants/templates";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
 
@@ -266,18 +266,23 @@ export function ResumePaper({
   const header = (): ReactNode => {
     const align = t.center ? "center" : "left";
     const name = c.full_name ? <p style={{ fontWeight: 700, fontSize: pt(t.namePt), lineHeight: 1.2, textAlign: align }}>{c.full_name}</p> : null;
+    const title = c.headline ? <p style={{ fontWeight: 700, textAlign: align }}>{c.headline}</p> : null;
     const line = contact ? <p style={{ marginBottom: pt(4), textAlign: align, overflowWrap: "anywhere" }}>{contact}</p> : null;
     if (t.header === "banner" && (name || line))
       return (
         <div style={{ background: t.accent, color: "#ffffff", padding: `${pt(10)} ${pt(12)}`, marginBottom: pt(4) }}>
           {name}
+          {title}
           {contact ? <p style={{ textAlign: align, overflowWrap: "anywhere" }}>{contact}</p> : null}
         </div>
       );
     if (t.header === "split" && name)
       return (
         <div style={{ display: "flex", justifyContent: "space-between", gap: pt(8), marginBottom: pt(6) }}>
-          {name}
+          <div style={{ minWidth: 0 }}>
+            {name}
+            {title}
+          </div>
           <div style={{ ...meta, textAlign: "right", overflowWrap: "anywhere" }}>{contactParts.map((x) => <p key={x}>{x}</p>)}</div>
         </div>
       );
@@ -289,6 +294,7 @@ export function ResumePaper({
           </span>
           <div style={{ minWidth: 0 }}>
             {name}
+            {title}
             {line}
           </div>
         </div>
@@ -299,6 +305,7 @@ export function ResumePaper({
           {photo(26)}
           <div style={{ minWidth: 0 }}>
             {name}
+            {title}
             {line}
           </div>
         </div>
@@ -306,13 +313,15 @@ export function ResumePaper({
     return (
       <>
         {name}
+        {title}
         {line}
       </>
     );
   };
 
-  const sideKeys = t.order.filter((k) => SIDEBAR_SECTIONS.includes(k));
-  const mainKeys = sidebar ? t.order.filter((k) => !SIDEBAR_SECTIONS.includes(k)) : t.order;
+  const order = arrange(t.order, doc.section_order ?? []);
+  const sideKeys = order.filter((k) => SIDEBAR_SECTIONS.includes(k));
+  const mainKeys = sidebar ? order.filter((k) => !SIDEBAR_SECTIONS.includes(k)) : order;
 
   return (
     <div className={cn("@container w-full", className)}>
@@ -330,6 +339,7 @@ export function ResumePaper({
               <div style={{ color: solid ? "#ffffff" : "#111111", minWidth: 0, overflowWrap: "anywhere" }}>
                 {t.photo ? <div style={{ display: "flex", justifyContent: "center", marginBottom: pt(6) }}>{photo(26)}</div> : null}
                 {c.full_name ? <p style={{ fontWeight: 700, fontSize: pt(t.namePt), lineHeight: 1.2 }}>{c.full_name}</p> : null}
+                {c.headline ? <p style={{ fontWeight: 700 }}>{c.headline}</p> : null}
                 <div style={{ ...meta, marginTop: pt(4) }}>{contactParts.map((x) => <p key={x}>{x}</p>)}</div>
                 {sideKeys.map((key) => <Fragment key={key}>{section(key, true)}</Fragment>)}
               </div>

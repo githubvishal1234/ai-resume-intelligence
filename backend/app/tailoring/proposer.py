@@ -5,6 +5,10 @@ Every proposal only reorders or re-surfaces what the master resume already conta
 - bullets and projects that mention the job's skills move up,
 - skills shown in experience or projects but missing from the skills list are added to it,
 - the summary gains one sentence naming job skills the experience already shows.
+Strong focus (`focus`, on request) goes further, still only with the master's own content:
+- a headline under the name from the latest title and the job skills the resume shows,
+- projects before experience when a project fits the job better than any role,
+- bullets and projects that share nothing with the job are left out of the copy.
 Each proposal carries the reason, the requirements it serves and its evidence.
 """
 
@@ -27,8 +31,16 @@ ChangeKind = Literal[
     "add_skills",
     "summary",
     "rewrite_bullet",  # created on request by the LLM rewrite, never by these rules
+    "headline",
+    "reorder_sections",
+    "trim_bullets",
+    "trim_projects",
+    "confirm_skill",  # a skill the user says they have, with where they used it
 ]
-EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet"})
+EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headline"})
+FOCUS_KINDS: frozenset[str] = frozenset(
+    {"headline", "reorder_sections", "trim_bullets", "trim_projects"}
+)
 # Kinds whose text is new wording, so it goes through the factual check.
 TEXT_KINDS: frozenset[str] = EDITABLE_KINDS
 
@@ -218,6 +230,97 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
     return out
 
 
+def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[Proposal]:
+    """The strong-focus proposals: they reshape the copy around the job, inventing nothing."""
+    weights = _weights(job)
+    out: list[Proposal] = []
+
+    def score(text: str) -> int:
+        return _relevance(text, weights, job.keywords)
+
+    # 1. Headline: the latest title and up to three job skills the resume shows.
+    title = next((e.title for e in master.experience if e.title), "")
+    shown = [
+        g.skill
+        for g in sorted(result.skills, key=lambda g: -TIER_WEIGHT[g.tier])
+        if g.status == "strong"
+    ][:3]
+    headline = " | ".join(p for p in (title, ", ".join(shown)) if p)
+    if headline and headline != master.contact.headline:
+        out.append(
+            Proposal(
+                kind="headline",
+                title="Add a headline aimed at this job",
+                original={"text": master.contact.headline},
+                proposed={"text": headline},
+                reason="A line under your name tells the reader at once what you bring.",
+                requirement_ids=requirements_for(job, set(shown)),
+            )
+        )
+
+    # 2. Projects first when one fits the job better than any role does.
+    def project_text(p: Any) -> str:
+        return " ".join([p.name, p.description, *p.technologies, *p.bullets])
+
+    best_role = max((score(b) for e in master.experience for b in e.bullets), default=0)
+    best_project = max(master.projects, key=lambda p: score(project_text(p)), default=None)
+    if master.experience and best_project and score(project_text(best_project)) > best_role:
+        out.append(
+            Proposal(
+                kind="reorder_sections",
+                title="Show your projects before your experience",
+                original={"items": [{"id": "experience", "text": "Experience"}]},
+                proposed={
+                    "items": [
+                        {"id": "projects", "text": "Projects"},
+                        {"id": "experience", "text": "Experience"},
+                    ]
+                },
+                reason=(
+                    f"“{best_project.name}” matches this job better than your work experience, "
+                    "so readers should see it first."
+                ),
+            )
+        )
+
+    # 3. Bullets that share nothing with the job; every role keeps at least two.
+    for exp in master.experience:
+        if len(exp.bullets) < 3:
+            continue
+        top = sorted(range(len(exp.bullets)), key=lambda i: (-score(exp.bullets[i]), i))[:2]
+        keep = [b for i, b in enumerate(exp.bullets) if score(b) > 0 or i in top]
+        if len(keep) == len(exp.bullets):
+            continue
+        out.append(
+            Proposal(
+                kind="trim_bullets",
+                target_id=exp.id,
+                title="Leave out unrelated bullets at " + (exp.company or exp.title or "this role"),
+                original={"items": [{"id": None, "text": b} for b in exp.bullets]},
+                proposed={"items": [{"id": None, "text": b} for b in keep]},
+                reason="These bullets share no skill or term with the posting; a shorter, "
+                "focused role reads stronger. They stay in your master resume.",
+            )
+        )
+
+    # 4. Projects that share nothing with the job; at least one stays.
+    if len(master.projects) > 1:
+        ranked = sorted(master.projects, key=lambda p: -score(project_text(p)))
+        kept = [p for p in master.projects if score(project_text(p)) > 0 or p is ranked[0]]
+        if len(kept) < len(master.projects):
+            out.append(
+                Proposal(
+                    kind="trim_projects",
+                    title="Leave out unrelated projects",
+                    original={"items": [{"id": p.id, "text": p.name} for p in master.projects]},
+                    proposed={"items": [{"id": p.id, "text": p.name} for p in kept]},
+                    reason="These projects share no skill or term with the posting. "
+                    "They stay in your master resume.",
+                )
+            )
+    return out
+
+
 def _texts(items: list[dict[str, Any]]) -> list[str]:
     return [str(i["text"]) for i in items]
 
@@ -243,7 +346,22 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
         if exp is None or sorted(new) != sorted(exp.bullets):
             raise ChangeNotApplicable()
         exp.bullets = new
-    elif change.kind == "add_skills":
+    elif change.kind == "trim_bullets":
+        exp = next((e for e in doc.experience if e.id == change.target_id), None)
+        keep = _texts(value["items"])
+        if exp is None or not set(keep) <= set(exp.bullets):
+            raise ChangeNotApplicable()
+        exp.bullets = [b for b in exp.bullets if b in keep]
+    elif change.kind == "trim_projects":
+        keep_ids = {i["id"] for i in value["items"]}
+        if not keep_ids <= {p.id for p in doc.projects}:
+            raise ChangeNotApplicable()
+        doc.projects = [p for p in doc.projects if p.id in keep_ids]
+    elif change.kind == "reorder_sections":
+        doc.section_order = [i["id"] for i in value["items"]]
+    elif change.kind == "headline":
+        doc.contact.headline = str(value["text"]).strip()
+    elif change.kind in ("add_skills", "confirm_skill"):
         have = {(canonical(s.name) or s.name).lower() for s in doc.skills}
         for item in value["items"]:
             name = str(item["text"])

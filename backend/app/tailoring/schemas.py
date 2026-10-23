@@ -21,6 +21,12 @@ class DecisionIn(BaseModel):
     edited_text: str | None = Field(default=None, max_length=5000)
 
 
+class ConfirmSkillIn(BaseModel):
+    skill: str = Field(min_length=1, max_length=100)
+    # Where the user used it, in their own words; new text may rely on it.
+    note: str = Field(default="", max_length=300)
+
+
 class RewriteBulletIn(BaseModel):
     experience_id: str = Field(min_length=1, max_length=64)
     bullet_index: int = Field(ge=0, le=200)
@@ -40,7 +46,7 @@ class ChangeOut(BaseModel):
     id: uuid.UUID
     position: int
     kind: str
-    source: Literal["rules", "llm"]
+    source: Literal["rules", "llm", "user"]
     target_id: str | None
     title: str
     reason: str
@@ -91,6 +97,6 @@ class TailoringSessionOut(TailoringSessionSummaryOut):
     preview: ResumeContent
     bullets: list[BulletOut]
     ai: AiStatusOut
-    # The job's skills (required ones first) that the master resume doesn't show anywhere.
-    # Tailoring only reorders and rewords what the master proves, so it can't add these.
+    # The job's skills (required ones first) that the master resume doesn't show anywhere
+    # and the user hasn't confirmed. Tailoring can't add these on its own.
     missing_skills: list[str]

@@ -36,7 +36,7 @@ describe("draftProfile", () => {
     const d = draftProfile(long);
     expect(d.about.length).toBeLessThanOrEqual(ABOUT_LIMIT);
     expect(d.headlines.every((h) => h.length <= HEADLINE_LIMIT)).toBe(true);
-    const empty: ResumeDoc = { contact: { full_name: "", email: "", phone: "", location: "", links: [] }, summary: "", experience: [], education: [], skills: [], projects: [], certifications: [], other: [] };
+    const empty: ResumeDoc = { contact: { full_name: "", headline: "", email: "", phone: "", location: "", links: [] }, summary: "", experience: [], education: [], skills: [], projects: [], certifications: [], other: [], section_order: [] };
     expect(draftProfile(empty)).toEqual({ headlines: [], about: "", skills: [] });
   });
 });

@@ -10,8 +10,8 @@ from pypdf import PdfReader
 
 from app.output.ats import ats_check
 from app.output.pdf import render_pdf
-from app.output.templates import DESIGNS, PALETTES, TEMPLATES
-from app.resumes.content import Contact, Experience, ResumeContent
+from app.output.templates import DESIGNS, PALETTES, RESUME_ORDER, TEMPLATES, arrange
+from app.resumes.content import Contact, Experience, Project, ResumeContent
 from app.resumes.parser import parse_resume
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
@@ -176,3 +176,20 @@ def test_every_design_comes_in_every_palette_with_readable_banner_text() -> None
     # White name and contact on the band, and the accent as heading text on white.
     for hex_colour in PALETTES.values():
         assert (1.05) / (_luminance(hex_colour) + 0.05) >= 4.5
+
+
+def test_headline_and_section_order_reach_the_pdf_and_the_ats_check() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.contact.headline = "Backend Engineer | Python, PostgreSQL"
+    content.projects = [Project(name="Search service", bullets=["Built a search API."])]
+    content.section_order = ["projects", "experience"]
+    assert arrange(RESUME_ORDER, content.section_order) == [
+        "summary", "projects", "experience", "education", "skills", "certifications",
+    ]  # fmt: skip
+    for template in ("classic", "sidebar-navy", "timeline-navy", "split-navy"):
+        pdf = render_pdf(content, TEMPLATES[template])
+        text = " ".join(_text(pdf).split())
+        assert "Backend Engineer | Python, PostgreSQL" in text, template
+        assert text.index("Projects") < text.index("Experience"), template
+        statuses = {c.id: c.status for c in ats_check(content, pdf, template).checks}
+        assert statuses["layout.order"] == "pass", template

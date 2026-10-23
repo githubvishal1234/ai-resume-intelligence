@@ -97,15 +97,68 @@ describe("Tailoring review", () => {
     expect(screen.getByRole("button", { name: /Create tailored resume/ })).toHaveAccessibleName(/Accept at least one change first/);
   });
 
-  it("explains which job skills the resume doesn't show, and what to do", async () => {
-    mockApi([me, { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, missing_skills: ["Java", "Spring"] } }]);
+  it("lets the user confirm a missing skill with where they used it", async () => {
+    const user = userEvent.setup();
+    const confirmed = {
+      ...SESSION_BODY,
+      missing_skills: ["Spring"],
+      changes: [
+        ...SESSION_BODY.changes,
+        {
+          ...SESSION_BODY.changes[0],
+          id: "c9",
+          kind: "confirm_skill",
+          source: "user",
+          title: "Add Java, which you confirmed",
+          proposed: { items: [{ id: "s9", text: "Java" }], note: "College library project" },
+          decision: "accepted",
+        },
+      ],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, missing_skills: ["Java", "Spring"] } },
+      { method: "POST", path: `/tailoring/${SID}/skills`, body: confirmed },
+      { path: "/tailoring", body: [] },
+    ]);
     renderApp(`/tailor/${SID}`);
-    const notice = await screen.findByText(/Your resume doesn't show 2 skills this job asks for/);
-    const box = notice.closest("[role]") ?? notice.parentElement!;
-    expect(box).toHaveTextContent("Java, Spring");
-    expect(box).toHaveTextContent("which is why there are so few changes");
-    expect(within(box as HTMLElement).getByRole("link", { name: "add them to your master resume" })).toHaveAttribute("href", `/resumes/${RESUME_ID}/edit`);
-    expect(within(box as HTMLElement).getByRole("link", { name: "Proof Board" })).toHaveAttribute("href", "/proofs");
+    const card = await screen.findByRole("region", { name: /This job asks for 2 skills your resume doesn't show/ });
+    expect(within(card).getByRole("link", { name: "Proof Board" })).toHaveAttribute("href", "/proofs");
+    await user.click(within(card).getAllByRole("button", { name: "I have this" })[0]!);
+    await user.type(within(card).getByLabelText("Where did you use Java?"), "College library project");
+    await user.click(within(card).getByRole("button", { name: "Add Java" }));
+    expect(await screen.findByRole("region", { name: /Add Java, which you confirmed/ })).toHaveTextContent("Where you used it: College library project");
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ skill: "Java", note: "College library project" });
+  });
+
+  it("runs strong focus", async () => {
+    const user = userEvent.setup();
+    const focused = {
+      ...SESSION_BODY,
+      changes: [
+        ...SESSION_BODY.changes,
+        {
+          ...SUMMARY_CHANGE,
+          id: "c8",
+          kind: "headline",
+          title: "Add a headline aimed at this job",
+          original: { text: "" },
+          proposed: { text: "Backend Engineer | Python, SQL" },
+        },
+      ],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+      { method: "POST", path: `/tailoring/${SID}/focus`, body: focused },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    await user.click(await screen.findByRole("button", { name: "Focus on this job" }));
+    const card = await screen.findByRole("region", { name: /Add a headline aimed at this job/ });
+    expect(card).toHaveTextContent("Backend Engineer | Python, SQL");
+    expect(screen.getByRole("button", { name: "Focus again" })).toBeInTheDocument();
+    expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/focus"))).toBe(true);
   });
 
   it("accepts a change", async () => {

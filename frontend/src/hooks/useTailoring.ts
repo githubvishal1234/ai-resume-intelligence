@@ -56,6 +56,24 @@ export function useRewriteBullet(id: string) {
   });
 }
 
+export function useFocus(id: string) {
+  const settle = useSettle();
+  return useMutation({ mutationFn: () => tailoringService.focus(id), onSuccess: settle });
+}
+
+export function useConfirmSkill(id: string) {
+  const settle = useSettle();
+  return useMutation({
+    mutationFn: ({ skill, note }: { skill: string; note: string }) => tailoringService.confirmSkill(id, skill, note),
+    onSuccess: settle,
+  });
+}
+
+export function useAcceptClean(id: string) {
+  const settle = useSettle();
+  return useMutation({ mutationFn: () => tailoringService.acceptClean(id), onSuccess: settle });
+}
+
 export function useFinalize(id: string) {
   const settle = useSettle();
   const client = useQueryClient();

@@ -41,6 +41,9 @@ _COMMON_WORDS = (
 )
 _COMMON = frozenset(_COMMON_WORDS.split())
 # Unicode hyphens and dashes that models write ("AI‑powered"), read as a plain hyphen.
+_TITLE = re.compile(
+    r"\b([\w+#.]+)\s+(?:developer|engineer|architect|programmer|consultant)s?\b", re.IGNORECASE
+)
 _ADJ_SUFFIX = re.compile(r"(?<=\w)-[a-z]+$")
 _DASHES = re.compile("[‐-―−]")
 # A sentence's opening verb ("Engineered", "Architected", "Optimizing"): capitalized only
@@ -50,7 +53,7 @@ _OPENING_VERB = re.compile(r"[A-Z][a-z]+(?:ed|ing)")
 
 def master_text(master: ResumeContent) -> str:
     c = master
-    parts: list[str] = [c.contact.full_name, c.contact.location, c.summary]
+    parts: list[str] = [c.contact.full_name, c.contact.headline, c.contact.location, c.summary]
     for e in c.experience:
         parts += [e.title, e.company, e.location, e.start_date, e.end_date, *e.bullets]
     for d in c.education:
@@ -126,4 +129,11 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
             ):
                 continue
             add("name", candidate, f"“{candidate}” does not appear in your master resume.")
+
+    # "Java developer": a job title built from a skill. Knowing Java (or having confirmed it)
+    # doesn't make someone a Java developer, so the phrase itself must be in the master.
+    for m in _TITLE.finditer(text):
+        phrase = m.group(0)
+        if phrase.lower() not in lowered and find_skills(m.group(1)):
+            add("name", phrase, f"“{phrase}” reads as a job title your master resume doesn't show.")
     return flags

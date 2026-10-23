@@ -130,7 +130,7 @@ export const SKILL_PRESETS: Record<string, string[]> = {
 
 /** A fictional resume for template previews and the landing page. */
 export const SAMPLE_RESUME: ResumeDoc = {
-  contact: { full_name: "Aarav Mehta", email: "aarav.mehta@example.com", phone: "+91 98765 43210", location: "Pune, India", links: ["linkedin.com/in/aarav-example"] },
+  contact: { full_name: "Aarav Mehta", headline: "", email: "aarav.mehta@example.com", phone: "+91 98765 43210", location: "Pune, India", links: ["linkedin.com/in/aarav-example"] },
   summary: "Backend engineer with 6+ years of experience, currently at Northwind Retail. Skilled in Python, PostgreSQL, AWS and Docker. Holds a B.Tech in Computer Science.",
   experience: [
     { id: "s-e1", title: "Senior Backend Engineer", company: "Northwind Retail", location: "Pune", start_date: "Mar 2022", end_date: "", current: true, bullets: ["Led the move of order processing to an event-driven service, cutting checkout errors by 38%.", "Built a PostgreSQL reporting layer used by 120 store managers every day.", "Mentored 4 engineers through code reviews and weekly pairing."] },
@@ -141,4 +141,5 @@ export const SAMPLE_RESUME: ResumeDoc = {
   projects: [],
   certifications: [{ id: "s-c1", name: "AWS Certified Developer – Associate", issuer: "Amazon Web Services", date: "2023" }],
   other: [],
+  section_order: [],
 };

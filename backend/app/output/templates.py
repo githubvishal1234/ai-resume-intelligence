@@ -23,6 +23,20 @@ SIDEBAR_SECTIONS = ("skills", "certifications", "education")
 SIDEBAR_ORDER = (*SIDEBAR_SECTIONS, "summary", "experience", "projects")
 
 
+def arrange(order: tuple[str, ...], lead: list[str]) -> list[str]:
+    """`order` with the `lead` sections, in that order, where the first of them sits.
+
+    A tailored resume can put projects before experience; every other section keeps the
+    template's place. Sections the template doesn't show are ignored.
+    """
+    lead = [k for k in dict.fromkeys(lead) if k in order]
+    if not lead:
+        return list(order)
+    rest = [k for k in order if k not in lead]
+    at = len([k for k in order[: min(order.index(k) for k in lead)] if k not in lead])
+    return rest[:at] + lead + rest[at:]
+
+
 @dataclass(frozen=True)
 class Template:
     id: str

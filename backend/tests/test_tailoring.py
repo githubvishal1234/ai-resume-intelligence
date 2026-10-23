@@ -14,10 +14,17 @@ from app.ai.registry import register_provider, unregister_provider
 from app.core.config import Settings, get_settings
 from app.jobs.analyzer import analyze_job
 from app.matching.matcher import match
-from app.resumes.content import ResumeContent, Skill
+from app.resumes.content import Project, ResumeContent, Skill
 from app.resumes.parser import parse_resume
 from app.tailoring.factcheck import check_text
-from app.tailoring.proposer import ChangeNotApplicable, Proposal, apply, apply_order, propose
+from app.tailoring.proposer import (
+    ChangeNotApplicable,
+    Proposal,
+    apply,
+    apply_order,
+    focus,
+    propose,
+)
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
 from tests.test_jobs import JD
@@ -44,6 +51,11 @@ def test_factual_check_accepts_facts_from_the_master() -> None:
     # An opening verb is not part of a name, and AI hyphens (U+2011) match plain ones.
     assert check_text("Engineered Acme Analytics cost‑cutting on Kubernetes.", master) == []
     assert check_text("Kubernetes-driven, Python-enabled services.", master) == []
+    # A skill turned into a job title the master doesn't show is flagged; real titles are not.
+    assert check_text("Backend engineer with Kubernetes.", master) == []
+    assert [f.value for f in check_text("Python developer since Acme Analytics.", master)] == [
+        "Python developer"
+    ]
     flags = check_text("Engineered Initech pipelines.", master)
     assert [(f.kind, f.value) for f in flags] == [("name", "Initech")]
 
@@ -213,7 +225,9 @@ class _Rewrite(BaseModel):
 class _FakeProvider(LLMProvider):
     name = "fake"
     seen: list[LLMMessage] = []
+    calls: list[str] = []
     reply = "Python backend engineer who scaled APIs 10x at Google."
+    structured: dict[str, dict[str, Any]] = {}  # replies by schema name; others get `reply`
 
     @property
     def model(self) -> str:
@@ -225,7 +239,10 @@ class _FakeProvider(LLMProvider):
 
     def generate_structured(self, schema, messages, *, max_output_tokens=None):  # type: ignore[no-untyped-def]
         _FakeProvider.seen = messages
-        parsed = schema(text=_FakeProvider.reply)
+        _FakeProvider.calls.append(schema.__name__)
+        parsed = schema(
+            **_FakeProvider.structured.get(schema.__name__, {"text": _FakeProvider.reply})
+        )
         return StructuredResult(
             parsed=parsed, usage=LLMUsage(), provider="fake", model="fake-1", latency_ms=1.0
         )
@@ -240,6 +257,8 @@ def fake_ai(app: FastAPI, settings: Settings) -> Iterator[None]:
     yield
     unregister_provider("fake")
     _FakeProvider.reply = "Python backend engineer who scaled APIs 10x at Google."
+    _FakeProvider.structured = {}
+    _FakeProvider.calls = []
 
 
 def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: None) -> None:
@@ -440,3 +459,117 @@ def test_bullet_rewrite_applies_after_a_reorder_of_the_same_role() -> None:
         content = apply(content, p, p.proposed)
     assert content.experience[0].bullets == [second, rewrite.proposed["text"]]
     assert master.experience[0].bullets == [first, second]  # the master is untouched
+
+
+# ---- strong focus ----------------------------------------------------------------------
+def _focus_master() -> ResumeContent:
+    master = _master()
+    master.experience[0].bullets.append("Organised the office football league.")
+    master.projects = [
+        Project(name="Recipe blog", description="A personal cooking blog."),
+        Project(
+            name="Orders API",
+            technologies=["Python", "FastAPI", "PostgreSQL"],
+            bullets=["Built REST endpoints for order lookups."],
+        ),
+    ]
+    return master
+
+
+def test_focus_reshapes_the_copy_with_only_master_facts() -> None:
+    master = _focus_master()
+    job = analyze_job(JD)
+    props = {p.kind: p for p in focus(master, job, match(master, job, date(2026, 10, 12)))}
+    headline = props["headline"].proposed["text"]
+    assert headline.startswith("Senior Software Engineer | ")
+    assert check_text(headline, master) == []
+    doc = master
+    for p in props.values():
+        doc = apply(doc, p, p.proposed)
+    assert doc.contact.headline == headline
+    assert doc.section_order == ["projects", "experience"]  # the API project fits best
+    assert "Organised the office football league." not in doc.experience[0].bullets
+    assert len(doc.experience[0].bullets) == 2
+    assert [p.name for p in doc.projects] == ["Orders API"]
+    assert master.contact.headline == "" and len(master.projects) == 2  # not mutated
+
+
+def test_confirmed_skills_can_be_used_and_reach_the_copy(user_client: TestClient) -> None:
+    master, session = _session(user_client)
+    sid = session["id"]
+    focused = user_client.post(f"{API}/{sid}/focus")
+    assert focused.status_code == 200, focused.text
+    kinds = {c["kind"] for c in focused.json()["changes"]}
+    assert "headline" in kinds and not any(c["source"] == "llm" for c in focused.json()["changes"])
+    assert "Django" in focused.json()["missing_skills"]
+
+    summary = _change(focused.json(), "summary")
+    text = "Backend engineer building Python and Django services."
+    blocked = _decide(user_client, session, summary, decision="accepted", edited_text=text)
+    assert blocked.status_code == 422
+
+    confirmed = user_client.post(
+        f"{API}/{sid}/skills", json={"skill": "django", "note": "Admin tools at Brightpath Labs"}
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    body = confirmed.json()
+    assert "Django" not in body["missing_skills"]
+    assert _change(body, "confirm_skill")["decision"] == "accepted"
+    ok = _decide(user_client, session, summary, decision="accepted", edited_text=text)
+    assert ok.status_code == 200, ok.text
+
+    accepted = user_client.post(f"{API}/{sid}/accept-clean").json()
+    assert all(c["decision"] == "accepted" for c in accepted["changes"] if not c["flags"])
+    assert all(c["decision"] == "pending" for c in accepted["changes"] if c["flags"])
+    done = user_client.post(f"{API}/{sid}/finalize", json={}).json()
+    copy = user_client.get(f"/api/v1/resumes/{done['result_resume_id']}").json()["content"]
+    assert "Django" in [s["name"] for s in copy["skills"]]
+    assert copy["contact"]["headline"]
+    original = user_client.get(f"/api/v1/resumes/{master['id']}").json()["content"]
+    assert original["contact"]["headline"] == ""
+    assert "Django" not in [s["name"] for s in original["skills"]]
+
+
+def test_focus_with_ai_rewrites_everything_in_one_call(
+    user_client: TestClient, fake_ai: None
+) -> None:
+    _, session = _session(user_client)
+    _FakeProvider.structured = {
+        "FocusOut": {
+            "headline": "Backend Engineer | Python, FastAPI, PostgreSQL",
+            "summary": "Backend engineer building Python APIs at Google.",
+            "bullets": [
+                {
+                    "key": "b1",
+                    "text": "Migrated reporting to PostgreSQL, cutting query latency by 40%.",
+                }
+            ],
+        }
+    }
+    _FakeProvider.calls = []
+    response = user_client.post(f"{API}/{session['id']}/focus")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    # One rewrite call and one claim check for everything that passed layer 1.
+    assert _FakeProvider.calls == ["FocusOut", "ClaimReport"]
+    headline = _change(body, "headline")
+    assert headline["source"] == "llm" and headline["proposed"]["text"].startswith("Backend")
+    assert not [f for f in headline["flags"] if f["severity"] == "block"]
+    assert "Google" in {f["value"] for f in _change(body, "summary")["flags"]}
+    bullet = _change(body, "rewrite_bullet")
+    assert bullet["proposed"]["text"].startswith("Migrated")
+    assert bullet["original"]["text"].startswith("Led migration")
+
+
+def test_focus_keeps_the_rule_headline_when_the_ai_one_is_blocked(
+    user_client: TestClient, fake_ai: None
+) -> None:
+    _, session = _session(user_client)
+    _FakeProvider.structured = {
+        "FocusOut": {"headline": "Rust Developer | Rust", "summary": "Backend engineer."}
+    }
+    body = user_client.post(f"{API}/{session['id']}/focus").json()
+    headline = _change(body, "headline")
+    assert headline["source"] == "rules"
+    assert headline["proposed"]["text"].startswith("Senior Software Engineer | ")
+    assert headline["flags"] == []

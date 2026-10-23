@@ -10,6 +10,16 @@ export const CV_ORDER: SectionKey[] = ["summary", "education", "experience", "pr
 export const SIDEBAR_SECTIONS: SectionKey[] = ["skills", "certifications", "education"];
 export const SIDEBAR_ORDER: SectionKey[] = [...SIDEBAR_SECTIONS, "summary", "experience", "projects"];
 
+/** `order` with the `lead` sections, in that order, where the first of them sits (mirrors `arrange` in templates.py). */
+export function arrange(order: SectionKey[], lead: readonly SectionKey[]): SectionKey[] {
+  const front = [...new Set(lead)].filter((k) => order.includes(k));
+  if (!front.length) return order;
+  const rest = order.filter((k) => !front.includes(k));
+  const first = Math.min(...front.map((k) => order.indexOf(k)));
+  const at = order.slice(0, first).filter((k) => !front.includes(k)).length;
+  return [...rest.slice(0, at), ...front, ...rest.slice(at)];
+}
+
 export type TemplateStyle = {
   id: string;
   kind: "resume" | "cv";
