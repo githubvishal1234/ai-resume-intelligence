@@ -36,12 +36,15 @@ ChangeKind = Literal[
     "trim_bullets",
     "trim_projects",
     "trim_skills",
+    "add_bullet",  # what the user told us they did with a skill, under that role or project
     "confirm_skill",  # a skill the user says they have, with where they used it
 ]
-EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headline"})
+EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headline", "add_bullet"})
 FOCUS_KINDS: frozenset[str] = frozenset(
     {"headline", "reorder_sections", "trim_bullets", "trim_projects", "trim_skills"}
 )
+# Strong focus never leaves a role with fewer bullets than this.
+KEEP_BULLETS = 3
 # Strong focus keeps the job's skills and, when there are fewer, tops up to this many.
 SKILLS_KEPT = 12
 # Kinds whose text is new wording, so it goes through the factual check.
@@ -286,11 +289,13 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
             )
         )
 
-    # 3. Bullets that share nothing with the job; every role keeps at least two.
+    # 3. Bullets that share nothing with the job; every role keeps at least three.
     for exp in master.experience:
-        if len(exp.bullets) < 3:
+        if len(exp.bullets) <= KEEP_BULLETS:
             continue
-        top = sorted(range(len(exp.bullets)), key=lambda i: (-score(exp.bullets[i]), i))[:2]
+        top = sorted(range(len(exp.bullets)), key=lambda i: (-score(exp.bullets[i]), i))[
+            :KEEP_BULLETS
+        ]
         keep = [b for i, b in enumerate(exp.bullets) if score(b) > 0 or i in top]
         if len(keep) == len(exp.bullets):
             continue
@@ -408,9 +413,18 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
         if exp is None or old not in exp.bullets:
             raise ChangeNotApplicable()
         exp.bullets[exp.bullets.index(old)] = str(value["text"]).strip()
+    elif change.kind == "add_bullet":
+        text = str(value["text"]).strip()
+        exp = next((e for e in doc.experience if e.id == change.target_id), None)
+        project = next((p for p in doc.projects if p.id == change.target_id), None)
+        target = exp.bullets if exp else project.bullets if project else None
+        if target is None or not text:
+            raise ChangeNotApplicable()
+        if text not in target:
+            target.append(text)
     return doc
 
 
 def apply_order(kind: str) -> int:
-    """Rewrites go last so reorders see the master's own bullet text."""
-    return 1 if kind == "rewrite_bullet" else 0
+    """Rewrites and added bullets go last, so reorders and trims see the master's own text."""
+    return 1 if kind in ("rewrite_bullet", "add_bullet") else 0

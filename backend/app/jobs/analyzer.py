@@ -73,7 +73,17 @@ _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
         ),
         "nice",
     ),
-    (re.compile(r"^(?:preferred|desired|additional)\b.*", re.I), "preferred"),
+    (re.compile(r"^(?:preferred|desired|additional|good[- ]to[- ]have)\b.*", re.I), "preferred"),
+    (re.compile(r"^domain (?:experience|knowledge|expertise)$", re.I), "preferred"),
+    # "Work Experience", "Experience Required", "Skills & Experience" (LinkedIn, Naukri).
+    (
+        re.compile(
+            r"^(?:(?:work|required|relevant|professional) )?experience"
+            r"(?: required| needed|(?: and| &) skills)?$",
+            re.I,
+        ),
+        "requirements",
+    ),
     (
         re.compile(
             r".*\b(?:requirements?|qualifications?|must[- ]haves?|what you(?:'ll)? (?:need|"
@@ -115,7 +125,7 @@ _INTRO_LINE = re.compile(r"^(?:below|following) (?:are|is)\b|\blooking for\s*:?$
 _BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■➢➤►✓✔]|\d{1,2}[.)])\s+")
 _YEARS = re.compile(r"(\d{1,2})\s*\+?\s*(?:-|–|to)?\s*(?:\d{1,2})?\s*\+?\s*(?:years?|yrs?)\b", re.I)
 _PREFERRED_CUES = re.compile(
-    r"\b(?:preferred|nice to have|nice-to-have|a plus|is a plus|bonus|"
+    r"\b(?:preferred|nice to have|nice-to-have|a plus|is a plus|(?:a )?strong plus|bonus|"
     r"ideally|desirable|advantage|beneficial)\b",
     re.I,
 )

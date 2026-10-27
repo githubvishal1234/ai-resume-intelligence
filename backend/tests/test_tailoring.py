@@ -464,7 +464,10 @@ def test_bullet_rewrite_applies_after_a_reorder_of_the_same_role() -> None:
 # ---- strong focus ----------------------------------------------------------------------
 def _focus_master() -> ResumeContent:
     master = _master()
-    master.experience[0].bullets.append("Organised the office football league.")
+    master.experience[0].bullets += [
+        "Organised the office football league.",
+        "Ran the office book club.",
+    ]
     master.projects = [
         Project(name="Recipe blog", description="A personal cooking blog."),
         Project(
@@ -488,8 +491,9 @@ def test_focus_reshapes_the_copy_with_only_master_facts() -> None:
         doc = apply(doc, p, p.proposed)
     assert doc.contact.headline == headline
     assert doc.section_order == ["projects", "experience"]  # the API project fits best
-    assert "Organised the office football league." not in doc.experience[0].bullets
-    assert len(doc.experience[0].bullets) == 2
+    # Every role keeps three bullets, so only the last unrelated one goes.
+    assert "Ran the office book club." not in doc.experience[0].bullets
+    assert len(doc.experience[0].bullets) == 3
     assert [p.name for p in doc.projects] == ["Orders API"]
     assert master.contact.headline == "" and len(master.projects) == 2  # not mutated
 
@@ -547,15 +551,18 @@ def test_focus_with_ai_rewrites_everything_in_one_call(
         }
     }
     _FakeProvider.calls = []
+    _FakeProvider.reply = "Backend engineer building Python APIs."  # the repair's answer
     response = user_client.post(f"{API}/{session['id']}/focus")
     assert response.status_code == 200, response.text
     body = response.json()
-    # One rewrite call and one claim check for everything that passed layer 1.
-    assert _FakeProvider.calls == ["FocusOut", "ClaimReport"]
+    # One rewrite call, one repair for the summary that named Google, one claim check.
+    assert _FakeProvider.calls == ["FocusOut", "RewriteOut", "ClaimReport"]
     headline = _change(body, "headline")
     assert headline["source"] == "llm" and headline["proposed"]["text"].startswith("Backend")
     assert not [f for f in headline["flags"] if f["severity"] == "block"]
-    assert "Google" in {f["value"] for f in _change(body, "summary")["flags"]}
+    summary = _change(body, "summary")
+    assert summary["proposed"]["text"] == "Backend engineer building Python APIs."
+    assert summary["flags"] == []
     bullet = _change(body, "rewrite_bullet")
     assert bullet["proposed"]["text"].startswith("Migrated")
     assert bullet["original"]["text"].startswith("Led migration")
@@ -591,3 +598,43 @@ def test_focus_leaves_out_unrelated_skills_but_keeps_added_ones() -> None:
     added = master.model_copy(deep=True)
     added.skills.append(Skill(name="Django", category=""))
     assert "Django" in [s.name for s in apply(added, trim, trim.proposed).skills]
+
+
+def test_a_confirmed_skill_with_a_role_becomes_a_bullet_there(user_client: TestClient) -> None:
+    master, session = _session(user_client)
+    sid = session["id"]
+    places = {p["label"]: p["id"] for p in session["places"]}
+    role = places["Software Engineer at Brightpath Labs"]
+    note = "built Django admin tools for 3 internal teams"
+    body = user_client.post(
+        f"{API}/{sid}/skills", json={"skill": "Django", "note": note, "where": role}
+    ).json()
+    bullet = _change(body, "add_bullet")
+    assert bullet["target_id"] == role and bullet["decision"] == "accepted"
+    assert bullet["proposed"]["text"] == "Built Django admin tools for 3 internal teams."
+    assert bullet["flags"] == []  # "Django" and "3" come from the user, so they are allowed
+    done = user_client.post(f"{API}/{sid}/finalize", json={}).json()
+    copy = user_client.get(f"/api/v1/resumes/{done['result_resume_id']}").json()["content"]
+    brightpath = next(e for e in copy["experience"] if e["company"] == "Brightpath Labs")
+    assert brightpath["bullets"][-1] == "Built Django admin tools for 3 internal teams."
+    assert brightpath["title"] == "Software Engineer"  # the role itself never changes
+    original = user_client.get(f"/api/v1/resumes/{master['id']}").json()["content"]
+    assert (
+        len(next(e for e in original["experience"] if e["company"] == "Brightpath Labs")["bullets"])
+        == 2
+    )
+
+    # A finished session can no longer change.
+    body = user_client.post(f"{API}/{sid}/skills", json={"skill": "Django"})
+    assert body.status_code == 409
+
+
+def test_a_session_starts_even_with_nothing_to_reorder(user_client: TestClient) -> None:
+    import_and_confirm(user_client)
+    job = user_client.post(
+        "/api/v1/jobs",
+        json={"text": "Robot Simulation Engineer\n\nRequirements\n- Unity and ROS 2."},
+    ).json()
+    response = user_client.post(API, json={"job_id": job["id"]})
+    assert response.status_code == 201, response.text
+    assert {"Unity", "ROS"} <= set(response.json()["missing_skills"])

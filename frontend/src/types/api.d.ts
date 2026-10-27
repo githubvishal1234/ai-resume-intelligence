@@ -1940,6 +1940,11 @@ export interface components {
              * @default
              */
             note: string;
+            /**
+             * Where
+             * @default
+             */
+            where: string;
         };
         /** Contact */
         Contact: {
@@ -2713,6 +2718,16 @@ export interface components {
              * Format: email
              */
             email: string;
+        };
+        /**
+         * PlaceOut
+         * @description A role or project of the master that a confirmed skill can be placed under.
+         */
+        PlaceOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
         };
         /** PracticeAnswerOut */
         PracticeAnswerOut: {
@@ -3515,6 +3530,8 @@ export interface components {
             ai: components["schemas"]["AiStatusOut"];
             /** Missing Skills */
             missing_skills: string[];
+            /** Places */
+            places: components["schemas"]["PlaceOut"][];
         };
         /** TailoringSessionSummaryOut */
         TailoringSessionSummaryOut: {

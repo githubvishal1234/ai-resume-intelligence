@@ -54,6 +54,7 @@ const SESSION_BODY = {
   method_version: "tailor-rules-v1",
   ai: { configured: false, reason: "LLM_PROVIDER is not set." },
   missing_skills: [] as string[],
+  places: [{ id: "e1", label: "Engineer at Acme" }],
   preview: PREVIEW,
   bullets: [] as { experience_id: string; role: string; index: number; text: string; change_id: string | null }[],
   changes: [
@@ -124,11 +125,13 @@ describe("Tailoring review", () => {
     renderApp(`/tailor/${SID}`);
     const card = await screen.findByRole("region", { name: /This job asks for 2 skills your resume doesn't show/ });
     expect(within(card).getByRole("link", { name: "Proof Board" })).toHaveAttribute("href", "/proofs");
-    await user.click(within(card).getAllByRole("button", { name: "I have this" })[0]!);
-    await user.type(within(card).getByLabelText("Where did you use Java?"), "College library project");
+    await user.click(within(card).getAllByRole("button", { name: "I've used this" })[0]!);
+    expect(within(card).getByLabelText("Where did you use Java?")).toHaveValue("e1");
+    await user.selectOptions(within(card).getByLabelText("Where did you use Java?"), "");
+    await user.type(within(card).getByLabelText("What did you do with Java?"), "College library project");
     await user.click(within(card).getByRole("button", { name: "Add Java" }));
     expect(await screen.findByRole("region", { name: /Add Java, which you confirmed/ })).toHaveTextContent("Where you used it: College library project");
-    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ skill: "Java", note: "College library project" });
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ skill: "Java", note: "College library project", where: "" });
   });
 
   it("runs strong focus", async () => {

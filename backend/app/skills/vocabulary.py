@@ -132,6 +132,27 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "Pinecone": ("database", ()),
     "ChromaDB": ("database", ("chroma",)),
     "Weaviate": ("database", ()),
+    # robotics & simulation
+    "Robotics": ("concept", ("robotic systems",)),
+    "ROS": ("framework", ("ros 2", "ros2", "robot operating system")),
+    "NVIDIA Omniverse": ("tool", ("omniverse",)),
+    "Isaac Sim": ("tool", ("isaac lab", "nvidia isaac")),
+    "Unity": ("tool", ("unity3d", "unity 3d")),
+    "Unreal Engine": ("tool", ("unreal",)),
+    "OpenUSD": ("concept", ("universal scene description", "usd-based", "usd workflows")),
+    "URDF": ("concept", ()),
+    "Reinforcement Learning": ("concept", ("deep reinforcement learning",)),
+    "Imitation Learning": ("concept", ()),
+    "Synthetic Data": ("concept", ("synthetic data generation",)),
+    "Domain Randomization": ("concept", ()),
+    "Digital Twins": ("concept", ("digital twin", "digital-twin")),
+    "Physics Simulation": ("concept", ("physics-based simulation", "physics simulation")),
+    "3D Graphics": ("concept", ("3d graphics", "real-time rendering", "real-time 3d")),
+    "Sim-to-Real": ("concept", ("sim2real", "sim to real")),
+    "LiDAR": ("concept", ("lidar",)),
+    "Kinematics": ("concept", ()),
+    "Embedded Systems": ("concept", ("embedded", "mcu", "microcontrollers")),
+    "Hardware-in-the-Loop": ("concept", ("hil", "hardware in the loop")),
     # cloud & devops
     "AWS": ("cloud", ("amazon web services",)),
     "Azure": ("cloud", ("microsoft azure",)),
@@ -279,6 +300,7 @@ _AMBIGUOUS_IN_PROSE = {
     "Helm",
     "Looker",
     "Oracle",
+    "Unity",  # "unity of purpose"
 }
 
 

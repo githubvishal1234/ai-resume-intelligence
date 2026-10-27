@@ -22,6 +22,7 @@ from app.tailoring.schemas import (
     CreateTailoringIn,
     DecisionIn,
     FinalizeIn,
+    PlaceOut,
     RequirementRef,
     RewriteBulletIn,
     TailoringSessionOut,
@@ -122,6 +123,7 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
         bullets=bullets,
         ai=AiStatusOut(configured=configured, reason=reason),
         missing_skills=[s.name for s in analysis.skills if s.name not in shown],
+        places=[PlaceOut(id=k, label=v) for k, v in service.places(row).items()],
     )
 
 
@@ -168,7 +170,7 @@ def focus(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
 def confirm_skill(
     session_id: uuid.UUID, body: ConfirmSkillIn, service: Service
 ) -> TailoringSessionOut:
-    return _out(service, service.confirm_skill(session_id, body.skill, body.note))
+    return _out(service, service.confirm_skill(session_id, body.skill, body.note, body.where))
 
 
 @router.post("/{session_id}/accept-clean", response_model=TailoringSessionOut)

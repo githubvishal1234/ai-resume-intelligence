@@ -64,7 +64,8 @@ export function useFocus(id: string) {
 export function useConfirmSkill(id: string) {
   const settle = useSettle();
   return useMutation({
-    mutationFn: ({ skill, note }: { skill: string; note: string }) => tailoringService.confirmSkill(id, skill, note),
+    mutationFn: ({ skill, note, where }: { skill: string; note: string; where: string }) =>
+      tailoringService.confirmSkill(id, skill, note, where),
     onSuccess: settle,
   });
 }

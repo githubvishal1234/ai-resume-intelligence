@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Field, Input, Textarea } from "@/components/ui/Field";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
@@ -27,7 +27,7 @@ import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
 
 // The changes that reshape the copy come first, so a strong focus is visible at the top.
-const KIND_ORDER = ["headline", "summary", "reorder_sections", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
+const KIND_ORDER = ["headline", "summary", "reorder_sections", "add_bullet", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
 const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
 const ordered = (changes: TailoringChange[]) => [...changes].sort((a, b) => rank(a.kind) - rank(b.kind) || a.position - b.position);
 
@@ -245,7 +245,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
 }
 
 function Diff({ change: c }: { change: TailoringChange }) {
-  if (c.kind === "summary" || c.kind === "rewrite_bullet" || c.kind === "headline") {
+  if (c.kind === "summary" || c.kind === "rewrite_bullet" || c.kind === "headline" || c.kind === "add_bullet") {
     return (
       <div className="grid gap-3 md:grid-cols-2">
         <Block label="Now">{text(c.original) || <span className="text-on-surface-variant">None</span>}</Block>
@@ -394,13 +394,14 @@ function MissingSkills({ session: s }: { session: Session }) {
   const confirm = useConfirmSkill(s.id);
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [where, setWhere] = useState("");
   const id = useId();
   return (
     <Card aria-labelledby={`${id}-title`}>
       <CardHeader
         id={`${id}-title`}
         title={`This job asks for ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} your resume doesn't show`}
-        description="If you have one, say where you used it. It's added to this tailored copy only, and the rewrite may use it. Your master resume stays as it is."
+        description="Tell us about the ones you've used: where, and what you did. Each becomes a bullet under that role in this tailored copy, and Strong focus polishes the wording. Your master resume stays as it is."
       />
       {confirm.isError ? (
         <Notice tone="critical" title="That didn't work" className="mb-4">
@@ -420,9 +421,10 @@ function MissingSkills({ session: s }: { session: Session }) {
                   onClick={() => {
                     setOpen(skill);
                     setNote("");
+                    setWhere(s.places[0]?.id ?? "");
                   }}
                 >
-                  I have this
+                  I've used this
                 </Button>
               ) : null}
             </div>
@@ -431,10 +433,21 @@ function MissingSkills({ session: s }: { session: Session }) {
                 className="mt-3 space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  confirm.mutate({ skill, note }, { onSuccess: () => setOpen(null) });
+                  confirm.mutate({ skill, note, where }, { onSuccess: () => setOpen(null) });
                 }}
               >
-                <Field label={`Where did you use ${skill}?`} hint="Optional, in your own words, like “Built a REST API in it for my final-year project”.">
+                <Field label={`Where did you use ${skill}?`}>
+                  {({ id: fieldId, describedBy }) => (
+                    <Select id={fieldId} aria-describedby={describedBy} value={where} onChange={(e) => setWhere(e.target.value)}>
+                      {s.places.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      <option value="">Somewhere else (course, personal practice)</option>
+                    </Select>
+                  )}
+                </Field>
+                <Field
+                  label={`What did you do with ${skill}?`}
+                  hint={where ? "Your own words, with any real numbers, like “built a Spring Boot service for leave requests used by 200 staff”." : "Optional. Without a role or project it's added to your skills only."}
+                >
                   {({ id: fieldId, describedBy }) => (
                     <Textarea id={fieldId} aria-describedby={describedBy} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
                   )}

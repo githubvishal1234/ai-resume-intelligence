@@ -273,3 +273,34 @@ def test_job_board_trailer_and_intro_are_not_requirements() -> None:
         "JavaScript",
     } <= skills
     assert "Spring" in find_skills("Built services with Spring Boot and Spring Cloud")
+
+
+ROBOTICS_JD = """Digital-Twin and Robotics Simulation Engineer
+
+Roles & Responsibilities
+ Build digital twins of robot platforms in NVIDIA Omniverse and Isaac Sim.
+ Integrate simulation outputs with ROS 2 nodes.
+
+Work Experience
+ 4-9 years of software / simulation engineering experience.
+ Strong Python scripting skills for simulation automation.
+ Prior experience with Unity3D or Unreal Engine using C++ is a strong plus.
+ Understanding of USD (Universal Scene Description) based workflows.
+
+Desired / Good-to-have Skills
+ Experience with reinforcement learning or imitation learning workflows.
+"""
+
+
+def test_work_experience_heading_and_robotics_skills() -> None:
+    analysis = analyze_job(ROBOTICS_JD)
+    assert "Work Experience" in analysis.sections_found
+    tiers = {r.text[:20]: r.tier for r in analysis.requirements}
+    assert tiers["Strong Python scripti"[:20]] == "required"
+    assert tiers["Prior experience wit"] == "preferred"  # "a strong plus"
+    assert not any(r.text.startswith("Build digital twins") for r in analysis.requirements)
+    names = {s.name for s in analysis.skills}
+    assert {"Python", "Unity", "Unreal Engine", "OpenUSD", "Reinforcement Learning"} <= names
+    assert {"NVIDIA Omniverse", "Isaac Sim", "ROS"} <= set(find_skills(ROBOTICS_JD))
+    # Ordinary words are not skills.
+    assert find_skills("We value unity, and pay in USD.") == []

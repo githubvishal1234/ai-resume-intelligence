@@ -25,6 +25,8 @@ class ConfirmSkillIn(BaseModel):
     skill: str = Field(min_length=1, max_length=100)
     # Where the user used it, in their own words; new text may rely on it.
     note: str = Field(default="", max_length=300)
+    # The master role or project it was used in (an id from `places`); empty for elsewhere.
+    where: str = Field(default="", max_length=64)
 
 
 class RewriteBulletIn(BaseModel):
@@ -89,6 +91,13 @@ class BulletOut(BaseModel):
     change_id: uuid.UUID | None  # the rewrite change for this bullet, once one exists
 
 
+class PlaceOut(BaseModel):
+    """A role or project of the master that a confirmed skill can be placed under."""
+
+    id: str
+    label: str
+
+
 class TailoringSessionOut(TailoringSessionSummaryOut):
     method_version: str
     # The master moved on since these proposals were computed (they still apply to base_version).
@@ -100,3 +109,4 @@ class TailoringSessionOut(TailoringSessionSummaryOut):
     # The job's skills (required ones first) that the master resume doesn't show anywhere
     # and the user hasn't confirmed. Tailoring can't add these on its own.
     missing_skills: list[str]
+    places: list[PlaceOut]
