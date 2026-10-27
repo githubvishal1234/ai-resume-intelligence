@@ -49,12 +49,35 @@ class ClaimReport(BaseModel):
 
 
 def _norm(text: str) -> str:
-    return re.sub(r"\s+", " ", re.sub(r"[^\w%.+#-]+", " ", text.lower())).strip()
+    text = re.sub("[‐-―−]", "-", text.lower())  # AI hyphens read as plain ones
+    return re.sub(r"\s+", " ", re.sub(r"[^\w%.+#-]+", " ", text)).strip()
+
+
+# Models quote evidence in pieces ("Generative AI Engineer ... 1 year of experience").
+_GAP = re.compile(r"\.{2,}|…|\[\.\.\.\]")
+# A piece that isn't verbatim still counts when this share of its words sits together in the
+# master (a dropped or reordered word), so the quote stays tied to real master text.
+_NEAR = 0.85
+
+
+def _piece_backed(piece: str, corpus: str, words: list[str]) -> bool:
+    if piece in corpus:
+        return True
+    tokens = piece.split()
+    if len(tokens) < 3:
+        return False
+    span = len(tokens) + 2
+    need = _NEAR * len(tokens)
+    return any(
+        sum(t in set(words[i : i + span]) for t in tokens) >= need
+        for i in range(max(1, len(words) - span + 1))
+    )
 
 
 def _backed(evidence: str, corpus: str) -> bool:
-    quote = _norm(evidence)
-    return len(quote) >= 3 and quote in corpus
+    pieces = [p for p in (_norm(x).strip(" .") for x in _GAP.split(evidence)) if len(p) >= 3]
+    words = corpus.split()
+    return bool(pieces) and all(_piece_backed(p, corpus, words) for p in pieces)
 
 
 def check_claims(text: str, master: ResumeContent, provider: LLMProvider) -> list[FactFlag]:
