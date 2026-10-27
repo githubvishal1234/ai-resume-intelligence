@@ -35,12 +35,15 @@ ChangeKind = Literal[
     "reorder_sections",
     "trim_bullets",
     "trim_projects",
+    "trim_skills",
     "confirm_skill",  # a skill the user says they have, with where they used it
 ]
 EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headline"})
 FOCUS_KINDS: frozenset[str] = frozenset(
-    {"headline", "reorder_sections", "trim_bullets", "trim_projects"}
+    {"headline", "reorder_sections", "trim_bullets", "trim_projects", "trim_skills"}
 )
+# Strong focus keeps the job's skills and, when there are fewer, tops up to this many.
+SKILLS_KEPT = 12
 # Kinds whose text is new wording, so it goes through the factual check.
 TEXT_KINDS: frozenset[str] = EDITABLE_KINDS
 
@@ -318,6 +321,31 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
                     "They stay in your master resume.",
                 )
             )
+
+    # 5. Skills the job doesn't ask for; a long list of them hides the ones it does.
+    if len(master.skills) > SKILLS_KEPT:
+        wanted = [s for s in master.skills if weights.get(canonical(s.name) or "")]
+        # Top up with neighbours of the job's skills (same group) before anything else.
+        groups = {s.category for s in wanted}
+        others = sorted(
+            (s for s in master.skills if s not in wanted), key=lambda s: s.category not in groups
+        )
+        keep_ids = {s.id for s in wanted + others[: max(0, SKILLS_KEPT - len(wanted))]}
+        kept_skills = [s for s in master.skills if s.id in keep_ids]
+        if len(kept_skills) < len(master.skills):
+            out.append(
+                Proposal(
+                    kind="trim_skills",
+                    title="Leave out skills this job doesn't ask for",
+                    original={"items": [{"id": s.id, "text": s.name} for s in master.skills]},
+                    proposed={"items": [{"id": s.id, "text": s.name} for s in kept_skills]},
+                    reason="A shorter list shows the skills this job asks for first. "
+                    "The rest stay in your master resume.",
+                    requirement_ids=requirements_for(
+                        job, {canonical(s.name) or s.name for s in wanted}
+                    ),
+                )
+            )
     return out
 
 
@@ -352,6 +380,10 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
         if exp is None or not set(keep) <= set(exp.bullets):
             raise ChangeNotApplicable()
         exp.bullets = [b for b in exp.bullets if b in keep]
+    elif change.kind == "trim_skills":
+        # Only the skills this change leaves out go, so skills added by other changes stay.
+        drop = {i["id"] for i in change.original["items"]} - {i["id"] for i in value["items"]}
+        doc.skills = [s for s in doc.skills if s.id not in drop]
     elif change.kind == "trim_projects":
         keep_ids = {i["id"] for i in value["items"]}
         if not keep_ids <= {p.id for p in doc.projects}:

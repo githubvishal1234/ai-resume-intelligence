@@ -318,7 +318,7 @@ describe("Bullet rewrites", () => {
     const change = await screen.findByRole("region", { name: /Reword a bullet at Acme/ });
     expect(within(change).getByText("Built Python ETL jobs for the reporting team.")).toBeInTheDocument();
     expect(within(change).getByText("AI rewrite")).toBeInTheDocument();
-    expect(within(card).getByText("Reworded as change 3.")).toBeInTheDocument();
+    expect(within(card).getByText("Reworded as change 2.")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Rewrite again" })).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({ experience_id: "e1", bullet_index: 0 });
   });

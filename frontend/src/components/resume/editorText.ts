@@ -1,11 +1,24 @@
 import { newId, type Skill } from "@/services/resumeService";
 
-/** One item per non-empty line. */
+const BULLET_MARK = /^(?:[•\-*▪●◦‣·■□➢➤►✓✔]|\d{1,2}[.)])\s+/;
+
+/**
+ * One item per non-empty line. Text pasted from a PDF marks each item ("• Built ...") and wraps
+ * long ones onto unmarked lines; then an unmarked line continues the item above it.
+ */
 export function linesToList(text: string): string[] {
-  return text
+  const lines = text
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  if (!lines.some((l) => BULLET_MARK.test(l))) return lines;
+  const items: string[] = [];
+  for (const line of lines) {
+    const body = line.replace(BULLET_MARK, "").trim();
+    if (BULLET_MARK.test(line) || !items.length) items.push(body);
+    else items[items.length - 1] = `${items[items.length - 1]} ${body}`;
+  }
+  return items.filter(Boolean);
 }
 
 export function listToLines(items: string[]): string {

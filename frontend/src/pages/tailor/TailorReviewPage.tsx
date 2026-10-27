@@ -26,6 +26,11 @@ import { items, text, type Bullet, type Session, type TailoringChange } from "@/
 import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
 
+// The changes that reshape the copy come first, so a strong focus is visible at the top.
+const KIND_ORDER = ["headline", "summary", "reorder_sections", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
+const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
+const ordered = (changes: TailoringChange[]) => [...changes].sort((a, b) => rank(a.kind) - rank(b.kind) || a.position - b.position);
+
 const DECISION_PILL = {
   pending: <Pill>Not reviewed</Pill>,
   accepted: <Pill tone="matched">Accepted</Pill>,
@@ -67,7 +72,7 @@ function Review({ session: s }: { session: Session }) {
           {draft && s.missing_skills.length ? <MissingSkills session={s} /> : null}
           {draft ? <StrongFocus session={s} /> : null}
           <ol className="space-y-4" aria-label="Proposed changes">
-            {s.changes.map((c, i) => (
+            {ordered(s.changes).map((c, i) => (
               <li key={c.id} id={`change-${c.id}`}>
                 <ChangeCard session={s} change={c} index={i + 1} />
               </li>
@@ -248,7 +253,7 @@ function Diff({ change: c }: { change: TailoringChange }) {
       </div>
     );
   }
-  if (c.kind === "trim_bullets" || c.kind === "trim_projects") {
+  if (c.kind === "trim_bullets" || c.kind === "trim_projects" || c.kind === "trim_skills") {
     const kept = new Set(items(c.proposed).map((i) => i.text));
     const left = items(c.original).filter((i) => !kept.has(i.text));
     return (
@@ -311,7 +316,7 @@ function BulletRewrites({ session: s }: { session: Session }) {
     if (last && last.bullets[0]?.experience_id === b.experience_id) last.bullets.push(b);
     else roles.push({ role: b.role, bullets: [b] });
   }
-  const position = new Map(s.changes.map((c, i) => [c.id, i + 1]));
+  const position = new Map(ordered(s.changes).map((c, i) => [c.id, i + 1]));
   return (
     <Card aria-labelledby={`${id}-title`}>
       <CardHeader
@@ -470,6 +475,11 @@ function StrongFocus({ session: s }: { session: Session }) {
       {focus.isError ? (
         <Notice tone="critical" title="That didn't work" className="mb-4">
           <ApiErrorText error={focus.error} />
+        </Notice>
+      ) : null}
+      {focus.isSuccess ? (
+        <Notice tone="success" title="Focus changes are ready" className="mb-4">
+          The headline, summary, reworded bullets and removals are listed first below. Review each one.
         </Notice>
       ) : null}
       <Button loading={focus.isPending} icon={<Target className="size-4" aria-hidden />} onClick={() => focus.mutate()}>

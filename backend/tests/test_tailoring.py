@@ -573,3 +573,21 @@ def test_focus_keeps_the_rule_headline_when_the_ai_one_is_blocked(
     assert headline["source"] == "rules"
     assert headline["proposed"]["text"].startswith("Senior Software Engineer | ")
     assert headline["flags"] == []
+
+
+def test_focus_leaves_out_unrelated_skills_but_keeps_added_ones() -> None:
+    master = _master()
+    extra = ["LangChain", "FAISS", "Ollama", "RAG", "Pinecone", "LlamaIndex", "Tableau", "Excel"]
+    master.skills += [Skill(name=n, category="Other") for n in extra]
+    job = analyze_job(JD)
+    trim = next(
+        p
+        for p in focus(master, job, match(master, job, date(2026, 10, 12)))
+        if p.kind == "trim_skills"
+    )
+    kept = [i["text"] for i in trim.proposed["items"]]
+    assert len(kept) == 12 and {"Python", "Terraform"} <= set(kept)
+    assert "Excel" not in kept
+    added = master.model_copy(deep=True)
+    added.skills.append(Skill(name="Django", category=""))
+    assert "Django" in [s.name for s in apply(added, trim, trim.proposed).skills]
