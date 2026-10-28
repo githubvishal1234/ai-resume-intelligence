@@ -2094,6 +2094,8 @@ export interface components {
             decision: "pending" | "accepted" | "rejected";
             /** Edited Text */
             edited_text?: string | null;
+            /** Keep Skills */
+            keep_skills?: string[] | null;
         };
         /** Education */
         Education: {

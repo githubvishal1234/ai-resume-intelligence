@@ -19,6 +19,8 @@ class DecisionIn(BaseModel):
     decision: Literal["pending", "accepted", "rejected"]
     # Only for editable changes (the summary): the user's own wording.
     edited_text: str | None = Field(default=None, max_length=5000)
+    # Only for "add_job_skills": the skills to keep, a subset of the proposed ones.
+    keep_skills: list[str] | None = Field(default=None, max_length=100)
 
 
 class ConfirmSkillIn(BaseModel):

@@ -129,7 +129,7 @@ def _styles(t: Template, prefix: str, text: Color, heading_colour: Color, band: 
         f"{prefix}body",
         fontName=t.font,
         fontSize=t.body_size,
-        leading=t.body_size * 1.35,
+        leading=t.body_size * t.line_height,
         textColor=text,
     )
     align = TA_CENTER if t.center_header else TA_LEFT
@@ -288,7 +288,7 @@ def render_pdf(
 
     # ---- sections -----------------------------------------------------------------------
     def heading(text: str, s: _Styles) -> list[Flowable]:
-        out: list[Flowable] = [_p(text, s.heading)]
+        out: list[Flowable] = [_p(text.upper() if t.upper_headings else text, s.heading)]
         if t.heading_rule:
             out.append(HRFlowable(width="100%", thickness=0.6, color=s.rule, spaceAfter=3))
         return out

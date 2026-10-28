@@ -37,7 +37,9 @@ def test_every_template_renders_extractable_text_in_order(template: str) -> None
         "education": "Education",
         "skills": "Skills",
     }
-    order = [text.index(names[k]) for k in TEMPLATES[template].order if k in names]
+    # Heading lines, in any case ("EXPERIENCE" on One Page): an ATS reads both.
+    lines = [ln.strip().lower() for ln in text.splitlines()]
+    order = [lines.index(names[k].lower()) for k in TEMPLATES[template].order if k in names]
     assert order == sorted(order)
     report = ats_check(content, pdf, template)
     statuses = {c.id: c.status for c in report.checks}
@@ -193,3 +195,20 @@ def test_headline_and_section_order_reach_the_pdf_and_the_ats_check() -> None:
         assert text.index("Projects") < text.index("Experience"), template
         statuses = {c.id: c.status for c in ats_check(content, pdf, template).checks}
         assert statuses["layout.order"] == "pass", template
+
+
+def test_one_page_template_fits_a_full_resume_on_one_page() -> None:
+    line = "Built Python and FastAPI services with authentication, retrieval and SQL storage, " * 2
+    content = parse_resume(SAMPLE_TEXT).content
+    content.summary = " ".join([content.summary] * 3)
+    content.experience[0].bullets = [line] * 4
+    content.experience = content.experience[:1]
+    content.projects = [Project(name=f"Project {i}", bullets=[line] * 5) for i in range(2)]
+    pdf = render_pdf(content, TEMPLATES["one-page"])
+    assert len(PdfReader(io.BytesIO(pdf)).pages) == 1
+    assert len(PdfReader(io.BytesIO(render_pdf(content, TEMPLATES["classic"]))).pages) == 2
+    text = _text(pdf)
+    assert "EXPERIENCE" in text and "PROJECTS" in text  # uppercase headings
+    assert {c.id: c.status for c in ats_check(content, pdf, "one-page").checks}["layout.order"] == (
+        "pass"
+    )

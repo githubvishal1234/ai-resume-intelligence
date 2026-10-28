@@ -72,7 +72,7 @@ export function ResumePaper({
   const page: CSSProperties = {
     fontFamily: t.serif ? 'Georgia, "Times New Roman", serif' : '"DM Sans Variable", ui-sans-serif, system-ui, sans-serif',
     fontSize: pt(body),
-    lineHeight: 1.35,
+    lineHeight: t.lineHeight ?? 1.35,
     padding: pt(margin),
     color: "#111111",
     background: "#ffffff",
@@ -84,6 +84,7 @@ export function ResumePaper({
       fontWeight: 700,
       fontSize: pt(t.headingPt),
       lineHeight: 1.3,
+      textTransform: t.upperHeadings ? "uppercase" : undefined,
       marginTop: pt(body * 0.9),
       marginBottom: pt(3),
       paddingBottom: t.rule ? pt(2) : undefined,

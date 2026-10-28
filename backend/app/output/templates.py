@@ -61,6 +61,8 @@ class Template:
     photo: bool = False  # shows the user's profile photo when they have uploaded one
     dates_right: bool = False  # each role's dates right-aligned on its title line
     skills_grid: bool = False  # skills in three columns instead of comma lists
+    line_height: float = 1.35  # body leading as a multiple of the body size
+    upper_headings: bool = False  # "EXPERIENCE" instead of "Experience" (same text for an ATS)
     kind: Literal["resume", "cv"] = "resume"
     order: tuple[str, ...] = RESUME_ORDER
 
@@ -92,6 +94,21 @@ TEMPLATES: dict[str, Template] = {
         margin_mm=13,
         heading_rule=False,
         accent="#000000",
+    ),
+    "one-page": Template(
+        id="one-page",
+        name="One Page",
+        description="Small type, tight spacing and uppercase ruled headings to fit one page.",
+        font="DejaVuSans",
+        font_bold="DejaVuSans-Bold",
+        body_size=8.8,
+        name_size=17,
+        heading_size=9.8,
+        margin_mm=11,
+        heading_rule=True,
+        accent="#000000",
+        line_height=1.2,
+        upper_headings=True,
     ),
     "serif": Template(
         id="serif",

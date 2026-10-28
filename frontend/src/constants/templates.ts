@@ -50,6 +50,10 @@ export type TemplateStyle = {
   skillsGrid: boolean;
   /** Section headings on a light tint of the accent. */
   band: boolean;
+  /** Body line height (default 1.35); mirrors `line_height`. */
+  lineHeight?: number;
+  /** Uppercase section headings; mirrors `upper_headings`. */
+  upperHeadings?: boolean;
   /** For the gallery's filters. */
   category: TemplateCategory;
   colour: string;
@@ -71,6 +75,7 @@ const ORIGINALS: Base[] = [
   { id: "executive", kind: "resume", order: RESUME_ORDER, name: "Executive", description: "Serif type, centred name and navy ruled headings.", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: true, accent: "#1f2a44", center: true, category: "Professional", colour: "Navy" },
   { id: "minimal", kind: "resume", order: RESUME_ORDER, name: "Minimal", description: "Centred header, wide margins and quiet grey headings.", serif: false, bodyPt: 10, namePt: 18, headingPt: 11, marginMm: 20, rule: false, accent: "#374151", center: true, category: "Simple", colour: "Charcoal" },
   { id: "compact", kind: "resume", order: RESUME_ORDER, name: "Compact", description: "Tighter spacing to fit more on a page; plain headings.", serif: false, bodyPt: 9.5, namePt: 16, headingPt: 10.5, marginMm: 13, rule: false, accent: "#000000", center: false, category: "Simple", colour: "Black" },
+  { id: "one-page", kind: "resume", order: RESUME_ORDER, name: "One Page", description: "Small type, tight spacing and uppercase ruled headings to fit one page.", serif: false, bodyPt: 8.8, namePt: 17, headingPt: 9.8, marginMm: 11, rule: true, accent: "#000000", center: false, category: "Simple", colour: "Black", lineHeight: 1.2, upperHeadings: true },
   { id: "serif", kind: "resume", order: RESUME_ORDER, name: "Serif", description: "Serif type for a traditional look, ruled headings.", serif: true, bodyPt: 11, namePt: 20, headingPt: 12, marginMm: 18, rule: true, accent: "#000000", center: false, category: "Professional", colour: "Black" },
   { id: "cv-academic", kind: "cv", order: CV_ORDER, name: "Academic CV", description: "Serif CV that leads with education, then research and teaching roles.", serif: true, bodyPt: 10.5, namePt: 21, headingPt: 12, marginMm: 20, rule: true, accent: "#7a1f3d", center: true, category: "Professional", colour: "Burgundy" },
   { id: "cv-professional", kind: "cv", order: ["summary", "experience", "education", "projects", "certifications", "skills"], name: "Professional CV", description: "Full-length CV in clean sans-serif; experience first, every section kept.", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 18, rule: true, accent: "#0f5e63", center: false, category: "Professional", colour: "Teal" },

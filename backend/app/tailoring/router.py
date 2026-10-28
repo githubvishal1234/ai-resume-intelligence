@@ -146,7 +146,10 @@ def get_session(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
 def decide(
     session_id: uuid.UUID, change_id: uuid.UUID, body: DecisionIn, service: Service
 ) -> TailoringSessionOut:
-    return _out(service, service.decide(session_id, change_id, body.decision, body.edited_text))
+    return _out(
+        service,
+        service.decide(session_id, change_id, body.decision, body.edited_text, body.keep_skills),
+    )
 
 
 @router.post("/{session_id}/changes/{change_id}/rewrite", response_model=TailoringSessionOut)

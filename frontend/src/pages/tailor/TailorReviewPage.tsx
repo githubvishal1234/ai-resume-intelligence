@@ -27,7 +27,7 @@ import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
 
 // The changes that reshape the copy come first, so a strong focus is visible at the top.
-const KIND_ORDER = ["headline", "summary", "reorder_sections", "add_bullet", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
+const KIND_ORDER = ["add_job_skills", "headline", "summary", "reorder_sections", "add_bullet", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
 const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
 const ordered = (changes: TailoringChange[]) => [...changes].sort((a, b) => rank(a.kind) - rank(b.kind) || a.position - b.position);
 
@@ -138,7 +138,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
       ) : null}
 
       <div className="mt-4">
-        <Diff change={c} />
+        {c.kind === "add_job_skills" ? <JobSkills session={session} change={c} /> : <Diff change={c} />}
       </div>
       {c.evidence.length ? (
         <details className="mt-3">
@@ -241,6 +241,70 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
         </div>
       ) : null}
     </Card>
+  );
+}
+
+/** The job's skills the resume doesn't show; the user removes any they haven't used. */
+function JobSkills({ session, change: c }: { session: Session; change: TailoringChange }) {
+  const decide = useDecide(session.id);
+  const draft = session.status === "draft";
+  const all = items(c.proposed).map((i) => i.text);
+  const kept = c.edited ? items(c.edited).map((i) => i.text) : all;
+  const removed = all.filter((n) => !kept.includes(n));
+  const setKept = (next: string[]) =>
+    decide.mutate({ changeId: c.id, decision: c.decision === "accepted" && next.length ? "accepted" : "pending", keepSkills: next });
+  return (
+    <div>
+      <Notice tone="warning" title="Keep only skills you've really used" className="mb-3">
+        Everything you accept here goes on this tailored resume, and interviewers will ask about it. Remove the rest.
+      </Notice>
+      <p className="mb-2 text-label-md text-on-surface-variant">Adding {kept.length} of {all.length} skills</p>
+      <ul className="flex flex-wrap gap-1.5" aria-label="Skills to add">
+        {kept.map((name) => (
+          <li key={name}>
+            <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-surface-container-low py-0.5 pl-2.5 pr-1 text-body-sm text-on-surface">
+              {name}
+              {draft ? (
+                <button
+                  type="button"
+                  className="rounded-full p-0.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  aria-label={`Remove ${name}`}
+                  disabled={decide.isPending}
+                  onClick={() => setKept(kept.filter((k) => k !== name))}
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {draft && removed.length ? (
+        <div className="mt-3">
+          <p className="mb-1 text-label-sm text-on-surface-variant">Removed (click to add back)</p>
+          <ul className="flex flex-wrap gap-1.5" aria-label="Removed skills">
+            {removed.map((name) => (
+              <li key={name}>
+                <button
+                  type="button"
+                  className="rounded-full border border-dashed border-hairline px-2.5 py-0.5 text-body-sm text-on-surface-variant line-through hover:text-on-surface"
+                  aria-label={`Add ${name} back`}
+                  disabled={decide.isPending}
+                  onClick={() => setKept(all.filter((n) => kept.includes(n) || n === name))}
+                >
+                  {name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {decide.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mt-3">
+          <ApiErrorText error={decide.error} />
+        </Notice>
+      ) : null}
+    </div>
   );
 }
 
@@ -531,7 +595,7 @@ function Finish({ session: s, accepted }: { session: Session; accepted: number }
   const finalize = useFinalize(s.id);
   const discard = useDiscardTailoring(s.id);
   const acceptClean = useAcceptClean(s.id);
-  const clean = s.changes.filter((c) => c.decision === "pending" && !c.flags.length).length;
+  const clean = s.changes.filter((c) => c.decision === "pending" && !c.flags.length && c.kind !== "add_job_skills").length;
   const navigate = useNavigate();
   const [title, setTitle] = useState(`${s.job_title}${s.job_company ? ` (${s.job_company})` : ""}`.slice(0, 200));
   const id = useId();

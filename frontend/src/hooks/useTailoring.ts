@@ -34,8 +34,17 @@ export function useDecide(id: string) {
   const settle = useSettle();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ changeId, decision, editedText }: { changeId: string; decision: Decision; editedText?: string }) =>
-      tailoringService.decide(id, changeId, decision, editedText),
+    mutationFn: ({
+      changeId,
+      decision,
+      editedText,
+      keepSkills,
+    }: {
+      changeId: string;
+      decision: Decision;
+      editedText?: string;
+      keepSkills?: string[];
+    }) => tailoringService.decide(id, changeId, decision, editedText, keepSkills),
     onSuccess: settle,
     // A refused accept still saves the edit and its flags on the server.
     onError: () => void client.invalidateQueries({ queryKey: tailoringKeys.detail(id) }),

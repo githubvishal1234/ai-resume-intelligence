@@ -25,6 +25,7 @@ from app.tailoring.proposer import (
     focus,
     propose,
 )
+from app.tailoring.service import TailoringService
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
 from tests.test_jobs import JD
@@ -490,7 +491,10 @@ def test_focus_reshapes_the_copy_with_only_master_facts() -> None:
     for p in props.values():
         doc = apply(doc, p, p.proposed)
     assert doc.contact.headline == headline
-    assert doc.section_order == ["projects", "experience"]  # the API project fits best
+    # The API project fits best, so it moves up to sit right before experience.
+    assert doc.section_order == [
+        "summary", "projects", "experience", "education", "skills", "certifications",
+    ]  # fmt: skip
     # Every role keeps three bullets, so only the last unrelated one goes.
     assert "Ran the office book club." not in doc.experience[0].bullets
     assert len(doc.experience[0].bullets) == 3
@@ -523,8 +527,12 @@ def test_confirmed_skills_can_be_used_and_reach_the_copy(user_client: TestClient
     assert ok.status_code == 200, ok.text
 
     accepted = user_client.post(f"{API}/{sid}/accept-clean").json()
-    assert all(c["decision"] == "accepted" for c in accepted["changes"] if not c["flags"])
-    assert all(c["decision"] == "pending" for c in accepted["changes"] if c["flags"])
+    by_kind = {c["kind"]: c for c in accepted["changes"]}
+    # The job's skills are a claim about the user, so accepting everything leaves them alone.
+    assert by_kind["add_job_skills"]["decision"] == "pending"
+    others = [c for c in accepted["changes"] if c["kind"] != "add_job_skills"]
+    assert all(c["decision"] == "accepted" for c in others if not c["flags"])
+    assert all(c["decision"] == "pending" for c in others if c["flags"])
     done = user_client.post(f"{API}/{sid}/finalize", json={}).json()
     copy = user_client.get(f"/api/v1/resumes/{done['result_resume_id']}").json()["content"]
     assert "Django" in [s["name"] for s in copy["skills"]]
@@ -540,7 +548,7 @@ def test_focus_with_ai_rewrites_everything_in_one_call(
     _, session = _session(user_client)
     _FakeProvider.structured = {
         "FocusOut": {
-            "headline": "Backend Engineer | Python, FastAPI, PostgreSQL",
+            "headline": "Senior Software Engineer | Python, FastAPI, PostgreSQL",
             "summary": "Backend engineer building Python APIs at Google.",
             "bullets": [
                 {
@@ -558,7 +566,9 @@ def test_focus_with_ai_rewrites_everything_in_one_call(
     # One rewrite call, one repair for the summary that named Google, one claim check.
     assert _FakeProvider.calls == ["FocusOut", "RewriteOut", "ClaimReport"]
     headline = _change(body, "headline")
-    assert headline["source"] == "llm" and headline["proposed"]["text"].startswith("Backend")
+    assert headline["source"] == "llm" and headline["proposed"]["text"].startswith(
+        "Senior Software"
+    )
     assert not [f for f in headline["flags"] if f["severity"] == "block"]
     summary = _change(body, "summary")
     assert summary["proposed"]["text"] == "Backend engineer building Python APIs."
@@ -638,3 +648,91 @@ def test_a_session_starts_even_with_nothing_to_reorder(user_client: TestClient) 
     response = user_client.post(API, json={"job_id": job["id"]})
     assert response.status_code == 201, response.text
     assert {"Unity", "ROS"} <= set(response.json()["missing_skills"])
+
+
+def test_focus_keeps_the_masters_section_order_and_skips_soft_skills() -> None:
+    master = _focus_master()
+    master.section_order = ["summary", "skills", "experience", "projects", "education"]
+    master.experience[0].bullets.append("Improved communication with the analytics team.")
+    job = analyze_job(JD + "\n- Strong communication skills.")
+    result = match(master, job, date(2026, 10, 12))
+    props = {p.kind: p for p in focus(master, job, result) + propose(master, job, result)}
+    order = [i["id"] for i in props["reorder_sections"].proposed["items"]]
+    assert order == ["summary", "skills", "projects", "experience", "education", "certifications"]
+    assert "Communication" not in props["headline"].proposed["text"]
+    add = props.get("add_skills")
+    assert "Communication" not in [i["text"] for i in (add.proposed["items"] if add else [])]
+
+
+def test_a_reworded_project_bullet_lands_in_that_project() -> None:
+    master = _focus_master()
+    project = master.projects[1]
+    change = Proposal(
+        kind="rewrite_bullet",
+        target_id=project.id,
+        title="Reword a bullet at Orders API",
+        original={"text": project.bullets[0]},
+        proposed={"text": "Built REST endpoints for fast order lookups."},
+        reason="",
+    )
+    doc = apply(master, change, change.proposed)
+    assert doc.projects[1].bullets == ["Built REST endpoints for fast order lookups."]
+
+
+def test_a_headline_title_must_be_one_the_candidate_holds() -> None:
+    flags = TailoringService._flags("headline", {"text": "Backend Engineer | Python"}, _master())
+    assert [f["value"] for f in flags] == ["Backend Engineer"]
+    ok = {"text": "Senior Software Engineer | Python"}
+    assert TailoringService._flags("headline", ok, _master()) == []
+
+
+def test_added_skills_join_the_group_of_similar_skills() -> None:
+    master = _master()  # "Languages: Python, SQL, Go" and "Tools: Docker, Kubernetes, ..."
+    change = Proposal(
+        kind="add_skills",
+        title="Add skills",
+        original={"items": []},
+        proposed={"items": [{"id": "x1", "text": "Rust"}, {"id": "x2", "text": "Leadership"}]},
+        reason="",
+    )
+    skills = apply(master, change, change.proposed).skills
+    rust = next(s for s in skills if s.name == "Rust")
+    assert rust.category == "Languages"
+    assert [s.name for s in skills].index("Rust") == [s.name for s in skills].index("Go") + 1
+    assert next(s for s in skills if s.name == "Leadership").category == ""  # no similar group
+
+
+def test_job_skills_are_proposed_and_can_be_trimmed_before_accepting(
+    user_client: TestClient,
+) -> None:
+    master, session = _session(user_client)
+    sid = session["id"]
+    change = _change(session, "add_job_skills")
+    proposed = [i["text"] for i in change["proposed"]["items"]]
+    assert change["decision"] == "pending"
+    assert set(proposed) == set(session["missing_skills"]) and "Django" in proposed
+
+    # Keep only Django and accept: it becomes a confirmed skill of this copy.
+    body = _decide(user_client, session, change, decision="accepted", keep_skills=["Django"])
+    assert body.status_code == 200, body.text
+    kept = _change(body.json(), "add_job_skills")
+    assert [i["text"] for i in kept["edited"]["items"]] == ["Django"]
+    assert "Django" not in body.json()["missing_skills"]
+    summary = _change(body.json(), "summary")
+    text = "Backend engineer building Python and Django services."
+    ok = _decide(user_client, session, summary, decision="accepted", edited_text=text)
+    assert ok.status_code == 200, ok.text  # Django is now allowed in new wording
+
+    done = user_client.post(f"{API}/{sid}/finalize", json={}).json()
+    copy = user_client.get(f"/api/v1/resumes/{done['result_resume_id']}").json()["content"]
+    names = [s["name"] for s in copy["skills"]]
+    assert "Django" in names and not set(proposed) - {"Django"} & set(names)
+    original = user_client.get(f"/api/v1/resumes/{master['id']}").json()["content"]
+    assert "Django" not in [s["name"] for s in original["skills"]]
+
+
+def test_only_the_job_skills_change_takes_a_skill_list(user_client: TestClient) -> None:
+    _, session = _session(user_client)
+    summary = _change(session, "summary")
+    body = _decide(user_client, session, summary, decision="accepted", keep_skills=["Python"])
+    assert body.status_code == 422 and body.json()["code"] == "CHANGE_NOT_EDITABLE"

@@ -361,3 +361,40 @@ def test_analysis_flags_gaps() -> None:
     assert status["bullets.quantified"] == "warn"
     assert status["style.first_person"] == "warn"
     assert score < 60
+
+
+TWO_COLUMN_TEXT = """ASHA VERMA
+GenAI Engineer | AI Engineer
+ linkedin.com/in/asha-example |
+PROFESSIONAL SUMMARY
+GenAI Engineer with 1 year of experience building AI applications with Python.
+PROJECTS
+MediBot – AI Healthcare Voice Receptionist
+Tech: Python, FastAPI, Twilio
+• Built a voice receptionist for clinic appointment booking.
+Search API | Python, FastAPI, PostgreSQL
+• Built a search API.
+EDUCATION
+St. Mary's Engineering College, Hyderabad 2021 - 2025
+B.Tech in Computer Science | CGPA: 8.4
+ Hyderabad, Telangana | 9876543210 | asha.example@gmail.com
+"""
+
+
+def test_import_finds_trailing_contact_headline_and_project_taglines() -> None:
+    content = parse_resume(TWO_COLUMN_TEXT).content
+    c = content.contact
+    assert (c.email, c.phone, c.location) == (
+        "asha.example@gmail.com",
+        "9876543210",
+        "Hyderabad, Telangana",
+    )
+    assert c.headline == "GenAI Engineer | AI Engineer"
+    assert content.summary.startswith("GenAI Engineer with 1 year")
+    assert all("9876543210" not in d for e in content.education for d in e.details)
+    bot, search = content.projects
+    assert bot.description == "AI Healthcare Voice Receptionist"
+    assert bot.technologies == ["Python", "FastAPI", "Twilio"]
+    assert search.technologies == ["Python", "FastAPI", "PostgreSQL"]
+    # A year range is not a phone number, so the college line stays in education.
+    assert content.education[0].institution.startswith("St. Mary's Engineering College")

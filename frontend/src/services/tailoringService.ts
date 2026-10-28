@@ -27,11 +27,12 @@ export const tailoringService = {
   list: () => api.get<SessionSummary[]>("/tailoring"),
   get: async (id: string) => withDoc(await api.get<S["TailoringSessionOut"]>(`/tailoring/${id}`)),
   create: async (jobId: string) => withDoc(await api.post<S["TailoringSessionOut"]>("/tailoring", { job_id: jobId })),
-  decide: async (id: string, changeId: string, decision: Decision, editedText?: string) =>
+  decide: async (id: string, changeId: string, decision: Decision, editedText?: string, keepSkills?: string[]) =>
     withDoc(
       await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/changes/${changeId}/decision`, {
         decision,
         ...(editedText !== undefined ? { edited_text: editedText } : {}),
+        ...(keepSkills !== undefined ? { keep_skills: keepSkills } : {}),
       }),
     ),
   rewrite: async (id: string, changeId: string) =>

@@ -20,8 +20,10 @@ from pydantic import BaseModel, Field
 
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import TIER_WEIGHT, EvidenceRef, MatchResult
+from app.output.templates import HEADINGS, RESUME_ORDER, arrange
 from app.resumes.content import ResumeContent, Skill, new_id
-from app.skills.vocabulary import canonical, find_skills
+from app.skills.vocabulary import canonical, category_of, find_skills
+from app.tailoring.factcheck import known_skills
 
 METHOD_VERSION = "tailor-rules-v1"
 ChangeKind = Literal[
@@ -37,6 +39,7 @@ ChangeKind = Literal[
     "trim_projects",
     "trim_skills",
     "add_bullet",  # what the user told us they did with a skill, under that role or project
+    "add_job_skills",  # the job's skills the resume doesn't show; the user removes any they lack
     "confirm_skill",  # a skill the user says they have, with where they used it
 ]
 EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headline", "add_bullet"})
@@ -188,7 +191,12 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
 
     # 4. Skills the experience shows but the skills list leaves out.
     listed = {canonical(s.name) or s.name for s in master.skills}
-    shown = [g for g in result.skills if g.status == "strong" and g.skill not in listed]
+    # Soft skills are left out: "patient communication" in a bullet isn't a Communication skill.
+    shown = [
+        g
+        for g in result.skills
+        if g.status == "strong" and g.skill not in listed and category_of(g.skill) != "soft"
+    ]
     if shown:
         names = [g.skill for g in shown]
         out.append(
@@ -246,10 +254,15 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
 
     # 1. Headline: the latest title and up to three job skills the resume shows.
     title = next((e.title for e in master.experience if e.title), "")
+    # Languages and frameworks say more about a role than tools like Git; no soft skills.
+    rank = {"language": 0, "framework": 1, "library": 1, "concept": 2, "database": 3, "cloud": 4}
     shown = [
         g.skill
-        for g in sorted(result.skills, key=lambda g: -TIER_WEIGHT[g.tier])
-        if g.status == "strong"
+        for g in sorted(
+            result.skills,
+            key=lambda g: (-TIER_WEIGHT[g.tier], rank.get(category_of(g.skill) or "", 5)),
+        )
+        if g.status == "strong" and category_of(g.skill) != "soft"
     ][:3]
     headline = " | ".join(p for p in (title, ", ".join(shown)) if p)
     if headline and headline != master.contact.headline:
@@ -270,18 +283,23 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
 
     best_role = max((score(b) for e in master.experience for b in e.bullets), default=0)
     best_project = max(master.projects, key=lambda p: score(project_text(p)), default=None)
-    if master.experience and best_project and score(project_text(best_project)) > best_role:
+    # The master's own section order is kept; projects only move up to sit before experience.
+    current = arrange(RESUME_ORDER, list(master.section_order))
+    projects_later = current.index("projects") > current.index("experience")
+    if (
+        master.experience
+        and best_project
+        and projects_later
+        and score(project_text(best_project)) > best_role
+    ):
+        moved = [k for k in current if k != "projects"]
+        moved.insert(moved.index("experience"), "projects")
         out.append(
             Proposal(
                 kind="reorder_sections",
                 title="Show your projects before your experience",
-                original={"items": [{"id": "experience", "text": "Experience"}]},
-                proposed={
-                    "items": [
-                        {"id": "projects", "text": "Projects"},
-                        {"id": "experience", "text": "Experience"},
-                    ]
-                },
+                original={"items": [{"id": k, "text": HEADINGS[k]} for k in current]},
+                proposed={"items": [{"id": k, "text": HEADINGS[k]} for k in moved]},
                 reason=(
                     f"“{best_project.name}” matches this job better than your work experience, "
                     "so readers should see it first."
@@ -354,6 +372,27 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
     return out
 
 
+def job_skills(master: ResumeContent, job: JobAnalysis) -> Proposal | None:
+    """Every skill the job asks for that the resume doesn't show, to keep or remove one by one.
+
+    Accepting it is the user saying they have the skills they kept: they join this copy's
+    skills list, and new wording may then use them. It starts pending, never accepted.
+    """
+    shown = known_skills(master)
+    missing = [s.name for s in job.skills if s.name not in shown]
+    if not missing:
+        return None
+    return Proposal(
+        kind="add_job_skills",
+        title="Add the skills this job asks for",
+        original={"items": []},
+        proposed={"items": [{"id": new_id(), "text": n} for n in missing]},
+        reason="Remove any you haven't used before accepting: interviewers ask about every "
+        "skill on your resume. Your master resume stays as it is.",
+        requirement_ids=requirements_for(job, set(missing)),
+    )
+
+
 def _texts(items: list[dict[str, Any]]) -> list[str]:
     return [str(i["text"]) for i in items]
 
@@ -398,21 +437,34 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
         doc.section_order = [i["id"] for i in value["items"]]
     elif change.kind == "headline":
         doc.contact.headline = str(value["text"]).strip()
-    elif change.kind in ("add_skills", "confirm_skill"):
+    elif change.kind in ("add_skills", "confirm_skill", "add_job_skills"):
         have = {(canonical(s.name) or s.name).lower() for s in doc.skills}
         for item in value["items"]:
             name = str(item["text"])
             if name.lower() not in have:
-                doc.skills.append(Skill(id=item.get("id") or new_id(), name=name, category=""))
+                # Into the group that already holds this kind of skill, right after it.
+                kind = category_of(name)
+                near = [
+                    i
+                    for i, s in enumerate(doc.skills)
+                    if kind and category_of(canonical(s.name) or s.name) == kind
+                ]
+                group = doc.skills[near[-1]].category if near else ""
+                skill = Skill(id=item.get("id") or new_id(), name=name, category=group)
+                doc.skills.insert(near[-1] + 1 if near else len(doc.skills), skill)
     elif change.kind == "summary":
         doc.summary = str(value["text"]).strip()
     elif change.kind == "rewrite_bullet":
         # Matched by text, so it still applies after the role's bullets were reordered.
-        exp = next((e for e in doc.experience if e.id == change.target_id), None)
+        entry = next((e for e in doc.experience if e.id == change.target_id), None)
+        found = entry.bullets if entry else None
+        if found is None:
+            project = next((p for p in doc.projects if p.id == change.target_id), None)
+            found = project.bullets if project else None
         old = str(change.original["text"])
-        if exp is None or old not in exp.bullets:
+        if found is None or old not in found:
             raise ChangeNotApplicable()
-        exp.bullets[exp.bullets.index(old)] = str(value["text"]).strip()
+        found[found.index(old)] = str(value["text"]).strip()
     elif change.kind == "add_bullet":
         text = str(value["text"]).strip()
         exp = next((e for e in doc.experience if e.id == change.target_id), None)

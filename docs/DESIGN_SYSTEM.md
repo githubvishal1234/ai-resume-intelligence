@@ -80,14 +80,14 @@ Scores below 60 are **critical** (red), 60–79 **warning** (amber), and 80 or a
 | `TemplatePicker` (`components/resume`) | Radio group of templates, each a live `ResumePaper`. Used by the quick builder and the Resume Builder. |
 
 ## Resume templates
-There are **80 templates**: 78 resumes and 2 CVs. The PDF templates live in
+There are **81 templates**: 79 resumes and 2 CVs. The PDF templates live in
 `backend/app/output/templates.py`; the preview copies their values in
 `frontend/src/constants/templates.ts`. When a template is added or changed, update both. Every
 template is real, selectable text with title-case standard headings in a fixed reading order (the
 ATS check relies on them). The public gallery is `/templates`, filtered by style, layout, photo,
 colour, font and header.
 
-### The six originals
+### The seven originals
 | Template | Type | Header | Headings |
 |---|---|---|---|
 | Classic | Sans | Left | Navy, ruled |
@@ -96,6 +96,7 @@ colour, font and header.
 | Minimal | Sans | Centred, wide margins | Grey, no rule |
 | Compact | Sans | Left, tight spacing | Black, no rule |
 | Serif | Serif | Left | Black, ruled |
+| One Page | Sans, 8.8 pt, 1.2 line height, 11 mm margins | Left | Black, ruled, UPPERCASE |
 
 The two CV templates (Academic CV, Professional CV) lead with education and keep every section.
 

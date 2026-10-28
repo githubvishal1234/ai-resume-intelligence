@@ -134,6 +134,36 @@ describe("Tailoring review", () => {
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({ skill: "Java", note: "College library project", where: "" });
   });
 
+  it("lets the user remove job skills before adding them", async () => {
+    const user = userEvent.setup();
+    const skills = {
+      ...SUMMARY_CHANGE,
+      id: "c7",
+      kind: "add_job_skills",
+      editable: false,
+      title: "Add the skills this job asks for",
+      original: { items: [] },
+      proposed: { items: [{ id: "s1", text: "ROS" }, { id: "s2", text: "Unity" }, { id: "s3", text: "C++" }] },
+      requirements: [],
+    };
+    const trimmed = { ...SESSION_BODY, changes: [...SESSION_BODY.changes, { ...skills, edited: { items: [{ id: "s1", text: "ROS" }, { id: "s3", text: "C++" }] } }] };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, changes: [...SESSION_BODY.changes, skills] } },
+      { method: "POST", path: `/tailoring/${SID}/changes/c7/decision`, body: trimmed },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: /Add the skills this job asks for/ });
+    expect(within(card).getByText("Adding 3 of 3 skills")).toBeInTheDocument();
+    await user.click(within(card).getByRole("button", { name: "Remove Unity" }));
+    expect(await within(card).findByText("Adding 2 of 3 skills")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Add Unity back" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ decision: "pending", keep_skills: ["ROS", "C++"] });
+    // A list of claims about the user is never counted in "accept all": only the 2 other changes are.
+    expect(screen.getByRole("button", { name: "Accept 2 with no flags" })).toBeInTheDocument();
+  });
+
   it("runs strong focus", async () => {
     const user = userEvent.setup();
     const focused = {
