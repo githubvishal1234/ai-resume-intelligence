@@ -727,6 +727,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring/quick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quick Tailor
+         * @description Paste a resume and a job description; get a session with the changes proposed.
+         */
+        post: operations["quick_tailor_api_v1_tailoring_quick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tailoring/{session_id}": {
         parameters: {
             query?: never;
@@ -2986,6 +3006,13 @@ export interface components {
              */
             source: "rules" | "ai";
         };
+        /** QuickTailorIn */
+        QuickTailorIn: {
+            /** Resume Text */
+            resume_text: string;
+            /** Job Text */
+            job_text: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /**
@@ -5190,6 +5217,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreateTailoringIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quick_tailor_api_v1_tailoring_quick_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuickTailorIn"];
             };
         };
         responses: {
