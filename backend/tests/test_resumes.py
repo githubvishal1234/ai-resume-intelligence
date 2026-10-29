@@ -290,7 +290,7 @@ def test_delete_removes_resume_versions_and_files(user_client: TestClient) -> No
 def test_versions_are_immutable_in_the_database(user_client: TestClient) -> None:
     import_and_confirm(user_client)
     with pytest.raises(DBAPIError, match="immutable"), get_engine().begin() as conn:
-        conn.execute(text("update resume_versions set content = '{}'::jsonb"))
+        conn.execute(text("update resume_versions set content = '{}'"))
 
 
 def test_database_allows_only_one_active_master(user_client: TestClient) -> None:

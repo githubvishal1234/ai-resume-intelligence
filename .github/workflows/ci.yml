@@ -9,29 +9,37 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:16
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
-          POSTGRES_USER: resume_app
-          POSTGRES_PASSWORD: dev_only_password
-          POSTGRES_DB: resume_intel_test
-        ports: ["5432:5432"]
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Dev_only_Passw0rd
+        ports: ["1433:1433"]
         options: >-
-          --health-cmd "pg_isready -U resume_app" --health-interval 5s --health-retries 10
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Dev_only_Passw0rd -Q 'SELECT 1'"
+          --health-interval 10s --health-retries 12
     defaults:
       run:
         working-directory: backend
     env:
-      TEST_DATABASE_URL: postgresql+psycopg://resume_app:dev_only_password@localhost:5432/resume_intel_test
+      TEST_DATABASE_URL: mssql+pyodbc://sa:Dev_only_Passw0rd@localhost:1433/resume_intel_test?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Microsoft ODBC Driver 18
+        run: |
+          if ! odbcinst -q -d | grep -q "ODBC Driver 18 for SQL Server"; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            curl -fsSL "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list" | sudo tee /etc/apt/sources.list.d/mssql-release.list
+            sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+          fi
       - run: pip install -r requirements.lock -e ".[dev]"
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy
+      - run: DATABASE_URL=$TEST_DATABASE_URL python -m app.db.create_database
       - run: pytest
       - name: Dependency audit
         run: pip install pip-audit && pip-audit -r requirements.lock
@@ -66,27 +74,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
-      postgres:
-        image: postgres:16
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
-          POSTGRES_USER: resume_app
-          POSTGRES_PASSWORD: dev_only_password
-          POSTGRES_DB: resume_intel_e2e
-        ports: ["5432:5432"]
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Dev_only_Passw0rd
+        ports: ["1433:1433"]
         options: >-
-          --health-cmd "pg_isready -U resume_app" --health-interval 5s --health-retries 10
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Dev_only_Passw0rd -Q 'SELECT 1'"
+          --health-interval 10s --health-retries 12
     defaults:
       run:
         working-directory: frontend
     env:
-      DATABASE_URL: postgresql+psycopg://resume_app:dev_only_password@localhost:5432/resume_intel_e2e
+      DATABASE_URL: mssql+pyodbc://sa:Dev_only_Passw0rd@localhost:1433/resume_intel_e2e?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
       PYTHON: python
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Microsoft ODBC Driver 18
+        run: |
+          if ! odbcinst -q -d | grep -q "ODBC Driver 18 for SQL Server"; then
+            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+            curl -fsSL "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list" | sudo tee /etc/apt/sources.list.d/mssql-release.list
+            sudo apt-get update && sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+          fi
       - run: pip install -r ../backend/requirements.lock -e ../backend
+      - run: python -m app.db.create_database
+        working-directory: backend
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

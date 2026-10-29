@@ -5,19 +5,20 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    String,
-    Text,
+    Unicode,
+    UnicodeText,
     UniqueConstraint,
+    Uuid,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -29,17 +30,17 @@ class ResumeFile(Base):
     __tablename__ = "resume_files"
     __table_args__ = (Index("ix_resume_files_owner_id", "owner_id"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    storage_key: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    media_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    storage_key: Mapped[str] = mapped_column(Unicode(255), unique=True, nullable=False)
+    sha256: Mapped[str] = mapped_column(Unicode(64), nullable=False)
+    media_type: Mapped[str] = mapped_column(Unicode(100), nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_filename: Mapped[str] = mapped_column(Unicode(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )
 
 
@@ -54,18 +55,16 @@ class ResumeImport(Base):
         Index("ix_resume_imports_owner_id", "owner_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    file_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resume_files.id", ondelete="CASCADE"), nullable=False
-    )
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending_review")
-    parsed: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    report: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    file_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("resume_files.id"), nullable=False)
+    status: Mapped[str] = mapped_column(Unicode(20), nullable=False, default="pending_review")
+    parsed: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    report: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )
 
     file: Mapped[ResumeFile] = relationship()
@@ -86,20 +85,18 @@ class Resume(TimestampMixin, Base):
             "uq_resumes_one_active_master",
             "owner_id",
             unique=True,
-            postgresql_where=text("kind = 'master' AND status = 'active'"),
+            mssql_where=text("kind = 'master' AND status = 'active'"),
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
-    master_resume_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resumes.id", ondelete="CASCADE")
-    )
+    kind: Mapped[str] = mapped_column(Unicode(16), nullable=False)
+    status: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="active")
+    title: Mapped[str] = mapped_column(Unicode(200), nullable=False)
+    master_resume_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resumes.id"))
     current_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     versions: Mapped[list[ResumeVersion]] = relationship(
@@ -120,22 +117,16 @@ class ResumeVersion(Base):
         CheckConstraint("version >= 1", name="version_positive"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    resume_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    resume_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("resumes.id"), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
-    content: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    source: Mapped[str] = mapped_column(String(16), nullable=False)
-    note: Mapped[str | None] = mapped_column(Text)
-    file_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resume_files.id", ondelete="SET NULL")
-    )
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")
-    )
+    content: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    source: Mapped[str] = mapped_column(Unicode(16), nullable=False)
+    note: Mapped[str | None] = mapped_column(UnicodeText)
+    file_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resume_files.id"))
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )
 
     resume: Mapped[Resume] = relationship(back_populates="versions")

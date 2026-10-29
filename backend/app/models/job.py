@@ -3,8 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, Index, Unicode, UnicodeText, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -19,16 +18,16 @@ class Job(TimestampMixin, Base):
         Index("ix_jobs_owner_id_created_at", "owner_id", "created_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    source: Mapped[str] = mapped_column(String(16), nullable=False)
-    source_url: Mapped[str | None] = mapped_column(String(2000))
-    source_filename: Mapped[str | None] = mapped_column(String(255))
-    title: Mapped[str] = mapped_column(String(200), nullable=False)
-    company: Mapped[str | None] = mapped_column(String(200))
-    location: Mapped[str | None] = mapped_column(String(200))
-    raw_text: Mapped[str] = mapped_column(Text, nullable=False)
-    analysis: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    analyzer_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    source: Mapped[str] = mapped_column(Unicode(16), nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Unicode(2000))
+    source_filename: Mapped[str | None] = mapped_column(Unicode(255))
+    title: Mapped[str] = mapped_column(Unicode(200), nullable=False)
+    company: Mapped[str | None] = mapped_column(Unicode(200))
+    location: Mapped[str | None] = mapped_column(Unicode(200))
+    raw_text: Mapped[str] = mapped_column(UnicodeText, nullable=False)
+    analysis: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    analyzer_version: Mapped[str] = mapped_column(Unicode(32), nullable=False)

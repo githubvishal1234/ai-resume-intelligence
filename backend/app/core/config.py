@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-_DEV_DB_PASSWORD = "dev_only_password"  # noqa: S105 - documented dev-only default
+_DEV_DB_PASSWORD = "Dev_only_Passw0rd"  # noqa: S105 - documented dev-only default
 
 
 class Settings(BaseSettings):
@@ -21,8 +21,10 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
 
+    # SQL Server through Microsoft ODBC Driver 18 (install it on the host or in the image).
     database_url: str = (
-        f"postgresql+psycopg://resume_app:{_DEV_DB_PASSWORD}@localhost:5432/resume_intel"
+        f"mssql+pyodbc://sa:{_DEV_DB_PASSWORD}@localhost:1433/resume_intel"
+        "?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
     )
     db_pool_size: int = Field(default=5, ge=1, le=100)
 

@@ -92,7 +92,7 @@ def test_console_sender_refused_in_production() -> None:
     with pytest.raises(ValueError, match="development only"):
         Settings(
             app_env="production",
-            database_url="postgresql+psycopg://u:strong@db/x",
+            database_url="mssql+pyodbc://u:strong@db/x",
             session_cookie_secure=True,
             email_provider="console",
         )

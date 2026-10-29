@@ -40,7 +40,7 @@ def test_production_rejects_unsafe_config() -> None:
 def test_production_accepts_safe_config() -> None:
     Settings(
         app_env="production",
-        database_url="postgresql+psycopg://u:strong-secret@db:5432/app",
+        database_url="mssql+pyodbc://u:strong-secret@db:5432/app",
         session_cookie_secure=True,
     )
 
@@ -159,7 +159,7 @@ def test_db_enforces_lowercase_email_and_unique() -> None:
         conn.execute(
             text(
                 "insert into users (id,email,password_hash,display_name) "
-                "values (gen_random_uuid(),'UPPER@x.com','h','n')"
+                "values (NEWID(),'UPPER@x.com','h','n')"
             )
         )
 

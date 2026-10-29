@@ -2,6 +2,9 @@
 
 # AI Resume Intelligence Platform — Production Implementation Plan
 
+> **Note (October 2026):** this original plan assumed PostgreSQL. The app now runs on Microsoft
+> SQL Server; see the Database section of [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 Status: **DRAFT rev 2 for approval** · Date: 2026-10-06 · Scope of this document: analysis and plan only. No application code has been written, and nothing has been changed or rewritten.
 
 **Rev 2 changes:** adopts company direction — *reuse the existing repository (no greenfield unless fundamentally unusable)*, keep existing product naming and flag inconsistencies, no assumed LLM provider / tenancy model / cloud / email provider / retention policy / benchmark data / job-site scraping. Company-dependent items are now tracked in a **Decision Register (§18)** with status *Pending*, each with the low-risk working assumption the design uses meanwhile. The plan is no longer blocked on those answers.
