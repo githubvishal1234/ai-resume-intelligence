@@ -87,7 +87,7 @@ def test_photo_templates_draw_it_and_the_ats_check_notes_it(user_client: TestCli
 def test_account_deletion_removes_the_photo(user_client: TestClient, settings: Settings) -> None:
     assert _put(user_client, _image()).status_code == 204
     with get_engine().connect() as conn:
-        user_id = conn.scalar(text("select id from users where email = 'ada@example.com'"))
+        user_id = conn.scalar(text("select lower(id) from users where email = 'ada@example.com'"))
     stored = Path(settings.storage_local_root) / f"photos/{user_id}.jpg"
     assert stored.is_file()
     gone = user_client.post("/api/v1/account/delete", json={"password": STRONG_PASSWORD})

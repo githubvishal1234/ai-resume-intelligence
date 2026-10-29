@@ -103,7 +103,7 @@ def test_delete_account_removes_data_and_files(app, user_client: TestClient, set
     )
     assert upload.status_code == 201, upload.text
     with get_engine().connect() as conn:
-        user_id = conn.scalar(text("select id from users where email = 'ada@example.com'"))
+        user_id = conn.scalar(text("select lower(id) from users where email = 'ada@example.com'"))
         key = conn.scalar(
             text("select storage_key from resume_files where owner_id = :u"), {"u": user_id}
         )

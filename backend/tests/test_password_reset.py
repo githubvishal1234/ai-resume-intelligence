@@ -189,7 +189,7 @@ def test_send_failure_gives_the_same_answer(mail_app, smtp: FakeSmtp) -> None:  
         assert conn.scalar(text("select count(*) from password_reset_tokens")) == 0
         reason = conn.scalar(
             text(
-                "select details->>'reason' from audit_logs"
+                "select JSON_VALUE(details, '$.reason') from audit_logs"
                 " where action = 'auth.password_reset_requested'"
             )
         )
