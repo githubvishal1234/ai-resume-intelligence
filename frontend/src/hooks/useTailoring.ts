@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { forgetDeleted } from "@/lib/forgetDeleted";
 import { tailoringService, type Decision, type Session } from "@/services/tailoringService";
+import { jobKeys } from "./useJobs";
 import { resumeKeys } from "./useResumes";
 
 export const tailoringKeys = {
@@ -28,6 +29,21 @@ function useSettle() {
 export function useStartTailoring() {
   const settle = useSettle();
   return useMutation({ mutationFn: (jobId: string) => tailoringService.create(jobId), onSuccess: settle });
+}
+
+/** Paste a resume and a job: the server saves both (the resume never replaces the master). */
+export function useQuickTailor() {
+  const settle = useSettle();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ resumeText, jobText }: { resumeText: string; jobText: string }) =>
+      tailoringService.quick(resumeText, jobText),
+    onSuccess: (session) => {
+      settle(session);
+      void client.invalidateQueries({ queryKey: jobKeys.list() });
+      void client.invalidateQueries({ queryKey: resumeKeys.all });
+    },
+  });
 }
 
 export function useDecide(id: string) {

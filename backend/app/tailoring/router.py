@@ -23,6 +23,7 @@ from app.tailoring.schemas import (
     DecisionIn,
     FinalizeIn,
     PlaceOut,
+    QuickTailorIn,
     RequirementRef,
     RewriteBulletIn,
     TailoringSessionOut,
@@ -135,6 +136,12 @@ def list_sessions(service: Service) -> list[TailoringSessionSummaryOut]:
 @router.post("", response_model=TailoringSessionOut, status_code=status.HTTP_201_CREATED)
 def create_session(body: CreateTailoringIn, service: Service) -> TailoringSessionOut:
     return _out(service, service.create(body.job_id))
+
+
+@router.post("/quick", response_model=TailoringSessionOut, status_code=status.HTTP_201_CREATED)
+def quick_tailor(body: QuickTailorIn, service: Service) -> TailoringSessionOut:
+    """Paste a resume and a job description; get a session with the changes proposed."""
+    return _out(service, service.quick(body.resume_text, body.job_text))
 
 
 @router.get("/{session_id}", response_model=TailoringSessionOut)

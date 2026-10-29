@@ -27,6 +27,8 @@ export const tailoringService = {
   list: () => api.get<SessionSummary[]>("/tailoring"),
   get: async (id: string) => withDoc(await api.get<S["TailoringSessionOut"]>(`/tailoring/${id}`)),
   create: async (jobId: string) => withDoc(await api.post<S["TailoringSessionOut"]>("/tailoring", { job_id: jobId })),
+  quick: async (resumeText: string, jobText: string) =>
+    withDoc(await api.post<S["TailoringSessionOut"]>("/tailoring/quick", { resume_text: resumeText, job_text: jobText })),
   decide: async (id: string, changeId: string, decision: Decision, editedText?: string, keepSkills?: string[]) =>
     withDoc(
       await api.post<S["TailoringSessionOut"]>(`/tailoring/${id}/changes/${changeId}/decision`, {

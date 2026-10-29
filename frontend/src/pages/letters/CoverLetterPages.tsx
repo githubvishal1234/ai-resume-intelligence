@@ -73,7 +73,7 @@ function NewLetter() {
   const [jobId, setJobId] = useState("");
   const [template, setTemplate] = useState("classic");
   const list = resumes.data ?? [];
-  const chosen = resumeId || list.find((r) => r.kind === "master")?.id || list[0]?.id || "";
+  const chosen = resumeId || list.find((r) => r.kind === "master" && r.status === "active")?.id || list[0]?.id || "";
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

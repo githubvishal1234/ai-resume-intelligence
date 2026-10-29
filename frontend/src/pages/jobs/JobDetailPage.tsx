@@ -51,7 +51,7 @@ export function JobDetailPage() {
             <ButtonLink to={`/jobs/${j.id}/match`} variant="primary">
               <GitCompareArrows className="size-4" aria-hidden /> Match my resume
             </ButtonLink>
-            <ButtonLink to="/tailor">
+            <ButtonLink to={`/tailor?job=${j.id}`}>
               <Sparkles className="size-4" aria-hidden /> Tailor
             </ButtonLink>
             <ButtonLink to={`/applications/new?job=${j.id}`}>

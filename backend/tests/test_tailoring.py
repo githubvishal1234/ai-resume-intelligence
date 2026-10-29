@@ -323,6 +323,33 @@ def test_finalize_creates_tailored_resume_and_master_is_unchanged(user_client: T
     assert listed[0]["status"] == "finalized" and listed[0]["accepted"] == 3
 
 
+def test_quick_tailor_from_pasted_text_keeps_the_users_master(user_client: TestClient) -> None:
+    master = import_and_confirm(user_client)
+    before = user_client.get(f"/api/v1/resumes/{master['id']}").json()
+
+    response = user_client.post(f"{API}/quick", json={"resume_text": SAMPLE_TEXT, "job_text": JD})
+    assert response.status_code == 201, response.text
+    session = response.json()
+    assert session["status"] == "draft"
+    assert session["master_resume_id"] != master["id"]
+    # Clean rule changes come back accepted; the job's skills still wait for the user.
+    assert _change(session, "reorder_skills")["decision"] == "accepted"
+    assert _change(session, "add_job_skills")["decision"] == "pending"
+
+    pasted = user_client.get(f"/api/v1/resumes/{session['master_resume_id']}").json()
+    assert pasted["kind"] == "master" and pasted["status"] == "archived"
+    assert user_client.get(f"/api/v1/resumes/{master['id']}").json() == before
+    done = user_client.post(f"{API}/{session['id']}/finalize", json={})
+    assert done.status_code == 200, done.text
+
+
+def test_quick_tailor_refuses_text_that_is_not_a_resume(user_client: TestClient) -> None:
+    junk = "Hello, this is just a note about lunch plans. " * 10
+    response = user_client.post(f"{API}/quick", json={"resume_text": junk, "job_text": JD})
+    assert response.status_code == 422
+    assert response.json()["code"] == "RESUME_TEXT_UNREADABLE"
+
+
 def test_rejected_changes_are_not_applied(user_client: TestClient) -> None:
     master, session = _session(user_client)
     _decide(user_client, session, _change(session, "summary"), decision="accepted")

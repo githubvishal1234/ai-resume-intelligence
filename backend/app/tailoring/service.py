@@ -27,10 +27,13 @@ from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, NotFound
 from app.jobs.analyzer import JobAnalysis
+from app.jobs.service import JobService
 from app.matching.matcher import EvidenceRef, match
 from app.matching.service import MasterResumeRequired
 from app.models import Job, Resume, ResumeVersion, TailoringChange, TailoringSession
+from app.resumes.ai_parse import ai_parse
 from app.resumes.content import Experience, OtherSection, Project, ResumeContent, new_id
+from app.resumes.parser import parse_resume
 from app.skills.vocabulary import canonical, find_skills
 from app.tailoring.claims import check_claims_many
 from app.tailoring.factcheck import FactFlag, blocking, check_text, known_skills, master_text
@@ -73,6 +76,12 @@ class NothingAccepted(AppError):
     status_code = 422
     code = "NOTHING_ACCEPTED"
     message = "Accept at least one change before creating the tailored resume."
+
+
+class ResumeTextUnreadable(AppError):
+    status_code = 422
+    code = "RESUME_TEXT_UNREADABLE"
+    message = "No experience, projects, skills or education found. Paste the whole resume."
 
 
 class BulletNotFound(AppError):
@@ -287,6 +296,9 @@ class TailoringService:
         )
         if version is None:  # pragma: no cover
             raise NotFound()
+        return self._start(job, master, version)
+
+    def _start(self, job: Job, master: Resume, version: ResumeVersion) -> TailoringSession:
         content = ResumeContent.model_validate(version.content)
         analysis = JobAnalysis.model_validate(job.analysis)
         # Even with nothing to reorder, the session is where the user confirms the job's
@@ -324,6 +336,57 @@ class TailoringService:
         self._audit("tailoring.create", str(row.id))
         self.db.commit()
         return row
+
+    def quick(self, resume_text: str, job_text: str) -> TailoringSession:
+        """Tailors a pasted resume to a pasted job description, ready for review.
+
+        The pasted resume is stored as an *archived* master: the base this session reads
+        facts from, which never replaces the user's own active master. Clean changes come
+        back accepted; skills the job wants and flagged text still wait for the user.
+        """
+        content = self._read_resume(resume_text)
+        name = content.contact.full_name.strip()
+        resume = Resume(
+            owner_id=self.actor.user_id,
+            kind="master",
+            status="archived",
+            title=f"Pasted resume · {name}"[:200] if name else "Pasted resume",
+            current_version=1,
+        )
+        self.db.add(resume)
+        self.db.flush()
+        version = ResumeVersion(
+            resume_id=resume.id,
+            version=1,
+            content=content.model_dump(mode="json"),
+            source="upload",
+            note="Pasted for quick tailoring",
+            created_by=self.actor.user_id,
+        )
+        self.db.add(version)
+        self._audit("resume.create", str(resume.id))
+        job = JobService(self.db, self.settings, self.actor, self.request_id).create(
+            job_text, source="paste"
+        )
+        session_id = self._start(job, resume, version).id
+        try:
+            self.focus(session_id)
+        except AppError:  # AI busy or over its limit: the rule-based changes still stand
+            self.db.rollback()
+        return self.accept_clean(session_id)
+
+    def _read_resume(self, text: str) -> ResumeContent:
+        content = parse_resume(text).content
+        if ai_status(self.settings).configured:
+            try:  # pasted text is messy; the AI reader keeps only what the text says
+                read = ai_parse(text, self._ai("resumes.ai_parse"))
+                if read.kept:
+                    content = read.content
+            except AppError:
+                pass
+        if not (content.experience or content.projects or content.skills or content.education):
+            raise ResumeTextUnreadable()
+        return content
 
     @staticmethod
     def _flags(kind: str, value: dict[str, Any], master: ResumeContent) -> list[dict[str, Any]]:

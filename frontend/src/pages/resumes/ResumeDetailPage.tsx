@@ -28,7 +28,8 @@ export function ResumeDetailPage() {
         title={r.title}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
-            <Pill tone="brand">{r.kind === "master" ? "Master" : "Tailored"}</Pill>
+            {/* An archived master is a resume pasted for quick tailoring, not the user's master. */}
+            <Pill tone="brand">{r.kind === "tailored" ? "Tailored" : r.status === "archived" ? "Pasted" : "Master"}</Pill>
             Version {r.current_version} · updated {formatDate(r.updated_at)}
           </span>
         }
@@ -39,7 +40,7 @@ export function ResumeDetailPage() {
             <ButtonLink to={`/resumes/${r.id}/analysis`}><ScanSearch className="size-4" aria-hidden /> Analysis</ButtonLink>
             <ButtonLink to={`/resumes/${r.id}/versions`}><History className="size-4" aria-hidden /> Versions</ButtonLink>
             <ButtonLink to={`/builder?resume=${r.id}`}><Download className="size-4" aria-hidden /> PDF &amp; ATS check</ButtonLink>
-            {r.kind === "master" ? (
+            {r.kind === "master" && r.status === "active" ? (
               <ButtonLink to="/resumes/upload"><UploadCloud className="size-4" aria-hidden /> Upload new version</ButtonLink>
             ) : null}
           </>

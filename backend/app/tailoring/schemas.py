@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.jobs.schemas import MAX_JOB_CHARS, MIN_JOB_CHARS
 from app.matching.matcher import EvidenceRef
 from app.resumes.content import ResumeContent
 from app.tailoring.factcheck import FactFlag
@@ -13,6 +14,11 @@ from app.tailoring.factcheck import FactFlag
 
 class CreateTailoringIn(BaseModel):
     job_id: uuid.UUID
+
+
+class QuickTailorIn(BaseModel):
+    resume_text: str = Field(min_length=200, max_length=40_000)
+    job_text: str = Field(min_length=MIN_JOB_CHARS, max_length=MAX_JOB_CHARS)
 
 
 class DecisionIn(BaseModel):
