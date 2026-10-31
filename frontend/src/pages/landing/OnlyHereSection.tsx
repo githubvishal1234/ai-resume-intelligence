@@ -8,12 +8,13 @@ import { SAMPLE_RESUME } from "@/lib/resumeHelpers";
 /** Product-page section for the four features no other resume tool has. Illustrations only. */
 export function OnlyHereSection({ eyebrow, h2 }: { eyebrow: string; h2: string }) {
   return (
-    <section id="only-here" aria-labelledby="only-here-title" className="scroll-mt-20 bg-ink-deep py-24 text-on-ink">
+    <section id="only-here" aria-labelledby="only-here-title" className="relative isolate scroll-mt-20 bg-ink-deep py-24 text-on-ink">
+      <div aria-hidden className="absolute inset-0 -z-10 bg-grid text-on-ink [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <p className={cn(eyebrow, "text-accent")}>Only here</p>
+          <p className={eyebrow}>Only here</p>
           <h2 id="only-here-title" className={cn(h2, "mt-3")}>
-            Not just a better resume. <span className="text-accent">Proof of what works.</span>
+            Not just a better resume. <span className="text-on-ink-success">Proof of what works.</span>
           </h2>
           <p className="mt-4 text-body-lg text-on-ink-muted">
             Four tools built on your own data and plain rules, not guesswork: see which resume gets replies, what your market
@@ -55,7 +56,7 @@ export function OnlyHereSection({ eyebrow, h2 }: { eyebrow: string; h2: string }
               {[["To do", "AWS"], ["Doing", "Terraform"], ["Done", "Kubernetes"]].map(([col, skill], i) => (
                 <div key={col} className="flex-1 rounded-control bg-on-ink/10 p-2">
                   <p className="text-on-ink-muted">{col}</p>
-                  <p className={cn("mt-1.5 truncate rounded-full px-2 py-0.5 font-mono", i === 2 ? "bg-success text-ink-deep" : "bg-on-ink/15")}>{skill}</p>
+                  <p className={cn("mt-1.5 truncate rounded-full px-2 py-0.5 font-mono", i === 2 ? "bg-success-surface text-success-ink" : "bg-on-ink/15")}>{skill}</p>
                 </div>
               ))}
             </div>
@@ -65,7 +66,7 @@ export function OnlyHereSection({ eyebrow, h2 }: { eyebrow: string; h2: string }
             <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_11rem]">
               <div>
                 <Badge icon={<Timer className="size-5" aria-hidden />} />
-                <h3 className="mt-4 font-display text-[26px] font-extrabold leading-tight">Recruiter 6-second scan</h3>
+                <h3 className="mt-4 font-display text-[24px] font-bold leading-tight tracking-[-0.02em]">Recruiter 6-second scan</h3>
                 <p className="mt-2 max-w-md text-body-lg text-on-ink-muted">
                   A heat overlay on your page shows what a first glance lands on, with eight checks to move your best evidence above the line.
                 </p>
@@ -76,7 +77,7 @@ export function OnlyHereSection({ eyebrow, h2 }: { eyebrow: string; h2: string }
                 </ul>
               </div>
               <div aria-hidden className="relative mx-auto w-44 rotate-2 overflow-hidden rounded-md shadow-level-3 sm:w-full">
-                <ResumePaper doc={SAMPLE_RESUME} template="modern" />
+                <ResumePaper doc={SAMPLE_RESUME} template="classic" />
                 <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,94,58,0.45)_0%,rgba(255,170,40,0.25)_24%,transparent_50%)] mix-blend-multiply" />
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,120,40,0.3)_0%,transparent_32%)] mix-blend-multiply" />
                 <div className="absolute inset-x-0 top-[34%] border-t-2 border-dashed border-critical" />
@@ -90,7 +91,7 @@ export function OnlyHereSection({ eyebrow, h2 }: { eyebrow: string; h2: string }
 }
 
 function Badge({ icon }: { icon: ReactNode }) {
-  return <span className="inline-flex size-11 items-center justify-center rounded-control bg-accent text-on-accent">{icon}</span>;
+  return <span className="inline-flex size-10 items-center justify-center rounded-control bg-on-ink/[0.08] text-on-ink-success ring-1 ring-on-ink/15 backdrop-blur">{icon}</span>;
 }
 
 function Tile({ photo, icon, title, body, children, className }: { photo: PhotoName; icon: ReactNode; title: string; body: string; children: ReactNode; className?: string }) {
@@ -107,7 +108,7 @@ function Tile({ photo, icon, title, body, children, className }: { photo: PhotoN
       />
       <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-t from-ink-deep via-ink-deep/85 to-ink-deep/30" />
       <Badge icon={icon} />
-      <h3 className="mt-4 font-display text-[26px] font-extrabold leading-tight">{title}</h3>
+      <h3 className="mt-4 font-display text-[24px] font-bold leading-tight tracking-[-0.02em]">{title}</h3>
       <p className="mt-2 max-w-md text-body-lg text-on-ink-muted">{body}</p>
       <div aria-hidden className="mt-5 rounded-card bg-ink-deep/70 p-4 ring-1 ring-on-ink/10 backdrop-blur">{children}</div>
     </article>

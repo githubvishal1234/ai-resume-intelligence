@@ -1,9 +1,10 @@
 import { Check } from "lucide-react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { templateStyle } from "@/constants/templates";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
 import { ResumePaper } from "./ResumePaper";
+import { matches, NO_FILTERS, TemplateFilters } from "./TemplateFilters";
 
 export type TemplateOption = { id: string; name: string; description: string };
 
@@ -24,11 +25,16 @@ export function TemplatePicker({
   columns?: string;
 }) {
   const name = useId();
+  const [filters, setFilters] = useState(NO_FILTERS);
+  // Filters only help once there are many; the chosen template always stays visible.
+  const filterable = templates.length > 8;
+  const shown = filterable ? templates.filter((t) => t.id === value || matches(t.id, filters)) : templates;
   return (
     <fieldset>
       <legend className="sr-only">{legend}</legend>
+      {filterable ? <TemplateFilters value={filters} onChange={setFilters} className="mb-5" /> : null}
       <div className={cn("grid gap-4", columns)}>
-        {templates.map((t) => {
+        {shown.map((t) => {
           const selected = t.id === value;
           return (
             <label

@@ -10,7 +10,7 @@ from pypdf import PdfReader
 
 from app.output.ats import ats_check
 from app.output.pdf import render_pdf
-from app.output.templates import TEMPLATES
+from app.output.templates import DESIGNS, PALETTES, TEMPLATES
 from app.resumes.content import Contact, Experience, ResumeContent
 from app.resumes.parser import parse_resume
 from tests.conftest import login_as
@@ -159,3 +159,20 @@ def test_academic_cv_leads_with_education_and_the_ats_check_follows_its_order() 
     assert text.index("Education") < text.index("Experience")
     statuses = {c.id: c.status for c in ats_check(content, pdf, "cv-academic").checks}
     assert statuses["layout.order"] == "pass"
+
+
+def _luminance(hex_colour: str) -> float:
+    def lin(c: float) -> float:
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    r, g, b = (lin(int(hex_colour[i : i + 2], 16) / 255) for i in (1, 3, 5))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def test_every_design_comes_in_every_palette_with_readable_banner_text() -> None:
+    for design in DESIGNS:
+        for palette, hex_colour in PALETTES.items():
+            assert TEMPLATES[f"{design}-{palette}"].accent == hex_colour
+    # White name and contact on the band, and the accent as heading text on white.
+    for hex_colour in PALETTES.values():
+        assert (1.05) / (_luminance(hex_colour) + 0.05) >= 4.5
