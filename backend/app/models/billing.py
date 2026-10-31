@@ -9,12 +9,12 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
-    String,
+    Unicode,
     UniqueConstraint,
+    Uuid,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -51,21 +51,21 @@ class Subscription(TimestampMixin, Base):
             "uq_subscriptions_one_live",
             "owner_id",
             unique=True,
-            postgresql_where=text("status in ('authenticated','active','pending')"),
+            mssql_where=text("status in ('authenticated','active','pending')"),
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    provider: Mapped[str] = mapped_column(String(16), nullable=False, default="razorpay")
-    provider_subscription_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    interval: Mapped[str] = mapped_column(String(8), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="created")
+    provider: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="razorpay")
+    provider_subscription_id: Mapped[str] = mapped_column(Unicode(64), nullable=False)
+    interval: Mapped[str] = mapped_column(Unicode(8), nullable=False)
+    status: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="created")
     current_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_at_period_end: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false"), default=False
+        Boolean, nullable=False, server_default=text("0"), default=False
     )
     # Time of the newest provider event applied; older events (out of order) are not applied.
     last_event_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -78,13 +78,13 @@ class BillingEvent(Base):
     __tablename__ = "billing_events"
     __table_args__ = (UniqueConstraint("provider", "event_id", name="provider_event"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    provider: Mapped[str] = mapped_column(String(16), nullable=False, default="razorpay")
-    event_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    provider_subscription_id: Mapped[str | None] = mapped_column(String(64))
-    status: Mapped[str | None] = mapped_column(String(16))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    provider: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="razorpay")
+    event_id: Mapped[str] = mapped_column(Unicode(64), nullable=False)
+    event_type: Mapped[str] = mapped_column(Unicode(64), nullable=False)
+    provider_subscription_id: Mapped[str | None] = mapped_column(Unicode(64))
+    status: Mapped[str | None] = mapped_column(Unicode(16))
     applied: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     received_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )

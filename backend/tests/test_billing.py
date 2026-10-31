@@ -166,7 +166,7 @@ def test_production_refuses_test_keys() -> None:
     with pytest.raises(ValidationError, match="RAZORPAY_KEY_ID is a test-mode key"):
         Settings(
             app_env="production",
-            database_url="postgresql+psycopg://u:p@db/prod",
+            database_url="mssql+pyodbc://u:p@db/prod",
             session_cookie_secure=True,
             razorpay_key_id="rzp_test_abc",
         )

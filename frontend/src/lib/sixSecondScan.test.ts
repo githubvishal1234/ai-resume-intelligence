@@ -30,7 +30,7 @@ describe("scanResume", () => {
 
   it("handles an empty resume without throwing", () => {
     const empty: ResumeDoc = {
-      contact: { full_name: "", email: "", phone: "", location: "", links: [] },
+      contact: { full_name: "", headline: "", email: "", phone: "", location: "", links: [] },
       summary: "",
       experience: [],
       education: [],
@@ -38,6 +38,7 @@ describe("scanResume", () => {
       projects: [],
       certifications: [],
       other: [],
+      section_order: [],
     };
     const r = scanResume(empty);
     expect(r.score).toBeGreaterThanOrEqual(0);

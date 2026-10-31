@@ -10,7 +10,8 @@ os.environ["APP_ENV"] = "test"
 # and refuse to run unless the database name ends in "_test".
 os.environ["DATABASE_URL"] = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+psycopg://resume_app:dev_only_password@localhost:5432/resume_intel_test",
+    "mssql+pyodbc://sa:Dev_only_Passw0rd@localhost:1433/resume_intel_test"
+    "?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes",
 )
 if not os.environ["DATABASE_URL"].rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
     raise RuntimeError("Refusing to run tests: the test database name must end in '_test'.")
@@ -55,7 +56,18 @@ def _migrated_database() -> Iterator[None]:
 @pytest.fixture(autouse=True)
 def _clean_state() -> Iterator[None]:
     with get_engine().begin() as conn:
-        conn.execute(text("TRUNCATE audit_logs, sessions, users, billing_events CASCADE"))
+        # Tables without an owner column first; deleting the users then cascades to the rest
+        # in one statement (only owner links cascade on SQL Server).
+        for table in (
+            "tailoring_changes",
+            "resume_versions",
+            "application_events",
+            "practice_answers",
+            "users",
+            "audit_logs",
+            "billing_events",
+        ):
+            conn.execute(text(f"DELETE FROM {table}"))  # noqa: S608 - fixed table names
     reset_rate_limiters()
     yield
 

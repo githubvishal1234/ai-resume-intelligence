@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentAuth
@@ -12,16 +12,23 @@ from app.db.session import get_db
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import EvidenceRef
 from app.models import Job, Resume, TailoringSession
+from app.resumes.extraction import extract_text
+from app.tailoring.factcheck import known_skills
 from app.tailoring.proposer import EDITABLE_KINDS
 from app.tailoring.schemas import (
     AiStatusOut,
     BulletOut,
     ChangeOut,
+    ConfirmSkillIn,
     CreateTailoringIn,
     DecisionIn,
     FinalizeIn,
+    PlaceOut,
+    QuickTailorIn,
     RequirementRef,
+    ResumeTextOut,
     RewriteBulletIn,
+    TailorIn,
     TailoringSessionOut,
     TailoringSessionSummaryOut,
 )
@@ -66,7 +73,9 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
     job = service.db.get(Job, row.job_id)
     master = service.db.get(Resume, row.master_resume_id)
     assert job is not None and master is not None
-    requirements = {r.id: r for r in JobAnalysis.model_validate(job.analysis).requirements}
+    analysis = JobAnalysis.model_validate(job.analysis)
+    requirements = {r.id: r for r in analysis.requirements}
+    shown = known_skills(service.facts(row))
     configured, reason = service.ai()
     changes = [
         ChangeOut(
@@ -117,6 +126,8 @@ def _out(service: TailoringService, row: TailoringSession) -> TailoringSessionOu
         preview=service.preview(row),
         bullets=bullets,
         ai=AiStatusOut(configured=configured, reason=reason),
+        missing_skills=[s.name for s in analysis.skills if s.name not in shown],
+        places=[PlaceOut(id=k, label=v) for k, v in service.places(row).items()],
     )
 
 
@@ -130,6 +141,25 @@ def create_session(body: CreateTailoringIn, service: Service) -> TailoringSessio
     return _out(service, service.create(body.job_id))
 
 
+@router.post("/quick", response_model=TailoringSessionOut, status_code=status.HTTP_201_CREATED)
+def quick_tailor(body: QuickTailorIn, service: Service) -> TailoringSessionOut:
+    """Paste a resume and a job description; get a session with the changes proposed."""
+    return _out(service, service.quick(body.resume_text, body.job_text))
+
+
+@router.post("/resume-text", response_model=ResumeTextOut)
+async def resume_text(
+    _: CurrentAuth,
+    settings: Annotated[Settings, Depends(get_settings)],
+    file: Annotated[UploadFile, File(description="PDF, DOCX or TXT resume")],
+) -> ResumeTextOut:
+    """Reads a resume file's text for the paste box. Nothing is stored."""
+    data = await file.read(settings.max_upload_bytes + 1)
+    return ResumeTextOut(
+        text=extract_text(file.filename or "resume", data, settings.max_upload_bytes).text
+    )
+
+
 @router.get("/{session_id}", response_model=TailoringSessionOut)
 def get_session(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
     return _out(service, service.get(session_id))
@@ -139,7 +169,10 @@ def get_session(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
 def decide(
     session_id: uuid.UUID, change_id: uuid.UUID, body: DecisionIn, service: Service
 ) -> TailoringSessionOut:
-    return _out(service, service.decide(session_id, change_id, body.decision, body.edited_text))
+    return _out(
+        service,
+        service.decide(session_id, change_id, body.decision, body.edited_text, body.keep_skills),
+    )
 
 
 @router.post("/{session_id}/changes/{change_id}/rewrite", response_model=TailoringSessionOut)
@@ -152,6 +185,30 @@ def rewrite_bullet(
     session_id: uuid.UUID, body: RewriteBulletIn, service: Service
 ) -> TailoringSessionOut:
     return _out(service, service.rewrite_bullet(session_id, body.experience_id, body.bullet_index))
+
+
+@router.post("/{session_id}/focus", response_model=TailoringSessionOut)
+def focus(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
+    return _out(service, service.focus(session_id))
+
+
+@router.post("/{session_id}/skills", response_model=TailoringSessionOut)
+def confirm_skill(
+    session_id: uuid.UUID, body: ConfirmSkillIn, service: Service
+) -> TailoringSessionOut:
+    return _out(service, service.confirm_skill(session_id, body.skill, body.note, body.where))
+
+
+@router.post("/{session_id}/tailor", response_model=TailoringSessionOut)
+def tailor(session_id: uuid.UUID, body: TailorIn, service: Service) -> TailoringSessionOut:
+    """After the skill questions: add the user's skills, run maximum focus, accept clean."""
+    used = [(s.skill, s.where, s.note) for s in body.skills]
+    return _out(service, service.tailor(session_id, used))
+
+
+@router.post("/{session_id}/accept-clean", response_model=TailoringSessionOut)
+def accept_clean(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
+    return _out(service, service.accept_clean(session_id))
 
 
 @router.post("/{session_id}/finalize", response_model=TailoringSessionOut)

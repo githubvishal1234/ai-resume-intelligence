@@ -33,54 +33,55 @@ export type NavItem = {
   phaseNote: string;
 };
 
-export type NavGroup = { id: string; label: string; items: NavItem[] };
+/** `collapsible` groups start folded unless the current page is inside them. */
+export type NavGroup = { id: string; label: string; collapsible?: boolean; items: NavItem[] };
 
+/** Grouped by the order people use them: resume, then a job, then applying. */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    id: "overview",
-    label: "Overview",
+    id: "home",
+    label: "Home",
+    items: [{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/", phase: 1, phaseNote: "" }],
+  },
+  {
+    id: "resume",
+    label: "1 · Your resume",
     items: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/", phase: 1, phaseNote: "" },
       { id: "resumes", label: "My Resumes", shortLabel: "Resumes", icon: FileText, to: "/resumes", phase: 2, phaseNote: "Master Resume" },
+      { id: "analysis", label: "Resume Analysis", icon: ScanSearch, to: "/analysis", phase: 2, phaseNote: "Master Resume" },
+      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
     ],
   },
   {
-    id: "intelligence",
-    label: "Intelligence",
+    id: "job",
+    label: "2 · A job",
     items: [
-      { id: "analysis", label: "Resume Analysis", icon: ScanSearch, to: "/analysis", phase: 2, phaseNote: "Master Resume" },
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, to: "/jobs", phase: 3, phaseNote: "Job Intelligence" },
       { id: "job-match", label: "Job Match", icon: GitCompareArrows, to: "/match", phase: 4, phaseNote: "Matching" },
+      { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
+    ],
+  },
+  {
+    id: "apply",
+    label: "3 · Apply",
+    items: [
+      { id: "cover-letters", label: "Cover Letters", icon: FileSignature, to: "/cover-letters", phase: 22, phaseNote: "Builders" },
+      { id: "applications", label: "Applications", icon: BriefcaseBusiness, to: "/applications", phase: 7, phaseNote: "Applications" },
+      { id: "interview", label: "Interview Prep", icon: MessagesSquare, to: "/interview", phase: 8, phaseNote: "Interview" },
+    ],
+  },
+  {
+    id: "more",
+    label: "More tools",
+    collapsible: true,
+    items: [
       { id: "skill-gap", label: "Skill Gap Matrix", icon: Network, to: "/skill-gaps", phase: 4, phaseNote: "Matching" },
       { id: "market", label: "Market Map", icon: MapIcon, to: "/market", phase: 21, phaseNote: "Career intelligence" },
-    ],
-  },
-  {
-    id: "automation",
-    label: "AI Automation",
-    items: [
-      { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },
-      { id: "interview", label: "Interview Prep", icon: MessagesSquare, to: "/interview", phase: 8, phaseNote: "Interview" },
-      { id: "stories", label: "Story Bank", icon: BookOpen, to: "/stories", phase: 23, phaseNote: "Interview" },
-    ],
-  },
-  {
-    id: "builders",
-    label: "Builders",
-    items: [
-      { id: "builder", label: "Resume Builder", icon: PenLine, to: "/builder", phase: 6, phaseNote: "Resume Output" },
-      { id: "cv-builder", label: "CV Builder", icon: GraduationCap, to: "/cv-builder", phase: 22, phaseNote: "Builders" },
-      { id: "cover-letters", label: "Cover Letters", icon: FileSignature, to: "/cover-letters", phase: 22, phaseNote: "Builders" },
-      { id: "profile-builder", label: "Profile Builder", icon: IdCard, to: "/profile-builder", phase: 23, phaseNote: "Builders" },
-    ],
-  },
-  {
-    id: "pipeline",
-    label: "Pipeline",
-    items: [
-      { id: "applications", label: "Applications", icon: BriefcaseBusiness, to: "/applications", phase: 7, phaseNote: "Applications" },
       { id: "insights", label: "Callback Insights", icon: BarChart3, to: "/insights", phase: 21, phaseNote: "Career intelligence" },
       { id: "proofs", label: "Proof Board", icon: Hammer, to: "/proofs", phase: 21, phaseNote: "Career intelligence" },
+      { id: "stories", label: "Story Bank", icon: BookOpen, to: "/stories", phase: 23, phaseNote: "Interview" },
+      { id: "cv-builder", label: "CV Builder", icon: GraduationCap, to: "/cv-builder", phase: 22, phaseNote: "Builders" },
+      { id: "profile-builder", label: "Profile Builder", icon: IdCard, to: "/profile-builder", phase: 23, phaseNote: "Builders" },
     ],
   },
   {

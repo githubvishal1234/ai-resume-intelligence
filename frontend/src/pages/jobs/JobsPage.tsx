@@ -4,7 +4,9 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
-import { useJobList } from "@/hooks/useJobs";
+import { useDeleteControls } from "@/hooks/useDeleteControls";
+import { JOB_DELETE_NOTE, useDeleteJob, useJobList } from "@/hooks/useJobs";
+import type { JobSummary } from "@/services/jobService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
 
 const SOURCE: Record<string, string> = { paste: "Pasted", upload: "Uploaded", url: "From link" };
@@ -43,32 +45,43 @@ export function JobsPage() {
         <ul className="space-y-3">
           {list.data.map((job) => (
             <li key={job.id}>
-              <Card className="relative hover:border-primary">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      to={`/jobs/${job.id}`}
-                      className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary"
-                    >
-                      {job.title}
-                    </Link>
-                    <p className="mt-1 text-body-md text-on-surface-variant">
-                      {[job.company, job.location].filter(Boolean).join(" · ") || "Company not set"}
-                    </p>
-                    <p className="mt-1 text-body-sm text-on-surface-variant">
-                      {SOURCE[job.source] ?? job.source} · {formatDate(job.created_at)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Pill tone="brand">{job.required_count} required</Pill>
-                    <Pill>{job.skill_count} skills</Pill>
-                  </div>
-                </div>
-              </Card>
+              <JobCard job={job} />
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+/** One saved job: the whole card opens it; its delete button sits above that link. */
+function JobCard({ job }: { job: JobSummary }) {
+  const remove = useDeleteJob(job.id);
+  const del = useDeleteControls({ name: job.title, note: JOB_DELETE_NOTE, action: remove });
+  return (
+    <Card className="relative hover:border-primary">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            to={`/jobs/${job.id}`}
+            className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary"
+          >
+            {job.title}
+          </Link>
+          <p className="mt-1 text-body-md text-on-surface-variant">
+            {[job.company, job.location].filter(Boolean).join(" · ") || "Company not set"}
+          </p>
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            {SOURCE[job.source] ?? job.source} · {formatDate(job.created_at)}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill tone="brand">{job.required_count} required</Pill>
+          <Pill>{job.skill_count} skills</Pill>
+          {del.button}
+        </div>
+      </div>
+      {del.confirm}
+    </Card>
   );
 }

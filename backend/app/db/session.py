@@ -17,6 +17,8 @@ def get_engine() -> Engine:
         pool_size=settings.db_pool_size,
         pool_pre_ping=True,
         future=True,
+        # NVARCHAR(MAX)/VARBINARY(MAX), never the deprecated NTEXT/IMAGE, whatever the server.
+        deprecate_large_types=True,
     )
 
 

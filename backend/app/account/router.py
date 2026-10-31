@@ -3,9 +3,10 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.account.photo import MAX_PHOTO_BYTES, load_photo, normalise, photo_key
 from app.account.schemas import (
     AccountDelete,
     PasswordChange,
@@ -104,3 +105,27 @@ def pro_waitlist(service: Service) -> ProWaitlistOut:
 @router.post("/pro-waitlist", response_model=ProWaitlistOut)
 def join_pro_waitlist(service: Service) -> ProWaitlistOut:
     return ProWaitlistOut(joined=True, joined_at=service.join_pro_waitlist())
+
+
+# ---- profile photo (used only by photo templates) ----------------------------------------
+@router.put("/photo", status_code=status.HTTP_204_NO_CONTENT)
+async def put_photo(
+    service: Service,
+    file: Annotated[UploadFile, File(description="JPEG, PNG or WebP, at most 5 MB")],
+) -> None:
+    data = await file.read(MAX_PHOTO_BYTES + 1)
+    service.storage.put(photo_key(service.user.id), normalise(data))
+
+
+@router.get("/photo", response_class=Response)
+def get_photo(service: Service) -> Response:
+    photo = load_photo(service.storage, service.user.id)
+    if photo is None:  # a normal state, not an error: no 404 for browsers to log
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(photo, media_type="image/jpeg", headers={"cache-control": "private, no-cache"})
+
+
+@router.delete("/photo", status_code=status.HTTP_204_NO_CONTENT)
+def delete_photo(service: Service) -> None:
+    if load_photo(service.storage, service.user.id) is not None:
+        service.storage.delete(photo_key(service.user.id))

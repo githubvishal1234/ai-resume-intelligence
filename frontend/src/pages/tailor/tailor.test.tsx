@@ -53,6 +53,8 @@ const SESSION_BODY = {
   created_at: "2026-10-12T06:00:00Z",
   method_version: "tailor-rules-v1",
   ai: { configured: false, reason: "LLM_PROVIDER is not set." },
+  missing_skills: [] as string[],
+  places: [{ id: "e1", label: "Engineer at Acme" }],
   preview: PREVIEW,
   bullets: [] as { experience_id: string; role: string; index: number; text: string; change_id: string | null }[],
   changes: [
@@ -94,6 +96,102 @@ describe("Tailoring review", () => {
     expect(within(summary).getByRole("button", { name: /Rewrite with AI/ })).toHaveAttribute("aria-disabled", "true");
     // Nothing accepted: finishing is blocked with an explanation.
     expect(screen.getByRole("button", { name: /Create tailored resume/ })).toHaveAccessibleName(/Accept at least one change first/);
+  });
+
+  it("lets the user confirm a missing skill with where they used it", async () => {
+    const user = userEvent.setup();
+    const confirmed = {
+      ...SESSION_BODY,
+      missing_skills: ["Spring"],
+      changes: [
+        ...SESSION_BODY.changes,
+        {
+          ...SESSION_BODY.changes[0],
+          id: "c9",
+          kind: "confirm_skill",
+          source: "user",
+          title: "Add Java, which you confirmed",
+          proposed: { items: [{ id: "s9", text: "Java" }], note: "College library project" },
+          decision: "accepted",
+        },
+      ],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, missing_skills: ["Java", "Spring"] } },
+      { method: "POST", path: `/tailoring/${SID}/skills`, body: confirmed },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: /This job asks for 2 skills your resume doesn't show/ });
+    expect(within(card).getByRole("link", { name: "Proof Board" })).toHaveAttribute("href", "/proofs");
+    await user.click(within(card).getAllByRole("button", { name: "I've used this" })[0]!);
+    expect(within(card).getByLabelText("Where did you use Java?")).toHaveValue("e1");
+    await user.selectOptions(within(card).getByLabelText("Where did you use Java?"), "");
+    await user.type(within(card).getByLabelText("What did you do with Java?"), "College library project");
+    await user.click(within(card).getByRole("button", { name: "Add Java" }));
+    expect(await screen.findByRole("region", { name: /Add Java, which you confirmed/ })).toHaveTextContent("Where you used it: College library project");
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ skill: "Java", note: "College library project", where: "" });
+  });
+
+  it("lets the user remove job skills before adding them", async () => {
+    const user = userEvent.setup();
+    const skills = {
+      ...SUMMARY_CHANGE,
+      id: "c7",
+      kind: "add_job_skills",
+      editable: false,
+      title: "Add the skills this job asks for",
+      original: { items: [] },
+      proposed: { items: [{ id: "s1", text: "ROS" }, { id: "s2", text: "Unity" }, { id: "s3", text: "C++" }] },
+      requirements: [],
+    };
+    const trimmed = { ...SESSION_BODY, changes: [...SESSION_BODY.changes, { ...skills, edited: { items: [{ id: "s1", text: "ROS" }, { id: "s3", text: "C++" }] } }] };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: { ...SESSION_BODY, changes: [...SESSION_BODY.changes, skills] } },
+      { method: "POST", path: `/tailoring/${SID}/changes/c7/decision`, body: trimmed },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    const card = await screen.findByRole("region", { name: /Add the skills this job asks for/ });
+    expect(within(card).getByText("Adding 3 of 3 skills")).toBeInTheDocument();
+    await user.click(within(card).getByRole("button", { name: "Remove Unity" }));
+    expect(await within(card).findByText("Adding 2 of 3 skills")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Add Unity back" })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toEqual({ decision: "pending", keep_skills: ["ROS", "C++"] });
+    // A list of claims about the user is never counted in "accept all": only the 2 other changes are.
+    expect(screen.getByRole("button", { name: "Accept 2 with no flags" })).toBeInTheDocument();
+  });
+
+  it("runs maximum focus", async () => {
+    const user = userEvent.setup();
+    const focused = {
+      ...SESSION_BODY,
+      changes: [
+        ...SESSION_BODY.changes,
+        {
+          ...SUMMARY_CHANGE,
+          id: "c8",
+          kind: "headline",
+          title: "Add a headline aimed at this job",
+          original: { text: "" },
+          proposed: { text: "Backend Engineer | Python, SQL" },
+        },
+      ],
+    };
+    const { calls } = mockApi([
+      me,
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+      { method: "POST", path: `/tailoring/${SID}/focus`, body: focused },
+      { path: "/tailoring", body: [] },
+    ]);
+    renderApp(`/tailor/${SID}`);
+    await user.click(await screen.findByRole("button", { name: "Focus on this job" }));
+    const card = await screen.findByRole("region", { name: /Add a headline aimed at this job/ });
+    expect(card).toHaveTextContent("Backend Engineer | Python, SQL");
+    expect(screen.getByRole("button", { name: "Focus again" })).toBeInTheDocument();
+    expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/focus"))).toBe(true);
   });
 
   it("accepts a change", async () => {
@@ -253,13 +351,61 @@ describe("Bullet rewrites", () => {
     const change = await screen.findByRole("region", { name: /Reword a bullet at Acme/ });
     expect(within(change).getByText("Built Python ETL jobs for the reporting team.")).toBeInTheDocument();
     expect(within(change).getByText("AI rewrite")).toBeInTheDocument();
-    expect(within(card).getByText("Reworded as change 3.")).toBeInTheDocument();
+    expect(within(card).getByText("Reworded as change 2.")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Rewrite again" })).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({ experience_id: "e1", bullet_index: 0 });
   });
 });
 
 describe("Tailor index", () => {
+  it("removes a session from the list after a confirm", async () => {
+    const user = userEvent.setup();
+    const summary = { id: SID, job_id: JOB_ID, job_title: "Backend Engineer", job_company: "Acme", master_resume_id: RESUME_ID, base_version: 1, status: "finalized", result_resume_id: TAILORED_ID, accepted: 2, total: 3, created_at: "2026-10-12T06:00:00Z" };
+    const { calls } = mockApi([
+      me,
+      { path: "/tailoring", body: [summary] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+      { method: "POST", path: `/tailoring/${SID}/discard`, status: 204 },
+    ]);
+    renderApp("/tailor");
+    await user.click(await screen.findByRole("button", { name: "Remove Backend Engineer" }));
+    expect(screen.getByText(/stays in My Resumes/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove session" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/discard"))).toBe(true));
+  });
+
+  it("asks about the job's missing skills, then tailors with only the ones marked yes", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/tailoring", body: [] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+      { method: "POST", path: "/tailoring/quick", status: 201, body: { ...SESSION_BODY, missing_skills: ["Django", "Docker"] } },
+      { method: "POST", path: `/tailoring/${SID}/tailor`, body: SESSION_BODY },
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+    ]);
+    renderApp("/tailor");
+    await user.click(await screen.findByLabelText("Job description"));
+    await user.paste("Backend Engineer at Acme. We need Python, Django and Docker experience for our APIs.");
+    await user.click(screen.getByLabelText("Resume"));
+    await user.paste("Priya Raman. Engineer at Acme since 2022. Built Python APIs and data pipelines. ".repeat(4));
+    await user.click(screen.getByRole("button", { name: /Next: check the job's skills/ }));
+
+    expect(await screen.findByRole("heading", { name: "Step 2: Have you used these?" })).toBeInTheDocument();
+    const django = screen.getByRole("group", { name: "Have you used Django?" });
+    await user.click(within(django).getByRole("button", { name: "Yes" }));
+    expect(screen.getByLabelText("Where did you use Django?")).toHaveValue("e1");
+    await user.type(screen.getByLabelText("What did you do with Django?"), "built admin tools");
+    await user.click(screen.getByRole("button", { name: /Tailor with maximum focus/ }));
+
+    expect(await screen.findByRole("heading", { name: "Tailor for Backend Engineer" })).toBeInTheDocument();
+    const sent = calls.find((c) => c.method === "POST" && c.path.endsWith("/tailor"))?.body;
+    // Docker was left at "No", so only Django is sent.
+    expect(sent).toEqual({ skills: [{ skill: "Django", where: "e1", note: "built admin tools" }] });
+  });
+
   it("starts a session for the chosen job", async () => {
     const user = userEvent.setup();
     const { calls } = mockApi([

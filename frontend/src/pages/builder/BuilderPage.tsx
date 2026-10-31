@@ -9,6 +9,7 @@ import { buttonClasses, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ScoreRing } from "@/components/ui/Score";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { useResume, useResumeList } from "@/hooks/useResumes";
 import { outputService, type AtsReport } from "@/services/outputService";
 import { PageHeader } from "@/pages/resumes/common";
@@ -157,11 +158,12 @@ function CvSections({ resumeId }: { resumeId: string }) {
 
 function LivePreview({ resumeId, template }: { resumeId: string; template: string }) {
   const resume = useResume(resumeId);
+  const photo = useProfilePhoto();
   if (!resume.data) return null;
   return (
     <div className="hidden space-y-2 lg:block">
       <p className="text-label-md text-on-surface-variant">Preview</p>
-      <ResumePaper doc={resume.data.content} template={template} />
+      <ResumePaper doc={resume.data.content} template={template} photoUrl={photo.url} />
     </div>
   );
 }

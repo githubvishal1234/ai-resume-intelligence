@@ -5,17 +5,18 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    String,
-    Text,
+    Unicode,
+    UnicodeText,
     UniqueConstraint,
+    Uuid,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -27,19 +28,15 @@ class InterviewPrep(TimestampMixin, Base):
     __tablename__ = "interview_preps"
     __table_args__ = (Index("ix_interview_preps_owner_id_created_at", "owner_id", "created_at"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False
-    )
-    resume_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resumes.id", ondelete="SET NULL")
-    )
+    job_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("jobs.id"), nullable=False)
+    resume_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resumes.id"))
     resume_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    method_version: Mapped[str] = mapped_column(String(32), nullable=False)
-    questions: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    method_version: Mapped[str] = mapped_column(Unicode(32), nullable=False)
+    questions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
 
     sessions: Mapped[list[PracticeSession]] = relationship(
         back_populates="prep",
@@ -56,17 +53,17 @@ class PracticeSession(Base):
         Index("ix_practice_sessions_prep_id", "prep_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     prep_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("interview_preps.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("interview_preps.id"), nullable=False
     )
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="in_progress")
-    question_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="in_progress")
+    question_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -87,18 +84,21 @@ class PracticeAnswer(Base):
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     session_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("practice_sessions.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("practice_sessions.id"), nullable=False
     )
-    question_id: Mapped[str] = mapped_column(String(40), nullable=False)
-    answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    question_id: Mapped[str] = mapped_column(Unicode(40), nullable=False)
+    answer: Mapped[str] = mapped_column(UnicodeText, nullable=False, default="")
     self_rating: Mapped[int | None] = mapped_column(Integer)
-    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    notes: Mapped[str] = mapped_column(UnicodeText, nullable=False, default="")
     # Set only by the optional LLM evaluation; `source` inside records provider and model.
-    feedback: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    feedback: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.sysdatetimeoffset(),
+        onupdate=func.sysdatetimeoffset(),
+        nullable=False,
     )
 
     session: Mapped[PracticeSession] = relationship(back_populates="answers")

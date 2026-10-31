@@ -92,7 +92,7 @@ def test_console_sender_refused_in_production() -> None:
     with pytest.raises(ValueError, match="development only"):
         Settings(
             app_env="production",
-            database_url="postgresql+psycopg://u:strong@db/x",
+            database_url="mssql+pyodbc://u:strong@db/x",
             session_cookie_secure=True,
             email_provider="console",
         )
@@ -189,7 +189,7 @@ def test_send_failure_gives_the_same_answer(mail_app, smtp: FakeSmtp) -> None:  
         assert conn.scalar(text("select count(*) from password_reset_tokens")) == 0
         reason = conn.scalar(
             text(
-                "select details->>'reason' from audit_logs"
+                "select JSON_VALUE(details, '$.reason') from audit_logs"
                 " where action = 'auth.password_reset_requested'"
             )
         )

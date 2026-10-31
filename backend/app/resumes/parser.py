@@ -251,6 +251,19 @@ def parse_contact(lines: list[str]) -> tuple[Contact, list[str]]:
     return contact, leftovers
 
 
+def _is_contact_line(line: str) -> bool:
+    """A line of only contact details ("Hyderabad, Telangana | 96523 59002 | me@x.com").
+
+    Two-column PDFs often put it after the last section; it belongs in Contact wherever it is.
+    """
+    phone = PHONE.search(EMAIL.sub("", line))
+    has_phone = bool(phone and len(re.sub(r"\D", "", phone.group(1))) >= 10)
+    if len(line) > 160 or not (EMAIL.search(line) or has_phone):
+        return False
+    rest = _pieces(URL.sub("", EMAIL.sub("", PHONE.sub("", line))))
+    return all(LOCATION.match(p) or len(p) <= 3 for p in rest)
+
+
 def _looks_like_name(line: str) -> bool:
     words = line.strip().split()
     if not 1 < len(words) <= 5 or any(ch.isdigit() for ch in line):
@@ -463,7 +476,13 @@ def parse_projects(lines: list[str]) -> tuple[list[Project], SectionReport]:
         parts = re.split(r"\s+[|–—-]\s+|\s*\|\s*", text, maxsplit=1)
         current = Project(name=parts[0][:200], url=url.group(0)[:500] if url else "")
         if len(parts) > 1:
-            current.technologies = [t for t in _SKILL_SPLIT.split(parts[1]) if t][:40]
+            # "Name | Python, FastAPI" lists technologies; "Name – AI Voice Receptionist" is a
+            # tagline, which describes the project.
+            listed = [t for t in _SKILL_SPLIT.split(parts[1]) if t]
+            if len(listed) > 1:
+                current.technologies = listed[:40]
+            else:
+                current.description = parts[1][:5000]
         items.append(current)
     report = SectionReport("projects", True, "high" if items else "low")
     if not items:
@@ -512,7 +531,13 @@ def split_sections(text: str) -> tuple[list[str], list[tuple[str, SectionKey, li
 
 def parse_resume(text: str) -> ParseResult:
     header, sections = split_sections(text)
-    contact, leftovers = parse_contact([ln for ln in header if ln])
+    # Contact lines that landed inside a section move to the header block.
+    moved = [ln for _, _, body in sections for ln in body if ln and _is_contact_line(ln)]
+    sections = [(h, k, [ln for ln in body if ln not in moved]) for h, k, body in sections]
+    contact, leftovers = parse_contact([ln for ln in header if ln] + moved)
+    # A short line under the name ("GenAI Engineer | AI Engineer") is a headline, not summary.
+    if leftovers and len(leftovers[0]) <= 80 and not leftovers[0].rstrip().endswith("."):
+        contact.headline = _strip_bullet(leftovers.pop(0))[:200]
     content = ResumeContent(contact=contact)
     reports: dict[str, SectionReport] = {}
     warnings: list[str] = []

@@ -110,6 +110,25 @@ describe("My Resumes", () => {
     expect(await screen.findByRole("heading", { name: "Master resume" })).toBeInTheDocument();
     expect(screen.getByText(/Version 1/)).toBeInTheDocument();
   });
+
+  it("deletes one tailored version after a confirm, leaving the rest", async () => {
+    const user = userEvent.setup();
+    const { content: _content, ...summary } = DETAIL;
+    const tailored = (id: string, title: string) => ({ ...summary, id, title, kind: "tailored", master_resume_id: RESUME_ID });
+    const keep = tailored("33333333-3333-4333-8333-333333333333", "Backend role");
+    const drop = tailored("44444444-4444-4444-8444-444444444444", ".NET role");
+    const { calls } = mockApi([
+      me,
+      { path: "/resumes", body: [summary, keep, drop] },
+      { method: "DELETE", path: `/resumes/${drop.id}`, status: 204, body: null },
+    ]);
+    renderApp("/resumes");
+    await user.click(await screen.findByRole("button", { name: "Delete .NET role" }));
+    expect(screen.getByText(/Your master resume isn't affected/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
+    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.path)).toEqual([`/resumes/${drop.id}`]);
+  });
 });
 
 describe("upload and review", () => {

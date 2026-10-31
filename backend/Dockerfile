@@ -2,6 +2,9 @@ FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 
+# Microsoft ODBC Driver 18, which pyodbc uses to reach SQL Server.
+RUN apt-get update  && apt-get install -y --no-install-recommends curl gnupg ca-certificates  && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc     | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg  && . /etc/os-release  && curl -fsSL "https://packages.microsoft.com/config/debian/${VERSION_ID}/prod.list"     > /etc/apt/sources.list.d/mssql-release.list  && apt-get update  && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 unixodbc  && apt-get purge -y curl gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
 # Pinned runtime dependencies first (cached layer), then the app itself without re-resolving.
 COPY requirements.lock ./
 RUN pip install -r requirements.lock

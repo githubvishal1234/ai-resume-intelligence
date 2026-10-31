@@ -17,7 +17,7 @@ from pypdf import PdfReader
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import parse_month
 from app.output.pdf import unsupported_characters
-from app.output.templates import HEADINGS, TEMPLATES
+from app.output.templates import HEADINGS, TEMPLATES, arrange
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 
@@ -75,8 +75,13 @@ def _date_style(value: str) -> str | None:
 
 
 def ats_check(
-    content: ResumeContent, pdf: bytes, template_id: str, job: JobAnalysis | None = None
+    content: ResumeContent,
+    pdf: bytes,
+    template_id: str,
+    job: JobAnalysis | None = None,
+    photo: bool = False,
 ) -> AtsReport:
+    """`photo`: the PDF includes the user's photo (a photo template, with one uploaded)."""
     reader = PdfReader(io.BytesIO(pdf))
     extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
     flat = _norm(extracted)
@@ -110,7 +115,8 @@ def ats_check(
         "projects": bool(c.projects),
         "certifications": bool(c.certifications),
     }
-    expected = [HEADINGS[k] for k in TEMPLATES[template_id].order if has_section[k]]
+    order = arrange(TEMPLATES[template_id].order, list(c.section_order))
+    expected = [HEADINGS[k] for k in order if has_section[k]]
     lines = [ln.strip().lower() for ln in extracted.splitlines()]
     positions = [lines.index(h.lower()) if h.lower() in lines else -1 for h in expected]
     in_order = all(p >= 0 for p in positions) and positions == sorted(positions)
@@ -224,6 +230,26 @@ def ats_check(
                 else f"{len(required) - len(missing_skills)} of {len(required)}; not in the text: "
                 f"{', '.join(missing_skills)}. Add them only if they are true.",
             )
+
+    # 8. Layout and photo: both read fine here, but are worth knowing about.
+    layout = TEMPLATES[template_id].layout
+    if layout != "single":
+        add(
+            "layout.columns",
+            "Single-column layout",
+            "warn",
+            f"This {layout} layout reads in the right order above, but some older screening "
+            "systems handle columns and tables less well. A single-column template is the "
+            "safest choice for large employers' online forms.",
+        )
+    if photo:
+        add(
+            "photo.included",
+            "No photo",
+            "warn",
+            "Screening software ignores photos, and many employers outside India, Europe and "
+            "the Gulf prefer resumes without one. Keep it only where photos are expected.",
+        )
 
     scored = [ch for ch in checks if ch.status != "skip"]
     credit = {"pass": 1.0, "warn": 0.5, "fail": 0.0, "skip": 0.0}

@@ -40,11 +40,20 @@ _COMMON_WORDS = (
     "Owned Launched Implemented Hands-on Experience Experienced Skilled Proven Strong"
 )
 _COMMON = frozenset(_COMMON_WORDS.split())
+# Unicode hyphens and dashes that models write ("AI‑powered"), read as a plain hyphen.
+_TITLE = re.compile(
+    r"\b([\w+#.]+)\s+(?:developer|engineer|architect|programmer|consultant)s?\b", re.IGNORECASE
+)
+_ADJ_SUFFIX = re.compile(r"(?<=\w)-[a-z]+$")
+_DASHES = re.compile("[‐-―−]")
+# A sentence's opening verb ("Engineered", "Architected", "Optimizing"): capitalized only
+# because it starts the sentence, so it is not a name.
+_OPENING_VERB = re.compile(r"[A-Z][a-z]+(?:ed|ing)")
 
 
 def master_text(master: ResumeContent) -> str:
     c = master
-    parts: list[str] = [c.contact.full_name, c.contact.location, c.summary]
+    parts: list[str] = [c.contact.full_name, c.contact.headline, c.contact.location, c.summary]
     for e in c.experience:
         parts += [e.title, e.company, e.location, e.start_date, e.end_date, *e.bullets]
     for d in c.education:
@@ -70,7 +79,8 @@ def _norm_number(value: str) -> str:
 
 
 def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
-    corpus = master_text(master)
+    text = _DASHES.sub("-", text)
+    corpus = _DASHES.sub("-", master_text(master))
     lowered = corpus.lower()
     known_numbers = {_norm_number(n) for n in _NUMBER.findall(corpus)}
     known_numbers |= {re.sub(r"%$", "", n) for n in known_numbers}
@@ -100,11 +110,16 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
     for sentence in re.split(r"(?<=[.!?])\s+|\n", text):
         for i, match in enumerate(_CAPITALIZED.finditer(sentence)):
             name = match.group(1).strip(".")
-            words = [w for w in name.split() if w not in _COMMON]
+            tokens = name.split()
+            if i == 0 and match.start() == len(sentence) - len(sentence.lstrip()):
+                if len(tokens) == 1:
+                    continue  # a sentence's first word
+                if _OPENING_VERB.fullmatch(tokens[0]):
+                    tokens = tokens[1:]  # "Engineered AI-powered HRMS": check what follows
+            # "SQL-driven", "AI-enabled": only the head can be a name.
+            words = [_ADJ_SUFFIX.sub("", w) for w in tokens if w not in _COMMON]
             if not words:
                 continue
-            if i == 0 and match.start() == len(sentence) - len(sentence.lstrip()):
-                words = words if len(name.split()) > 1 else []  # a sentence's first word
             candidate = " ".join(words)
             if (
                 not candidate
@@ -114,4 +129,11 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
             ):
                 continue
             add("name", candidate, f"“{candidate}” does not appear in your master resume.")
+
+    # "Java developer": a job title built from a skill. Knowing Java (or having confirmed it)
+    # doesn't make someone a Java developer, so the phrase itself must be in the master.
+    for m in _TITLE.finditer(text):
+        phrase = m.group(0)
+        if phrase.lower() not in lowered and find_skills(m.group(1)):
+            add("name", phrase, f"“{phrase}” reads as a job title your master resume doesn't show.")
     return flags

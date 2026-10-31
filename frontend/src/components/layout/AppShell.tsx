@@ -1,6 +1,6 @@
 import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
-import { Outlet, useNavigation } from "react-router-dom";
+import { Outlet, useLocation, useNavigation } from "react-router-dom";
 import { useLogout, useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/Button";
 import { BrandMark, BrandIcon } from "./BrandMark";
@@ -28,6 +28,7 @@ export function AppShell() {
   const logout = useLogout();
   const user = session.data?.user;
   const navigating = useNavigation().state === "loading";
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-dvh bg-surface">
@@ -100,7 +101,10 @@ export function AppShell() {
         </header>
 
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 focus:outline-none sm:px-6 md:pb-10 lg:px-8">
-          <Outlet />
+          {/* Each page fades in as it arrives (instant under reduced motion). */}
+          <div key={pathname} className="animate-page">
+            <Outlet />
+          </div>
         </main>
       </div>
 

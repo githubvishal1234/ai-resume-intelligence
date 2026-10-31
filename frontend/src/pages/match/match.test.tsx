@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { mockApi, renderApp, SESSION } from "@/test/utils";
@@ -78,6 +78,21 @@ const MATCH = {
 };
 
 describe("Job Match", () => {
+  it("deletes a saved job from the match list after a confirm", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/jobs", body: [JOB_SUMMARY] },
+      { path: "/matches", body: [] },
+      { method: "DELETE", path: `/jobs/${JOB_ID}`, status: 204 },
+    ]);
+    renderApp("/match");
+    await user.click(await screen.findByRole("button", { name: "Delete Backend Engineer" }));
+    expect(screen.getByText(/removes the saved job everywhere/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE" && c.path === `/jobs/${JOB_ID}`)).toBe(true));
+  });
+
   it("lists jobs with their latest score", async () => {
     mockApi([me, { path: "/jobs", body: [JOB_SUMMARY] }, { path: "/matches", body: [{ ...MATCH, result: undefined, stale: true }] }]);
     renderApp("/match");

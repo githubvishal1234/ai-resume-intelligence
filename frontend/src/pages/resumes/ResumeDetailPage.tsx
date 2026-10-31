@@ -1,6 +1,6 @@
 import { Download, History, PenLine, ScanSearch, Trash2, UploadCloud } from "lucide-react";
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { SixSecondScan } from "@/components/resume/SixSecondScan";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -17,6 +17,12 @@ export function ResumeDetailPage() {
   const remove = useDeleteResume(resumeId);
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  // Arriving straight from "Create tailored resume": say so once, then forget it on reload.
+  const location = useLocation();
+  const [created] = useState(Boolean((location.state as { created?: boolean } | null)?.created));
+  useEffect(() => {
+    if (created) navigate(location.pathname, { replace: true, state: null });
+  }, [created, location.pathname, navigate]);
 
   if (resume.isPending) return <PageLoading label="Loading resume" />;
   if (resume.isError) return <ErrorState error={resume.error} onRetry={() => void resume.refetch()} />;
@@ -28,7 +34,8 @@ export function ResumeDetailPage() {
         title={r.title}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
-            <Pill tone="brand">{r.kind === "master" ? "Master" : "Tailored"}</Pill>
+            {/* An archived master is a resume pasted for quick tailoring, not the user's master. */}
+            <Pill tone="brand">{r.kind === "tailored" ? "Tailored" : r.status === "archived" ? "Pasted" : "Master"}</Pill>
             Version {r.current_version} · updated {formatDate(r.updated_at)}
           </span>
         }
@@ -39,12 +46,26 @@ export function ResumeDetailPage() {
             <ButtonLink to={`/resumes/${r.id}/analysis`}><ScanSearch className="size-4" aria-hidden /> Analysis</ButtonLink>
             <ButtonLink to={`/resumes/${r.id}/versions`}><History className="size-4" aria-hidden /> Versions</ButtonLink>
             <ButtonLink to={`/builder?resume=${r.id}`}><Download className="size-4" aria-hidden /> PDF &amp; ATS check</ButtonLink>
-            {r.kind === "master" ? (
+            {r.kind === "master" && r.status === "active" ? (
               <ButtonLink to="/resumes/upload"><UploadCloud className="size-4" aria-hidden /> Upload new version</ButtonLink>
             ) : null}
           </>
         }
       />
+      {created ? (
+        <Notice
+          tone="success"
+          title="Your tailored resume is ready"
+          className="mx-auto mb-4 max-w-3xl"
+          action={
+            <ButtonLink to={`/builder?resume=${r.id}`} variant="primary" size="sm">
+              <Download className="size-4" aria-hidden /> Download PDF
+            </ButtonLink>
+          }
+        >
+          Check it below, then download it. Your master resume is unchanged.
+        </Notice>
+      ) : null}
       <Card className="mx-auto max-w-3xl">
         <ResumeView doc={r.content} />
       </Card>

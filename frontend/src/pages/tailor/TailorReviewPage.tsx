@@ -1,18 +1,23 @@
 import { ApiErrorText } from "@/components/ui/ApiErrorText";
-import { Check, PenLine, Sparkles, Trash2, X } from "lucide-react";
+import { Check, CheckCheck, PenLine, Plus, Sparkles, Target, Trash2, X } from "lucide-react";
 import { useId, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Input, Textarea } from "@/components/ui/Field";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
+import { AiProgress } from "@/components/ui/AiProgress";
 import { ErrorState, PageLoading } from "@/components/ui/States";
+import { useResume } from "@/hooks/useResumes";
 import {
+  useAcceptClean,
+  useConfirmSkill,
   useDecide,
   useDiscardTailoring,
   useFinalize,
+  useFocus,
   useRewrite,
   useRewriteBullet,
   useTailoringSession,
@@ -22,6 +27,17 @@ import { TIER_LABEL, type Tier } from "@/services/jobService";
 import { items, text, type Bullet, type Session, type TailoringChange } from "@/services/tailoringService";
 import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
+
+// The changes that reshape the copy come first, so maximum focus is visible at the top.
+const KIND_ORDER = ["add_job_skills", "headline", "summary", "reorder_sections", "add_bullet", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
+// What "Focus" really does, in order (see AiProgress for how the timing is shown).
+const FOCUS_STEPS = [
+  "Keeping only what the job needs",
+  "Rewriting the headline, summary and bullets",
+  "Checking every fact against the resume",
+];
+const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
+const ordered = (changes: TailoringChange[]) => [...changes].sort((a, b) => rank(a.kind) - rank(b.kind) || a.position - b.position);
 
 const DECISION_PILL = {
   pending: <Pill>Not reviewed</Pill>,
@@ -40,11 +56,14 @@ export function TailorReviewPage() {
 function Review({ session: s }: { session: Session }) {
   const draft = s.status === "draft";
   const accepted = s.changes.filter((c) => c.decision === "accepted").length;
+  // An archived master is a resume pasted for this session, not the user's own master.
+  const base = useResume(s.master_resume_id).data;
+  const from = base?.status === "archived" ? "the pasted resume" : `master version ${s.base_version}`;
   return (
     <div>
       <PageHeader
         title={`Tailor for ${s.job_title}`}
-        description={`${accepted} of ${s.changes.length} changes accepted · based on master version ${s.base_version}`}
+        description={`${accepted} of ${s.changes.length} changes accepted · based on ${from}`}
         back={{ to: "/tailor", label: "Tailor Resume" }}
       />
       {s.master_current_version !== s.base_version && draft ? (
@@ -61,8 +80,10 @@ function Review({ session: s }: { session: Session }) {
       ) : null}
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <div className="space-y-4">
+          {draft && s.missing_skills.length ? <MissingSkills session={s} /> : null}
+          {draft ? <StrongFocus session={s} /> : null}
           <ol className="space-y-4" aria-label="Proposed changes">
-            {s.changes.map((c, i) => (
+            {ordered(s.changes).map((c, i) => (
               <li key={c.id} id={`change-${c.id}`}>
                 <ChangeCard session={s} change={c} index={i + 1} />
               </li>
@@ -108,6 +129,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
         </h2>
         <div className="flex flex-wrap gap-2">
           {c.source === "llm" ? <Pill tone="brand">AI rewrite</Pill> : null}
+          {c.source === "user" ? <Pill tone="info">You confirmed</Pill> : null}
           {DECISION_PILL[c.decision]}
         </div>
       </div>
@@ -127,7 +149,7 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
       ) : null}
 
       <div className="mt-4">
-        <Diff change={c} />
+        {c.kind === "add_job_skills" ? <JobSkills session={session} change={c} /> : <Diff change={c} />}
       </div>
       {c.evidence.length ? (
         <details className="mt-3">
@@ -233,12 +255,106 @@ function ChangeCard({ session, change: c, index }: { session: Session; change: T
   );
 }
 
+/** The job's skills the resume doesn't show; the user removes any they haven't used. */
+function JobSkills({ session, change: c }: { session: Session; change: TailoringChange }) {
+  const decide = useDecide(session.id);
+  const draft = session.status === "draft";
+  const all = items(c.proposed).map((i) => i.text);
+  const kept = c.edited ? items(c.edited).map((i) => i.text) : all;
+  const removed = all.filter((n) => !kept.includes(n));
+  const setKept = (next: string[]) =>
+    decide.mutate({ changeId: c.id, decision: c.decision === "accepted" && next.length ? "accepted" : "pending", keepSkills: next });
+  return (
+    <div>
+      <Notice tone="warning" title="Keep only skills you've really used" className="mb-3">
+        Everything you accept here goes on this tailored resume, and interviewers will ask about it. Remove the rest.
+      </Notice>
+      <p className="mb-2 text-label-md text-on-surface-variant">Adding {kept.length} of {all.length} skills</p>
+      <ul className="flex flex-wrap gap-1.5" aria-label="Skills to add">
+        {kept.map((name) => (
+          <li key={name}>
+            <span className="inline-flex items-center gap-1 rounded-full border border-hairline bg-surface-container-low py-0.5 pl-2.5 pr-1 text-body-sm text-on-surface">
+              {name}
+              {draft ? (
+                <button
+                  type="button"
+                  className="rounded-full p-0.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  aria-label={`Remove ${name}`}
+                  disabled={decide.isPending}
+                  onClick={() => setKept(kept.filter((k) => k !== name))}
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {draft && removed.length ? (
+        <div className="mt-3">
+          <p className="mb-1 text-label-sm text-on-surface-variant">Removed (click to add back)</p>
+          <ul className="flex flex-wrap gap-1.5" aria-label="Removed skills">
+            {removed.map((name) => (
+              <li key={name}>
+                <button
+                  type="button"
+                  className="rounded-full border border-dashed border-hairline px-2.5 py-0.5 text-body-sm text-on-surface-variant line-through hover:text-on-surface"
+                  aria-label={`Add ${name} back`}
+                  disabled={decide.isPending}
+                  onClick={() => setKept(all.filter((n) => kept.includes(n) || n === name))}
+                >
+                  {name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {decide.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mt-3">
+          <ApiErrorText error={decide.error} />
+        </Notice>
+      ) : null}
+    </div>
+  );
+}
+
 function Diff({ change: c }: { change: TailoringChange }) {
-  if (c.kind === "summary" || c.kind === "rewrite_bullet") {
+  if (c.kind === "summary" || c.kind === "rewrite_bullet" || c.kind === "headline" || c.kind === "add_bullet") {
     return (
       <div className="grid gap-3 md:grid-cols-2">
-        <Block label="Now">{text(c.original)}</Block>
+        <Block label="Now">{text(c.original) || <span className="text-on-surface-variant">None</span>}</Block>
         <Block label={c.edited ? "Your edit" : "Proposed"} highlight>{text(c.edited) || text(c.proposed)}</Block>
+      </div>
+    );
+  }
+  if (c.kind === "trim_bullets" || c.kind === "trim_projects" || c.kind === "trim_skills") {
+    const kept = new Set(items(c.proposed).map((i) => i.text));
+    const left = items(c.original).filter((i) => !kept.has(i.text));
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        <Block label="Kept in this copy"><OrderedList values={[...kept]} /></Block>
+        <Block label="Left out of this copy" highlight>
+          <ul className="list-disc space-y-1 pl-5">{left.map((i) => <li key={i.text} className="line-through decoration-on-surface-variant/60">{i.text}</li>)}</ul>
+        </Block>
+      </div>
+    );
+  }
+  if (c.kind === "reorder_sections") {
+    return (
+      <Block label="Section order in this copy" highlight>
+        <OrderedList values={items(c.proposed).map((i) => i.text)} />
+      </Block>
+    );
+  }
+  if (c.kind === "confirm_skill") {
+    const note = typeof c.proposed.note === "string" ? c.proposed.note : "";
+    return (
+      <div>
+        <ul className="flex flex-wrap gap-1.5">
+          {items(c.proposed).map((i) => <li key={i.text}><Pill tone="matched">+ {i.text}</Pill></li>)}
+        </ul>
+        {note ? <p className="mt-2 text-body-sm text-on-surface-variant">Where you used it: {note}</p> : null}
       </div>
     );
   }
@@ -275,7 +391,7 @@ function BulletRewrites({ session: s }: { session: Session }) {
     if (last && last.bullets[0]?.experience_id === b.experience_id) last.bullets.push(b);
     else roles.push({ role: b.role, bullets: [b] });
   }
-  const position = new Map(s.changes.map((c, i) => [c.id, i + 1]));
+  const position = new Map(ordered(s.changes).map((c, i) => [c.id, i + 1]));
   return (
     <Card aria-labelledby={`${id}-title`}>
       <CardHeader
@@ -349,6 +465,132 @@ function BulletRewrites({ session: s }: { session: Session }) {
   );
 }
 
+function MissingSkills({ session: s }: { session: Session }) {
+  const confirm = useConfirmSkill(s.id);
+  const [open, setOpen] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [where, setWhere] = useState("");
+  const id = useId();
+  return (
+    <Card aria-labelledby={`${id}-title`}>
+      <CardHeader
+        id={`${id}-title`}
+        title={`This job asks for ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} your resume doesn't show`}
+        description="Tell us about the ones you've used: where, and what you did. Each becomes a bullet under that role in this tailored copy, and Maximum focus polishes the wording. Your master resume stays as it is."
+      />
+      {confirm.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-4">
+          <ApiErrorText error={confirm.error} />
+        </Notice>
+      ) : null}
+      <ul className="space-y-2">
+        {s.missing_skills.map((skill) => (
+          <li key={skill} className="rounded-control border border-hairline p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-body-md font-semibold text-on-surface">{skill}</span>
+              {open !== skill ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Plus className="size-4" aria-hidden />}
+                  onClick={() => {
+                    setOpen(skill);
+                    setNote("");
+                    setWhere(s.places[0]?.id ?? "");
+                  }}
+                >
+                  I've used this
+                </Button>
+              ) : null}
+            </div>
+            {open === skill ? (
+              <form
+                className="mt-3 space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  confirm.mutate({ skill, note, where }, { onSuccess: () => setOpen(null) });
+                }}
+              >
+                <Field label={`Where did you use ${skill}?`}>
+                  {({ id: fieldId, describedBy }) => (
+                    <Select id={fieldId} aria-describedby={describedBy} value={where} onChange={(e) => setWhere(e.target.value)}>
+                      {s.places.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      <option value="">Somewhere else (course, personal practice)</option>
+                    </Select>
+                  )}
+                </Field>
+                <Field
+                  label={`What did you do with ${skill}?`}
+                  hint={where ? "Your own words, with any real numbers, like “built a Spring Boot service for leave requests used by 200 staff”." : "Optional. Without a role or project it's added to your skills only."}
+                >
+                  {({ id: fieldId, describedBy }) => (
+                    <Textarea id={fieldId} aria-describedby={describedBy} rows={2} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+                  )}
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" size="sm" loading={confirm.isPending} icon={<Check className="size-4" aria-hidden />}>Add {skill}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setOpen(null)}>Cancel</Button>
+                </div>
+              </form>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-body-sm text-on-surface-variant">
+        Only add skills you really have; interviewers will ask about them. Don&apos;t have one yet? The{" "}
+        <Link to="/proofs" className="font-semibold text-primary underline">Proof Board</Link> helps you build evidence for it.
+      </p>
+    </Card>
+  );
+}
+
+function StrongFocus({ session: s }: { session: Session }) {
+  const focus = useFocus(s.id);
+  const id = useId();
+  const done = s.changes.some((c) => c.kind === "headline");
+  // Focus ran (it adds the headline) but nothing came back from the AI: that step failed.
+  const aiMissed = s.ai.configured && done && !focus.isPending && !s.changes.some((c) => c.source === "llm");
+  return (
+    <Card aria-labelledby={`${id}-title`}>
+      <CardHeader
+        id={`${id}-title`}
+        title="Maximum focus"
+        description="Keep only what serves this job: a headline, a rewritten summary and bullets, and only the bullets, projects and skills the job relates to (every role stays). Nothing new is invented, and every change is yours to review."
+      />
+      {!s.ai.configured ? (
+        <Notice tone="info" title="AI rewriting is not set up" className="mb-4">
+          You'll get the headline, order and removals; the summary and bullets keep their wording.
+        </Notice>
+      ) : null}
+      {aiMissed ? (
+        <Notice tone="info" title="The AI rewrite didn't run this time" className="mb-4">
+          The AI was probably busy (free plans allow only a few requests a minute), so only the
+          headline, order and removals changed. Wait a minute, then click Focus again.
+        </Notice>
+      ) : null}
+      {focus.isError ? (
+        <Notice tone="critical" title="That didn't work" className="mb-4">
+          <ApiErrorText error={focus.error} />
+        </Notice>
+      ) : null}
+      {focus.isSuccess ? (
+        <Notice tone="success" title="Focus changes are ready" className="mb-4">
+          The headline, summary, reworded bullets and removals are listed first below. Review each one.
+        </Notice>
+      ) : null}
+      <Button loading={focus.isPending} icon={<Target className="size-4" aria-hidden />} onClick={() => focus.mutate()}>
+        {done ? "Focus again" : "Focus on this job"}
+      </Button>
+      {focus.isPending ? (
+        <div className="mt-4"><AiProgress title="Focusing on this job" seconds={30} steps={FOCUS_STEPS} /></div>
+      ) : null}
+      {s.missing_skills.length ? (
+        <p className="mt-2 text-body-sm text-on-surface-variant">Confirm any skills you have first, so the rewrite can use them.</p>
+      ) : null}
+    </Card>
+  );
+}
+
 function Block({ label, highlight, children }: { label: string; highlight?: boolean; children: React.ReactNode }) {
   return (
     <div className={highlight ? "rounded-control border border-primary-fixed-dim bg-primary-fixed/30 p-3" : "rounded-control border border-hairline bg-surface-container-low p-3"}>
@@ -374,6 +616,8 @@ function OrderedList({ values, moved }: { values: string[]; moved?: boolean[] })
 function Finish({ session: s, accepted }: { session: Session; accepted: number }) {
   const finalize = useFinalize(s.id);
   const discard = useDiscardTailoring(s.id);
+  const acceptClean = useAcceptClean(s.id);
+  const clean = s.changes.filter((c) => c.decision === "pending" && !c.flags.length && c.kind !== "add_job_skills").length;
   const navigate = useNavigate();
   const [title, setTitle] = useState(`${s.job_title}${s.job_company ? ` (${s.job_company})` : ""}`.slice(0, 200));
   const id = useId();
@@ -395,12 +639,18 @@ function Finish({ session: s, accepted }: { session: Session; accepted: number }
           disabledReason={accepted === 0 ? "Accept at least one change first" : undefined}
           onClick={() =>
             finalize.mutate(title.trim() || undefined, {
-              onSuccess: (done) => done.result_resume_id && navigate(`/resumes/${done.result_resume_id}`),
+              onSuccess: (done) =>
+                done.result_resume_id && navigate(`/resumes/${done.result_resume_id}`, { state: { created: true } }),
             })
           }
         >
           Create tailored resume
         </Button>
+        {clean ? (
+          <Button variant="secondary" loading={acceptClean.isPending} icon={<CheckCheck className="size-4" aria-hidden />} onClick={() => acceptClean.mutate()}>
+            Accept {clean} with no flags
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           loading={discard.isPending}

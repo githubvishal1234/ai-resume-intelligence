@@ -171,7 +171,7 @@ def test_production_requires_https() -> None:
     with pytest.raises(ValueError, match="S3_ENDPOINT_URL must use https"):
         Settings(
             app_env="production",
-            database_url="postgresql+psycopg://u:strong@db/x",
+            database_url="mssql+pyodbc://u:strong@db/x",
             session_cookie_secure=True,
             storage_backend="s3",
             s3_endpoint_url="http://minio:9000",

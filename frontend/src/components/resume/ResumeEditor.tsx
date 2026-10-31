@@ -178,6 +178,7 @@ export function ResumeEditor({ value, onChange, report }: {
       <Section title="Contact" report={r("contact")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextInput label="Full name" value={c.full_name} onChange={(v) => set("contact", { ...c, full_name: v })} />
+          <TextInput label="Headline" hint="One line under your name, like “Backend Engineer | Python, SQL”." value={c.headline} onChange={(v) => set("contact", { ...c, headline: v })} />
           <TextInput label="Email" type="email" value={c.email} onChange={(v) => set("contact", { ...c, email: v })} />
           <TextInput label="Phone" value={c.phone} onChange={(v) => set("contact", { ...c, phone: v })} />
           <TextInput label="Location" value={c.location} onChange={(v) => set("contact", { ...c, location: v })} />

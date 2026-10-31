@@ -1,8 +1,11 @@
 import { Check } from "lucide-react";
 import { useId, useState } from "react";
-import { templateStyle } from "@/constants/templates";
+import { Notice } from "@/components/ui/Notice";
+import { atsLevel, templateStyle } from "@/constants/templates";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
+import { PhotoUploader } from "./ProfilePhotoCard";
 import { ResumePaper } from "./ResumePaper";
 import { matches, NO_FILTERS, TemplateFilters } from "./TemplateFilters";
 
@@ -26,6 +29,8 @@ export function TemplatePicker({
 }) {
   const name = useId();
   const [filters, setFilters] = useState(NO_FILTERS);
+  const photo = useProfilePhoto();
+  const chosen = templateStyle(value);
   // Filters only help once there are many; the chosen template always stays visible.
   const filterable = templates.length > 8;
   const shown = filterable ? templates.filter((t) => t.id === value || matches(t.id, filters)) : templates;
@@ -33,6 +38,22 @@ export function TemplatePicker({
     <fieldset>
       <legend className="sr-only">{legend}</legend>
       {filterable ? <TemplateFilters value={filters} onChange={setFilters} className="mb-5" /> : null}
+      {chosen.photo ? (
+        <section aria-labelledby={`${name}-photo`} className="mb-5 rounded-card border border-hairline bg-surface-container-low p-4">
+          <h3 id={`${name}-photo`} className="text-label-md font-semibold text-on-surface">
+            {chosen.name} shows your photo
+          </h3>
+          <p className="mb-3 mt-1 text-body-sm text-on-surface-variant">
+            {photo.url ? "It appears in the preview and the PDF. One photo is used for every photo template." : "Add one to see it in the preview and the PDF. Without it, the PDF simply has no photo."}
+          </p>
+          <PhotoUploader size="sm" />
+        </section>
+      ) : null}
+      {atsLevel(chosen) === "friendly" ? (
+        <Notice tone="info" title={`${chosen.name} is ATS-friendly, not ATS-safe`} className="mb-5">
+          Its text reads in order, but some older screening systems handle columns and tables less well. For large employers&apos; online forms, a one-column template is safest.
+        </Notice>
+      ) : null}
       <div className={cn("grid gap-4", columns)}>
         {shown.map((t) => {
           const selected = t.id === value;
@@ -47,7 +68,7 @@ export function TemplatePicker({
             >
               <input type="radio" name={name} value={t.id} checked={selected} onChange={() => onChange(t.id)} className="sr-only" />
               <div className="overflow-hidden rounded-control bg-surface-container-low p-3">
-                <ResumePaper doc={doc} template={t.id} label={`${t.name} template preview`} />
+                <ResumePaper doc={doc} template={t.id} label={`${t.name} template preview`} photoUrl={photo.url} />
               </div>
               <div className="flex items-start justify-between gap-2 px-1">
                 <span>
