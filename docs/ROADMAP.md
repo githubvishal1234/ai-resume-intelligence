@@ -28,7 +28,6 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | 20 Billing (Razorpay) | Pro subscriptions in INR (UPI, cards), webhooks, plan limits; test mode first | Built; test-mode payment check pending |
 
 ## Next candidates (each needs a decision first)
-- Job fetching from approved sources (D-05).
 - Production deployment (D-06) and data retention policy (D-08).
 
 ## Pending company decisions (not invented; each has a configuration boundary)
@@ -37,7 +36,6 @@ Rule: no phase starts until the previous one is stable (tests, lint, types, buil
 | D-02 | Official product name | Before public release |
 | D-03 | LLM provider: decided (Groq, OpenAI also supported); model, key ownership, budget still open | Turning AI on in production |
 | D-04 | User/organization model, roles, SSO | Before any sharing/team feature |
-| D-05 | Approved job sources | Job fetching |
 | D-06 | Deployment target, hosting, object storage | Production launch |
 | D-07 | Email provider (any SMTP provider works by configuration) | Production launch |
 | D-08 | Data retention, deletion SLAs, privacy scope | Before production launch |

@@ -248,6 +248,12 @@ def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: Non
     # Resume text is passed as data in user messages, never in the system prompt.
     system = [m for m in _FakeProvider.seen if m.role == "system"]
     assert len(system) == 1 and "Priya" not in system[0].content
+    # The job's skills the resume doesn't show are named, so the model doesn't borrow them.
+    assert (
+        "never mention them, not even inside a phrase: AWS, Django, Kafka, REST."
+        in system[0].content
+    )
+    assert "PostgreSQL" not in system[0].content  # shown in the resume, so allowed
     blocked = _decide(user_client, session, change, decision="accepted")
     assert blocked.status_code == 422
 

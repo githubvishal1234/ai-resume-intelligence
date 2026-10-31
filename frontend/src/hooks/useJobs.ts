@@ -38,11 +38,6 @@ export function useUploadJob() {
   return useMutation({ mutationFn: (file: File) => jobService.upload(file), onSuccess: settle });
 }
 
-export function useJobFromUrl() {
-  const settle = useSettle();
-  return useMutation({ mutationFn: (url: string) => jobService.fromUrl(url), onSuccess: settle });
-}
-
 export function useUpdateJob(id: string) {
   const settle = useSettle();
   return useMutation({

@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     llm_max_retries: int = Field(default=2, ge=0, le=5)
     llm_response_format: Literal["json_schema", "json_object"] = "json_schema"
     llm_min_output_tokens: int = Field(default=0, ge=0, le=32_000)
+    # For reasoning models (gpt-oss on Groq, OpenAI o-series): how long they think before
+    # answering. "low" is several times faster and cheaper. Empty = the provider's default.
+    llm_reasoning_effort: Literal["low", "medium", "high"] | None = None
     # AI calls per user per UTC day (0 = no limit). Counted in the ai_usage table. This is the
     # full allowance: Pro users get it, and so does everyone while billing is not set up.
     ai_daily_limit_per_user: int = Field(default=100, ge=0)
@@ -106,6 +109,7 @@ class Settings(BaseSettings):
         "llm_model",
         "llm_base_url",
         "llm_api_key",
+        "llm_reasoning_effort",
         "email_provider",
         "email_from",
         "app_base_url",
