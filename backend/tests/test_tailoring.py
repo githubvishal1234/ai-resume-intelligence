@@ -281,7 +281,10 @@ def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: Non
         "never mention them, not even inside a phrase: AWS, Django, Kafka, REST."
         in system[0].content
     )
-    assert "PostgreSQL" not in system[0].content  # shown in the resume, so allowed
+    # Shown in the resume, so named as shared (to lead with), never as forbidden.
+    forbidden = system[0].content.split("never mention them")[1]
+    assert "PostgreSQL" not in forbidden
+    assert "ARE in the resume:" in system[0].content
     blocked = _decide(user_client, session, change, decision="accepted")
     assert blocked.status_code == 422
 
