@@ -17,8 +17,13 @@ class CreateTailoringIn(BaseModel):
 
 
 class QuickTailorIn(BaseModel):
-    resume_text: str = Field(min_length=200, max_length=40_000)
+    # Left out: tailor the user's master resume instead.
+    resume_text: str | None = Field(default=None, min_length=200, max_length=40_000)
     job_text: str = Field(min_length=MIN_JOB_CHARS, max_length=MAX_JOB_CHARS)
+
+
+class ResumeTextOut(BaseModel):
+    text: str
 
 
 class DecisionIn(BaseModel):
@@ -35,6 +40,11 @@ class ConfirmSkillIn(BaseModel):
     note: str = Field(default="", max_length=300)
     # The master role or project it was used in (an id from `places`); empty for elsewhere.
     where: str = Field(default="", max_length=64)
+
+
+class TailorIn(BaseModel):
+    # The job's missing skills the user said they have; every other one is a "no".
+    skills: list[ConfirmSkillIn] = Field(default_factory=list, max_length=60)
 
 
 class RewriteBulletIn(BaseModel):

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { forgetDeleted } from "@/lib/forgetDeleted";
-import { tailoringService, type Decision, type Session } from "@/services/tailoringService";
+import { tailoringService, type Decision, type Session, type SkillAnswer } from "@/services/tailoringService";
 import { jobKeys } from "./useJobs";
 import { resumeKeys } from "./useResumes";
 
@@ -36,7 +36,7 @@ export function useQuickTailor() {
   const settle = useSettle();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ resumeText, jobText }: { resumeText: string; jobText: string }) =>
+    mutationFn: ({ resumeText, jobText }: { resumeText: string | null; jobText: string }) =>
       tailoringService.quick(resumeText, jobText),
     onSuccess: (session) => {
       settle(session);
@@ -84,6 +84,14 @@ export function useRewriteBullet(id: string) {
 export function useFocus(id: string) {
   const settle = useSettle();
   return useMutation({ mutationFn: () => tailoringService.focus(id), onSuccess: settle });
+}
+
+export function useTailorWithAnswers() {
+  const settle = useSettle();
+  return useMutation({
+    mutationFn: ({ id, skills }: { id: string; skills: SkillAnswer[] }) => tailoringService.tailor(id, skills),
+    onSuccess: settle,
+  });
 }
 
 export function useConfirmSkill(id: string) {

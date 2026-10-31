@@ -53,7 +53,13 @@ describe("Quick Resume Builder", () => {
     expect(screen.getByText(/Point 1: Start with an action verb/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Built" }));
     expect(screen.getByLabelText("What you achieved")).toHaveValue("Responsible for the API\nBuilt");
-    await user.click(screen.getByRole("button", { name: "Next: Education" }));
+    await user.click(screen.getByRole("button", { name: "Next: Projects" }));
+
+    // 4. Projects: no project to add, so the section is skipped and marked as such
+    expect(screen.getByRole("heading", { name: "Your projects" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Skip this section" }));
+    expect(screen.getByRole("heading", { name: "Your education" })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Builder steps" })).getByText("(skipped)")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next: Skills" }));
 
     // 5. Skills from the suggestions
@@ -67,8 +73,10 @@ describe("Quick Resume Builder", () => {
     expect(screen.getByText("Drafted only from what you entered")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next: Finish" }));
 
-    // 7. Finish: the checklist points back to what is missing
+    // 8. Finish: the checklist points back to what is missing, but not to the skipped section
     expect(screen.getByText(/things? would make it stronger/)).toBeInTheDocument();
+    expect(screen.queryByText("A project with what you built")).not.toBeInTheDocument();
+    expect(screen.getByText("You skipped:")).toBeInTheDocument();
     const skillsCheck = screen.getByText("Five or more skills").closest("li") as HTMLElement;
     await user.click(within(skillsCheck).getByRole("button", { name: "Fix" }));
     expect(screen.getByRole("heading", { name: "Your skills" })).toHaveFocus();
@@ -87,7 +95,7 @@ describe("Quick Resume Builder", () => {
     expect(body.content.skills.map((s) => s.name)).toEqual(["Python"]);
     // The draft is gone once saved.
     expect(Object.keys(window.localStorage).filter((k) => k.startsWith("resume-intel:draft:"))).toEqual([]);
-  }, 30_000); // a long, typed walk through all seven steps
+  }, 30_000); // a long, typed walk through all eight steps
 
   it("keeps an unsaved draft in this browser and brings it back", async () => {
     const user = userEvent.setup();

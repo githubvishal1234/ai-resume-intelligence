@@ -747,6 +747,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring/resume-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Text
+         * @description Reads a resume file's text for the paste box. Nothing is stored.
+         */
+        post: operations["resume_text_api_v1_tailoring_resume_text_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tailoring/{session_id}": {
         parameters: {
             query?: never;
@@ -843,6 +863,26 @@ export interface paths {
         put?: never;
         /** Confirm Skill */
         post: operations["confirm_skill_api_v1_tailoring__session_id__skills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/tailor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tailor
+         * @description After the skill questions: add the user's skills, run maximum focus, accept clean.
+         */
+        post: operations["tailor_api_v1_tailoring__session_id__tailor_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1792,6 +1832,14 @@ export interface components {
             /**
              * File
              * @description JPEG, PNG or WebP, at most 5 MB
+             */
+            file: string;
+        };
+        /** Body_resume_text_api_v1_tailoring_resume_text_post */
+        Body_resume_text_api_v1_tailoring_resume_text_post: {
+            /**
+             * File
+             * @description PDF, DOCX or TXT resume
              */
             file: string;
         };
@@ -3009,7 +3057,7 @@ export interface components {
         /** QuickTailorIn */
         QuickTailorIn: {
             /** Resume Text */
-            resume_text: string;
+            resume_text?: string | null;
             /** Job Text */
             job_text: string;
         };
@@ -3179,6 +3227,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** ResumeTextOut */
+        ResumeTextOut: {
+            /** Text */
+            text: string;
         };
         /** RevokedOut */
         RevokedOut: {
@@ -3507,6 +3560,11 @@ export interface components {
             skill: string;
             /** Suggestions */
             suggestions: components["schemas"]["SuggestionOut"][];
+        };
+        /** TailorIn */
+        TailorIn: {
+            /** Skills */
+            skills?: components["schemas"]["ConfirmSkillIn"][];
         };
         /** TailoringSessionOut */
         TailoringSessionOut: {
@@ -5273,6 +5331,39 @@ export interface operations {
             };
         };
     };
+    resume_text_api_v1_tailoring_resume_text_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_resume_text_api_v1_tailoring_resume_text_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeTextOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_session_api_v1_tailoring__session_id__get: {
         parameters: {
             query?: never;
@@ -5450,6 +5541,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ConfirmSkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tailor_api_v1_tailoring__session_id__tailor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TailorIn"];
             };
         };
         responses: {

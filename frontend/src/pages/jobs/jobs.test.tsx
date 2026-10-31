@@ -105,6 +105,22 @@ describe("Job Analyzer", () => {
     expect(screen.getByText("2 required")).toBeInTheDocument();
   });
 
+  it("deletes one saved job from the list after a confirm", async () => {
+    const user = userEvent.setup();
+    const other = { ...SUMMARY, id: "55555555-5555-4555-8555-555555555555", title: "Data Analyst" };
+    const { calls } = mockApi([
+      me,
+      { path: "/jobs", body: [SUMMARY, other] },
+      { method: "DELETE", path: `/jobs/${other.id}`, status: 204 },
+    ]);
+    renderApp("/jobs");
+    await user.click(await screen.findByRole("button", { name: "Delete Data Analyst" }));
+    expect(screen.getByText(/Tailored resumes, applications and cover letters stay/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
+    expect(calls.filter((c) => c.method === "DELETE").map((c) => c.path)).toEqual([`/jobs/${other.id}`]);
+  });
+
   it("validates pasted text and creates a job", async () => {
     const user = userEvent.setup();
     const { calls } = mockApi([

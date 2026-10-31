@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, Eye, EyeOff, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Eye, EyeOff, Plus, SkipForward, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ResumePaper } from "@/components/resume/ResumePaper";
@@ -23,29 +23,33 @@ import {
   bulletTips,
   completeness,
   draftSummary,
+  isSectionEmpty,
   resumeChecklist,
   SAMPLE_RESUME,
   SKILL_PRESETS,
+  SKIPPABLE,
   type StepId,
 } from "@/lib/resumeHelpers";
 import { ApiError } from "@/services/apiClient";
 import { outputService } from "@/services/outputService";
-import { emptyResume, newId, type Education, type Experience, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
+import { emptyResume, newId, type Education, type Experience, type Project, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
 import { PageHeader } from "./common";
 
 const STEPS: { id: StepId; label: string; title: string; description: string }[] = [
   { id: "style", label: "Style", title: "Pick a style", description: "Every template is real text that applicant tracking systems can read; one-column designs are the safest. You can switch at any time." },
   { id: "contact", label: "Contact", title: "How can employers reach you?", description: "Use a professional email address. A city is enough for location." },
   { id: "experience", label: "Experience", title: "Your work experience", description: "Most recent first. Internships, freelance and volunteer work all count." },
+  { id: "projects", label: "Projects", title: "Your projects", description: "Personal, academic or open-source work that shows what you can build." },
   { id: "education", label: "Education", title: "Your education", description: "Your highest degree is usually enough." },
   { id: "skills", label: "Skills", title: "Your skills", description: "Pick the ones you can talk about in an interview." },
   { id: "summary", label: "Summary", title: "Your summary", description: "Written last, because it sums up the rest." },
   { id: "finish", label: "Finish", title: "Review and save", description: "Check what's missing, then save and download your PDF." },
 ];
 
-type Draft = { doc: ResumeDoc; template: string; title: string; step: number };
+type Draft = { doc: ResumeDoc; template: string; title: string; step: number; skipped?: StepId[] };
 
 const blankRole = (): Experience => ({ id: newId(), title: "", company: "", location: "", start_date: "", end_date: "", current: false, bullets: [] });
+const blankProject = (): Project => ({ id: newId(), name: "", url: "", description: "", technologies: [], bullets: [] });
 const blankSchool = (): Education => ({ id: newId(), institution: "", degree: "", field_of_study: "", start_date: "", end_date: "", details: [] });
 const isBlank = (doc: ResumeDoc) => JSON.stringify(doc) === JSON.stringify(emptyResume());
 
@@ -87,6 +91,17 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   );
   const [title, setTitle] = useState(initial.title);
   const [step, setStep] = useState(Math.min(initial.step, STEPS.length - 1));
+  // Sections the user skipped; one counts again as soon as something is added to it.
+  const [skipList, setSkipList] = useState<StepId[]>(initial.skipped ?? []);
+  const skipped = skipList.filter((id) => isSectionEmpty(doc, id));
+  // On a phone the step bar scrolls sideways: keep the current step in view as it changes. Only
+  // the bar moves, and at once, since the step heading takes focus (and scrolls) at that moment.
+  const stepsNav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = stepsNav.current;
+    const current = nav?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (nav && current) nav.scrollLeft = current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2;
+  }, [step]);
   const [showPreview, setShowPreview] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
@@ -99,8 +114,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   const allowLeave = useUnsavedGuard(Boolean(master) && JSON.stringify(doc) !== JSON.stringify(master?.content));
 
   useEffect(() => {
-    if (!master) writeDraft(draftKey, { doc, template, title, step } satisfies Draft);
-  }, [master, draftKey, doc, template, title, step]);
+    if (!master) writeDraft(draftKey, { doc, template, title, step, skipped: skipList } satisfies Draft);
+  }, [master, draftKey, doc, template, title, step, skipList]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -110,7 +125,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
     headingRef.current?.focus();
   }, [step]);
 
-  const percent = completeness(doc);
+  const percent = completeness(doc, skipped);
   const current = STEPS[step]!;
   const blank = isBlank(doc);
   // Until something is entered, previews show a clearly labelled sample instead of an empty page.
@@ -139,8 +154,15 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
     clearDraft(draftKey);
     setDoc(emptyResume());
     setTitle("Master resume");
+    setSkipList([]);
     setStep(0);
   };
+
+  const skip = () => {
+    setSkipList((list) => [...new Set([...list, current.id])]);
+    setStep((s) => s + 1);
+  };
+  const canSkip = SKIPPABLE.includes(current.id) && isSectionEmpty(doc, current.id);
 
   return (
     <div className="pb-28 md:pb-20">
@@ -149,7 +171,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
         description={
           master
             ? `Editing your master resume (version ${master.current_version}). Saving creates version ${master.current_version + 1}.`
-            : "Seven short steps with a live preview. Your progress is kept in this browser until you save."
+            : "Eight short steps with a live preview. Your progress is kept in this browser until you save."
         }
         back={{ to: "/resumes", label: "My Resumes" }}
         actions={!master && !isBlank(doc) ? <Button variant="ghost" size="sm" onClick={startOver}>Start over</Button> : null}
@@ -172,10 +194,12 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
       </div>
 
       {/* relative: keeps the absolutely positioned sr-only labels inside the scroller on phones */}
-      <nav aria-label="Builder steps" className="relative -mx-1 mb-6 overflow-x-auto px-1 pb-1">
+      <nav ref={stepsNav} aria-label="Builder steps" className="relative -mx-1 mb-6 overflow-x-auto px-1 pb-1">
         <ol className="flex min-w-max gap-2">
           {STEPS.map((s, i) => {
-            const done = i < STEPS.length - 1 && i > 0 && resumeChecklist(doc).filter((c) => c.step === s.id).every((c) => c.ok);
+            const checks = resumeChecklist(doc).filter((c) => c.step === s.id);
+            const isSkipped = skipped.includes(s.id);
+            const done = !isSkipped && i < STEPS.length - 1 && i > 0 && checks.length > 0 && checks.every((c) => c.ok);
             return (
               <li key={s.id}>
                 <button
@@ -191,10 +215,11 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                 >
                   <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-label-sm tnum",
                     done ? "border-success bg-success text-on-primary" : i === step ? "border-on-primary bg-on-primary text-primary" : "border-hairline-strong")}>
-                    {done ? <Check className="size-3.5" aria-hidden /> : i + 1}
+                    {done ? <Check className="size-3.5" aria-hidden /> : isSkipped ? <SkipForward className="size-3.5" aria-hidden /> : i + 1}
                   </span>
                   {s.label}
                   {done ? <span className="sr-only">(complete)</span> : null}
+                  {isSkipped ? <span className="sr-only">(skipped)</span> : null}
                 </button>
               </li>
             );
@@ -210,14 +235,27 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
               {current.title}
             </h2>
             <p className="mt-1 mb-6 text-body-md text-on-surface-variant">{current.description}</p>
+            {canSkip ? (
+              <div className="-mt-3 mb-6 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Button variant="secondary" size="sm" icon={<SkipForward className="size-4" aria-hidden />} onClick={skip}>
+                  Skip this section
+                </Button>
+                <span className="text-body-sm text-on-surface-variant">
+                  {skipped.includes(current.id)
+                    ? "Skipped for now. Add something here to include it."
+                    : "Nothing to add? It won't count against you, and you can come back any time."}
+                </span>
+              </div>
+            ) : null}
             {current.id === "style" ? <TemplatePicker templates={templates} value={template} onChange={setTemplate} doc={previewDoc} columns="sm:grid-cols-2 xl:grid-cols-3" /> : null}
             {current.id === "contact" ? <ContactStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "experience" ? <ExperienceStep doc={doc} onChange={setDoc} /> : null}
+            {current.id === "projects" ? <ProjectsStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "education" ? <EducationStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "skills" ? <SkillsStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "summary" ? <SummaryStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "finish" ? (
-              <FinishStep doc={doc} master={master} title={title} onTitle={setTitle} onGo={(id) => setStep(STEPS.findIndex((s) => s.id === id))} />
+              <FinishStep doc={doc} master={master} title={title} skipped={skipped} onTitle={setTitle} onGo={(id) => setStep(STEPS.findIndex((s) => s.id === id))} />
             ) : null}
             {error ? (
               <Notice tone="critical" title="Could not save" className="mt-6">
@@ -314,7 +352,6 @@ function EntryCard({ label, onRemove, children }: { label: string; onRemove: () 
 function ExperienceStep({ doc, onChange }: StepProps) {
   const roles = doc.experience;
   const setRoles = (experience: Experience[]) => onChange({ ...doc, experience });
-  const bulletsId = useId();
   return (
     <div className="space-y-5">
       <Notice tone="info" title="A strong bullet point">
@@ -323,7 +360,6 @@ function ExperienceStep({ doc, onChange }: StepProps) {
       {roles.length === 0 ? <p className="text-body-md text-on-surface-variant">No roles yet. Add your most recent one.</p> : null}
       {roles.map((e, i) => {
         const update = (patch: Partial<Experience>) => setRoles(roles.map((r, j) => (j === i ? { ...e, ...patch } : r)));
-        const tips = e.bullets.map((b, n) => ({ n: n + 1, tips: bulletTips(b) })).filter((x) => x.tips.length);
         return (
           <EntryCard key={e.id} label={e.title || `Role ${i + 1}`} onRemove={() => setRoles(roles.filter((_, j) => j !== i))}>
             <Text label="Job title" value={e.title} onChange={(v) => update({ title: v })} />
@@ -341,40 +377,88 @@ function ExperienceStep({ doc, onChange }: StepProps) {
               <input type="checkbox" className="accent-primary" checked={e.current} onChange={(ev) => update({ current: ev.target.checked, end_date: ev.target.checked ? "Present" : "" })} />
               I currently work here
             </label>
-            <div className="space-y-2 sm:col-span-2">
-              <Field label="What you achieved" hint="One point per line. Two to five points per role.">
-                {({ id, describedBy }) => (
-                  <TextBacked id={id} aria-describedby={describedBy ? `${describedBy} ${bulletsId}-${i}` : `${bulletsId}-${i}`} rows={5}
-                    value={e.bullets} onChange={(bullets) => update({ bullets })} toText={listToLines} fromText={linesToList} />
-                )}
-              </Field>
-              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Start a new point with an action verb">
-                <span className="text-body-sm text-on-surface-variant">Start a point with:</span>
-                {ACTION_VERBS.map((verb) => (
-                  <button key={verb} type="button" onClick={() => update({ bullets: [...e.bullets, verb] })}
-                    className="rounded-full border border-hairline px-2.5 py-0.5 text-label-sm text-on-surface hover:border-primary hover:text-primary">
-                    {verb}
-                  </button>
-                ))}
-              </div>
-              <div id={`${bulletsId}-${i}`} aria-live="polite">
-                {tips.length ? (
-                  <ul className="space-y-1 rounded-control bg-warning-surface p-3 text-body-sm text-warning-ink">
-                    {tips.map((t) => (
-                      <li key={t.n} className="flex gap-2">
-                        <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                        <span>Point {t.n}: {t.tips.join(" ")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
-            </div>
+            <Points label="What you achieved" hint="One point per line. Two to five points per role." bullets={e.bullets} onChange={(bullets) => update({ bullets })} />
           </EntryCard>
         );
       })}
       <Button variant="secondary" icon={<Plus className="size-4" aria-hidden />} onClick={() => setRoles([...roles, blankRole()])}>
         {roles.length ? "Add another role" : "Add a role"}
+      </Button>
+    </div>
+  );
+}
+
+/** One point per line, with action-verb starters and tips as you type. */
+function Points({ label, hint, bullets, onChange }: { label: string; hint: string; bullets: string[]; onChange: (bullets: string[]) => void }) {
+  const tipsId = useId();
+  const tips = bullets.map((b, n) => ({ n: n + 1, tips: bulletTips(b) })).filter((x) => x.tips.length);
+  return (
+    <div className="space-y-2 sm:col-span-2">
+      <Field label={label} hint={hint}>
+        {({ id, describedBy }) => (
+          <TextBacked id={id} aria-describedby={describedBy ? `${describedBy} ${tipsId}` : tipsId} rows={5}
+            value={bullets} onChange={onChange} toText={listToLines} fromText={linesToList} />
+        )}
+      </Field>
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Start a new point with an action verb">
+        <span className="text-body-sm text-on-surface-variant">Start a point with:</span>
+        {ACTION_VERBS.map((verb) => (
+          <button key={verb} type="button" onClick={() => onChange([...bullets, verb])}
+            className="rounded-full border border-hairline px-2.5 py-0.5 text-label-sm text-on-surface hover:border-primary hover:text-primary">
+            {verb}
+          </button>
+        ))}
+      </div>
+      <div id={tipsId} aria-live="polite">
+        {tips.length ? (
+          <ul className="space-y-1 rounded-control bg-warning-surface p-3 text-body-sm text-warning-ink">
+            {tips.map((t) => (
+              <li key={t.n} className="flex gap-2">
+                <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                <span>Point {t.n}: {t.tips.join(" ")}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+const techToText = (list: string[]) => list.join(", ");
+const textToTech = (text: string) => text.split(",").map((t) => t.trim()).filter(Boolean);
+
+function ProjectsStep({ doc, onChange }: StepProps) {
+  const projects = doc.projects;
+  const setProjects = (next: Project[]) => onChange({ ...doc, projects: next });
+  return (
+    <div className="space-y-5">
+      <Notice tone="info" title="A strong project">
+        Say what it does in one line, list the tools, then what you built and what came of it, with a number if you have one.
+      </Notice>
+      {projects.length === 0 ? <p className="text-body-md text-on-surface-variant">No projects yet. Add your best one.</p> : null}
+      {projects.map((p, i) => {
+        const update = (patch: Partial<Project>) => setProjects(projects.map((x, j) => (j === i ? { ...p, ...patch } : x)));
+        return (
+          <EntryCard key={p.id} label={p.name || `Project ${i + 1}`} onRemove={() => setProjects(projects.filter((_, j) => j !== i))}>
+            <Text label="Project name" value={p.name} onChange={(v) => update({ name: v })} />
+            <Text label="Link" placeholder="github.com/you/project" hint="Optional: code, demo or write-up." value={p.url} onChange={(v) => update({ url: v })} />
+            <div className="sm:col-span-2">
+              <Text label="What it is" placeholder="A voice receptionist that books clinic appointments" value={p.description} onChange={(v) => update({ description: v })} />
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Tools and technologies" hint="Separate them with commas.">
+                {({ id, describedBy }) => (
+                  <TextBacked id={id} aria-describedby={describedBy} rows={1} value={p.technologies} onChange={(technologies) => update({ technologies })} toText={techToText} fromText={textToTech} />
+                )}
+              </Field>
+            </div>
+            <Points label="What you built" hint="One point per line. Two or three points per project." bullets={p.bullets} onChange={(bullets) => update({ bullets })} />
+          </EntryCard>
+        );
+      })}
+      <Button variant="secondary" icon={<Plus className="size-4" aria-hidden />} onClick={() => setProjects([...projects, blankProject()])}>
+        {projects.length ? "Add another project" : "Add a project"}
       </Button>
     </div>
   );
@@ -486,10 +570,10 @@ function SummaryStep({ doc, onChange }: StepProps) {
   );
 }
 
-function FinishStep({ doc, master, title, onTitle, onGo }: {
-  doc: ResumeDoc; master: ResumeDetail | undefined; title: string; onTitle: (v: string) => void; onGo: (step: StepId) => void;
+function FinishStep({ doc, master, title, skipped, onTitle, onGo }: {
+  doc: ResumeDoc; master: ResumeDetail | undefined; title: string; skipped: StepId[]; onTitle: (v: string) => void; onGo: (step: StepId) => void;
 }) {
-  const checks = resumeChecklist(doc);
+  const checks = resumeChecklist(doc, skipped);
   const missing = checks.filter((c) => !c.ok).length;
   return (
     <div className="space-y-6">
@@ -518,8 +602,20 @@ function FinishStep({ doc, master, title, onTitle, onGo }: {
           ))}
         </ul>
       </div>
+      {skipped.length ? (
+        <div className="flex flex-wrap items-center gap-2 text-body-sm text-on-surface-variant">
+          <SkipForward className="size-4" aria-hidden />
+          <span>You skipped:</span>
+          {skipped.map((id) => (
+            <Button key={id} variant="ghost" size="sm" onClick={() => onGo(id)}>
+              {STEPS.find((s) => s.id === id)?.label}
+            </Button>
+          ))}
+          <span>They stay out of the resume until you add something.</span>
+        </div>
+      ) : null}
       <p className="text-body-sm text-on-surface-variant">
-        Projects, certifications and other sections can be added in the full editor after saving. Next you'll see the ATS check and can download the PDF.
+        Certifications and other sections can be added in the full editor after saving. Next you'll see the ATS check and can download the PDF.
       </p>
     </div>
   );

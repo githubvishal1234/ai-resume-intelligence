@@ -164,7 +164,7 @@ describe("Tailoring review", () => {
     expect(screen.getByRole("button", { name: "Accept 2 with no flags" })).toBeInTheDocument();
   });
 
-  it("runs strong focus", async () => {
+  it("runs maximum focus", async () => {
     const user = userEvent.setup();
     const focused = {
       ...SESSION_BODY,
@@ -358,6 +358,54 @@ describe("Bullet rewrites", () => {
 });
 
 describe("Tailor index", () => {
+  it("removes a session from the list after a confirm", async () => {
+    const user = userEvent.setup();
+    const summary = { id: SID, job_id: JOB_ID, job_title: "Backend Engineer", job_company: "Acme", master_resume_id: RESUME_ID, base_version: 1, status: "finalized", result_resume_id: TAILORED_ID, accepted: 2, total: 3, created_at: "2026-10-12T06:00:00Z" };
+    const { calls } = mockApi([
+      me,
+      { path: "/tailoring", body: [summary] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+      { method: "POST", path: `/tailoring/${SID}/discard`, status: 204 },
+    ]);
+    renderApp("/tailor");
+    await user.click(await screen.findByRole("button", { name: "Remove Backend Engineer" }));
+    expect(screen.getByText(/stays in My Resumes/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove session" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "POST" && c.path.endsWith("/discard"))).toBe(true));
+  });
+
+  it("asks about the job's missing skills, then tailors with only the ones marked yes", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/tailoring", body: [] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+      { method: "POST", path: "/tailoring/quick", status: 201, body: { ...SESSION_BODY, missing_skills: ["Django", "Docker"] } },
+      { method: "POST", path: `/tailoring/${SID}/tailor`, body: SESSION_BODY },
+      { path: `/tailoring/${SID}`, body: SESSION_BODY },
+    ]);
+    renderApp("/tailor");
+    await user.click(await screen.findByLabelText("Job description"));
+    await user.paste("Backend Engineer at Acme. We need Python, Django and Docker experience for our APIs.");
+    await user.click(screen.getByLabelText("Resume"));
+    await user.paste("Priya Raman. Engineer at Acme since 2022. Built Python APIs and data pipelines. ".repeat(4));
+    await user.click(screen.getByRole("button", { name: /Next: check the job's skills/ }));
+
+    expect(await screen.findByRole("heading", { name: "Step 2: Have you used these?" })).toBeInTheDocument();
+    const django = screen.getByRole("group", { name: "Have you used Django?" });
+    await user.click(within(django).getByRole("button", { name: "Yes" }));
+    expect(screen.getByLabelText("Where did you use Django?")).toHaveValue("e1");
+    await user.type(screen.getByLabelText("What did you do with Django?"), "built admin tools");
+    await user.click(screen.getByRole("button", { name: /Tailor with maximum focus/ }));
+
+    expect(await screen.findByRole("heading", { name: "Tailor for Backend Engineer" })).toBeInTheDocument();
+    const sent = calls.find((c) => c.method === "POST" && c.path.endsWith("/tailor"))?.body;
+    // Docker was left at "No", so only Django is sent.
+    expect(sent).toEqual({ skills: [{ skill: "Django", where: "e1", note: "built admin tools" }] });
+  });
+
   it("starts a session for the chosen job", async () => {
     const user = userEvent.setup();
     const { calls } = mockApi([

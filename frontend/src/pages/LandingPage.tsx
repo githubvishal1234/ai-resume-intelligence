@@ -314,7 +314,7 @@ export function LandingPage() {
             <div className="relative mx-auto max-w-3xl text-center">
               <p className={eyebrowOnInk}>How it works</p>
               <h2 id="how-title" className={cn(h2, "mt-3")}>From a blank page to a PDF in three steps</h2>
-              <p className="mt-4 text-body-lg text-on-ink-muted">Seven short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
+              <p className="mt-4 text-body-lg text-on-ink-muted">Eight short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
             </div>
             <ol className="relative mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-3">
               {STEPS.map(({ title, body }, i) => (

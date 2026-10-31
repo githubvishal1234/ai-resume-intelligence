@@ -22,7 +22,9 @@ const SIZES: Record<Size, string> = {
 
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", extra?: string) {
   return cn(
-    "inline-flex items-center justify-center rounded-control font-semibold transition-colors select-none whitespace-nowrap",
+    "inline-flex items-center justify-center rounded-control font-semibold select-none whitespace-nowrap",
+    // A slight press on click or tap; never on a disabled button.
+    "transition-[color,background-color,border-color,box-shadow,scale] duration-150 active:scale-[0.98] aria-disabled:active:scale-100",
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-disabled:pointer-events-auto",
     VARIANTS[variant],
     SIZES[size],

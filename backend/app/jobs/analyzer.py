@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.skills.vocabulary import category_of, find_skills
+from app.skills.vocabulary import category_of, find_skills, unglue
 
 ANALYZER_VERSION = "jd-rules-v1"
 Tier = Literal["required", "preferred", "nice_to_have"]
@@ -63,7 +63,8 @@ class JobAnalysis(BaseModel):
 
 _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
     # Job-board trailers (Naukri, LinkedIn): a skills tag cloud, the education block and the
-    # aggregator's disclaimer. None of them are requirements, so they are skipped like "about".
+    # aggregator's disclaimer. None of them are requirements, so they are skipped like "about"
+    # (the tag cloud's known skills are still picked up, in `finish_analysis`).
     (re.compile(r"^(?:key skills|skills highlighted|education|disclaimer)\b.*", re.I), "about"),
     (
         re.compile(
@@ -88,7 +89,9 @@ _SECTION_HEADINGS: list[tuple[re.Pattern[str], SectionKind]] = [
         re.compile(
             r".*\b(?:requirements?|qualifications?|must[- ]haves?|what you(?:'ll)? (?:need|"
             r"bring)|who you are|what we(?:'re)? looking for|skills(?: and| &)? experience|"
-            r"you have|about you|your profile|minimum qualifications|basic qualifications)\b.*",
+            r"you have|about you|your profile|candidate profile|minimum qualifications|"
+            r"basic qualifications|required skills|skills required|technical skills|"
+            r"must have skills)\b.*",
             re.I,
         ),
         "requirements",
@@ -192,6 +195,40 @@ def _heading_kind(line: str) -> SectionKind | None:
     return None
 
 
+_INLINE_BULLET = re.compile(r"\s+-\s+(?=\S)")
+_INLINE_HEADING = re.compile(r"(?<=[.!?])\s+(?=[A-Z][\w /&'()-]{2,40}:)")
+
+
+def _explode(line: str) -> list[str]:
+    """A one-paragraph posting ("... learning. Minimum Qualifications: - Bachelor's ...")
+    becomes one line per inline bullet, with each inline heading on a line of its own."""
+    if len(_INLINE_BULLET.findall(line)) < 2:
+        return [line]
+    out: list[str] = []
+    for piece in _INLINE_BULLET.split(line):
+        for part in _INLINE_HEADING.split(piece):
+            label, colon, rest = part.partition(":")
+            if colon and _heading_kind(label):
+                out += [label + ":", rest.strip()]
+            else:
+                out.append(part.strip())
+    return out
+
+
+def _tag_cloud(lines: list[str]) -> list[str]:
+    """The lines under a "Key Skills" heading, up to the next heading."""
+    out: list[str] = []
+    inside = False
+    for line in lines:
+        if re.match(r"\s*key skills\b", line, re.I):
+            inside = True
+        elif inside and _heading_kind(line):
+            inside = False
+        elif inside:
+            out.append(line)
+    return out
+
+
 def _sentences(text: str) -> list[str]:
     parts = re.split(r"(?<=[.!?;])\s+(?=[A-Z])", text)
     return [p.strip() for p in parts if len(p.strip()) > 3]
@@ -257,7 +294,7 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
     current: SectionKind = "other"
     has_sections = False
     collected: list[tuple[SectionKind, str]] = []
-    for raw in lines:
+    for raw in (piece for line in lines for piece in _explode(line)):
         if not raw.strip():
             continue
         kind = _heading_kind(raw)
@@ -278,7 +315,7 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
         if key in seen or len(item) < 6:
             continue
         seen.add(key)
-        skills = find_skills(item)
+        skills = find_skills(unglue(item))
         if _META_LINE.match(item) or (not skills and _INTRO_LINE.search(item)):
             continue
         if section == "responsibilities":
@@ -300,6 +337,7 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
                 _REQUIRED_CUES.search(item)
                 or _YEARS.search(item)
                 or (skills and has_sections is False)
+                or (skills and len(item.split()) <= 3 * len(skills))  # a bare list of skills
             ):
                 tier = "required"
             else:
@@ -320,7 +358,7 @@ def analyze_job(text: str, title: str = "", company: str = "") -> JobAnalysis:
 
 
 def make_requirement(item: str, tier: Tier, category: ReqCategory | None = None) -> Requirement:
-    skills = find_skills(item)
+    skills = find_skills(unglue(item))
     return Requirement(
         # Stable across re-analysis of the same text, so matches can refer to it.
         id=hashlib.sha256(f"{tier}:{item.lower()}".encode()).hexdigest()[:12],
@@ -342,7 +380,10 @@ def finish_analysis(analysis: JobAnalysis, text: str, title: str, company: str) 
         for skill in req.skills:
             if skill not in best or order[req.tier] < order[best[skill]]:
                 best[skill] = req.tier
-    for skill in find_skills(" ".join(analysis.responsibilities)):
+    for skill in find_skills(unglue(" ".join(analysis.responsibilities))):
+        best.setdefault(skill, "preferred")
+    # A job board's "Key Skills" tag cloud is no requirement, but its known skills are wanted.
+    for skill in find_skills(unglue(" ".join(_tag_cloud(lines)))):
         best.setdefault(skill, "preferred")
     lowered = text.lower()
     for name, tier in best.items():
@@ -371,15 +412,26 @@ def finish_analysis(analysis: JobAnalysis, text: str, title: str, company: str) 
     analysis.keywords = _keywords(text, exclude)
 
 
+# Labels job boards print above a posting ("Job description"), never the title itself, and
+# the label before a title on the same line ("Role: Data Engineer", "Job Title : Data Engineer").
+_GENERIC_TITLE = re.compile(
+    r"(?:job\s+(?:description|details|summary|overview|brief|posting)|about\s+(?:the\s+)?"
+    r"(?:job|role)|role\s+overview|overview|description|position\s+summary|jd)\s*:?",
+    re.I,
+)
+_TITLE_LABEL = re.compile(r"^(?:job\s+title|role|position|designation)\s*:\s*", re.I)
+
+
 def guess_title(text: str) -> str:
     """The first short line is usually the job title in a pasted posting."""
     for line in text.split("\n"):
-        candidate = line.strip()
+        candidate = _TITLE_LABEL.sub("", line.strip()).strip()
         if (
             candidate
             and len(candidate) <= 100
             and len(candidate.split()) <= 12
             and not _heading_kind(candidate)
+            and not _GENERIC_TITLE.fullmatch(candidate)
         ):
             return candidate.rstrip(":")
     return "Untitled job"

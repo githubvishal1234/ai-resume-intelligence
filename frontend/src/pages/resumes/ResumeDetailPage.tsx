@@ -1,6 +1,6 @@
 import { Download, History, PenLine, ScanSearch, Trash2, UploadCloud } from "lucide-react";
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ResumeView } from "@/components/resume/ResumeView";
 import { SixSecondScan } from "@/components/resume/SixSecondScan";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -17,6 +17,12 @@ export function ResumeDetailPage() {
   const remove = useDeleteResume(resumeId);
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  // Arriving straight from "Create tailored resume": say so once, then forget it on reload.
+  const location = useLocation();
+  const [created] = useState(Boolean((location.state as { created?: boolean } | null)?.created));
+  useEffect(() => {
+    if (created) navigate(location.pathname, { replace: true, state: null });
+  }, [created, location.pathname, navigate]);
 
   if (resume.isPending) return <PageLoading label="Loading resume" />;
   if (resume.isError) return <ErrorState error={resume.error} onRetry={() => void resume.refetch()} />;
@@ -46,6 +52,20 @@ export function ResumeDetailPage() {
           </>
         }
       />
+      {created ? (
+        <Notice
+          tone="success"
+          title="Your tailored resume is ready"
+          className="mx-auto mb-4 max-w-3xl"
+          action={
+            <ButtonLink to={`/builder?resume=${r.id}`} variant="primary" size="sm">
+              <Download className="size-4" aria-hidden /> Download PDF
+            </ButtonLink>
+          }
+        >
+          Check it below, then download it. Your master resume is unchanged.
+        </Notice>
+      ) : null}
       <Card className="mx-auto max-w-3xl">
         <ResumeView doc={r.content} />
       </Card>

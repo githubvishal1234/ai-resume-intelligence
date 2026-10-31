@@ -47,6 +47,7 @@ from app.tailoring.proposer import (
     apply_order,
     focus,
     job_skills,
+    keep_length,
     propose,
     requirements_for,
 )
@@ -134,7 +135,8 @@ FOCUS_INSTRUCTIONS = (
     "every numbered bullet so they speak to this job. Use ONLY facts in the resume and bullets, "
     "including what the candidate confirmed. Do not add numbers, dates, employers, titles or "
     "technologies that are not in it, never a job title the candidate has not held, and keep "
-    "every number a bullet has. Never describe the candidate by a title they have not held, "
+    "every number and every word of the job's that a bullet already has. Never describe the "
+    "candidate by a title they have not held, "
     "even in lower case (no 'Java developer' unless a role says so). Lead with what the job "
     "values: describe transferable work "
     "(APIs, databases, services, testing, delivery) in the job's words where it is true. Each "
@@ -279,6 +281,9 @@ class TailoringService:
         if job is None:
             raise NotFound()
         ensure_access(self.actor, job.owner_id)
+        return self._start(job, *self._active_master())
+
+    def _active_master(self) -> tuple[Resume, ResumeVersion]:
         master = self.db.scalar(
             select(Resume).where(
                 Resume.owner_id == self.actor.user_id,
@@ -296,13 +301,13 @@ class TailoringService:
         )
         if version is None:  # pragma: no cover
             raise NotFound()
-        return self._start(job, master, version)
+        return master, version
 
     def _start(self, job: Job, master: Resume, version: ResumeVersion) -> TailoringSession:
         content = ResumeContent.model_validate(version.content)
         analysis = JobAnalysis.model_validate(job.analysis)
         # Even with nothing to reorder, the session is where the user confirms the job's
-        # skills and runs strong focus, so it always starts.
+        # skills and runs maximum focus, so it always starts.
         proposals = propose(content, analysis, match(content, analysis))
         if (wanted := job_skills(content, analysis)) is not None:
             proposals.append(wanted)
@@ -337,14 +342,50 @@ class TailoringService:
         self.db.commit()
         return row
 
-    def quick(self, resume_text: str, job_text: str) -> TailoringSession:
-        """Tailors a pasted resume to a pasted job description, ready for review.
+    def quick(self, resume_text: str | None, job_text: str) -> TailoringSession:
+        """Starts a session for a pasted resume (or, without one, the user's master) and a
+        pasted job description. Its `missing_skills` are what to ask the user before `tailor`.
 
-        The pasted resume is stored as an *archived* master: the base this session reads
-        facts from, which never replaces the user's own active master. Clean changes come
-        back accepted; skills the job wants and flagged text still wait for the user.
+        A pasted resume is stored as an *archived* master: the base this session reads
+        facts from, which never replaces the user's own active master.
         """
-        content = self._read_resume(resume_text)
+        if resume_text is None:
+            resume, version = self._active_master()
+        else:
+            resume, version = self._pasted(resume_text)
+        jobs = JobService(self.db, self.settings, self.actor, self.request_id)
+        job = jobs.create(job_text, source="paste")
+        if ai_status(self.settings).configured:
+            # Pasted postings are messy; on six real ones the AI reader found 100 of 103 skills,
+            # the rules 95. Busy, over the limit or nothing usable: the rules' reading stands.
+            try:
+                job = jobs.ai_analyze(job.id)
+            except AppError:
+                self.db.rollback()
+        return self._start(job, resume, version)
+
+    def tailor(self, session_id: uuid.UUID, used: list[tuple[str, str, str]]) -> TailoringSession:
+        """Runs once the user has answered which of the job's missing skills they have.
+
+        `used` holds (skill, where, note) for each "yes": those join the copy, as a skill and,
+        with a role or project and a note, as a bullet there. The job's other skills were
+        answered "no", so the add-them-all change is declined. Then maximum focus reshapes the
+        copy and every clean change is accepted; flagged text still waits for the user.
+        """
+        for skill, where, note in used:
+            self.confirm_skill(session_id, skill, note, where)
+        for c in self._draft(session_id).changes:
+            if c.kind == "add_job_skills" and c.decision == "pending":
+                c.decision = "rejected"
+        self.db.commit()
+        try:
+            self.focus(session_id)
+        except AppError:  # AI busy or over its limit: the rule-based changes still stand
+            self.db.rollback()
+        return self.accept_clean(session_id)
+
+    def _pasted(self, text: str) -> tuple[Resume, ResumeVersion]:
+        content = self._read_resume(text)
         name = content.contact.full_name.strip()
         resume = Resume(
             owner_id=self.actor.user_id,
@@ -365,20 +406,14 @@ class TailoringService:
         )
         self.db.add(version)
         self._audit("resume.create", str(resume.id))
-        job = JobService(self.db, self.settings, self.actor, self.request_id).create(
-            job_text, source="paste"
-        )
-        session_id = self._start(job, resume, version).id
-        try:
-            self.focus(session_id)
-        except AppError:  # AI busy or over its limit: the rule-based changes still stand
-            self.db.rollback()
-        return self.accept_clean(session_id)
+        return resume, version
 
     def _read_resume(self, text: str) -> ResumeContent:
         content = parse_resume(text).content
-        if ai_status(self.settings).configured:
-            try:  # pasted text is messy; the AI reader keeps only what the text says
+        # The rules keep the summary, headline and skill groups, which the AI reader drops;
+        # it only steps in when they can't find the roles or projects.
+        if not (content.experience or content.projects) and ai_status(self.settings).configured:
+            try:  # the AI reader keeps only what the text says
                 read = ai_parse(text, self._ai("resumes.ai_parse"))
                 if read.kept:
                     content = read.content
@@ -546,13 +581,25 @@ class TailoringService:
     def _missing_note(job: Job, facts: ResumeContent) -> str:
         # Naming the job's skills the resume doesn't show stops the model borrowing them from
         # the job text; those rewrites were blocked by the fact check, wasting the call.
-        missing = sorted(set(find_skills(job.raw_text)) - known_skills(facts))
-        if not missing:
-            return ""
-        return (
-            " These skills from the job are NOT in the resume, so never mention them, not "
-            "even inside a phrase: " + ", ".join(missing) + "."
-        )
+        wanted, have = set(find_skills(job.raw_text)), known_skills(facts)
+        missing, shared = sorted(wanted - have), sorted(wanted & have)
+        note = ""
+        if shared:
+            # Without this the model mostly swaps synonyms; naming the overlap makes bullets
+            # lead with what this job and the resume have in common.
+            note += (
+                " These skills from the job ARE in the resume: " + ", ".join(shared) + ". Keep "
+                "each bullet opening with a strong past-tense verb, then bring the part of the "
+                "work that matches the job to the front of the sentence. Name one of these only "
+                "where the bullet's own text or its role's or project's tech list shows it, and "
+                "never widen what a tool did."
+            )
+        if missing:
+            note += (
+                " These skills from the job are NOT in the resume, so never mention them, not "
+                "even inside a phrase: " + ", ".join(missing) + "."
+            )
+        return note
 
     def _store(
         self,
@@ -607,14 +654,14 @@ class TailoringService:
         )
         self._store(change, result.parsed.text, f"{result.provider} ({result.model})", master, job)
 
-    # ---- strong focus -------------------------------------------------------------------
+    # ---- maximum focus ------------------------------------------------------------------
     def confirm_skill(
         self, session_id: uuid.UUID, skill: str, note: str, where: str = ""
     ) -> TailoringSession:
         """The user says they have a skill the master doesn't show; the copy may use it.
 
         With a role or project (`where`) and what they did (`note`), it also becomes a bullet
-        under that entry, in the user's own words; strong focus can polish the wording.
+        under that entry, in the user's own words; maximum focus can polish the wording.
         """
         row = self._draft(session_id)
         places = self.places(row)
@@ -651,7 +698,7 @@ class TailoringService:
             )
             bullet.target_id = where
             bullet.title = f"Add your {name} work under {places[where]}"
-            bullet.reason = "From what you told us. Strong focus can polish the wording."
+            bullet.reason = "From what you told us. Maximum focus can polish the wording."
             bullet.proposed = {"text": text}
             bullet.edited = None
             bullet.source = "user"
@@ -664,7 +711,7 @@ class TailoringService:
         return row
 
     def focus(self, session_id: uuid.UUID) -> TailoringSession:
-        """Adds the strong-focus changes. With AI set up, it also rewrites the headline,
+        """Adds the maximum-focus changes. With AI set up, it also rewrites the headline,
         summary and bullets for the job in one call; asking again rewrites them again."""
         row = self._draft(session_id)
         facts = self.facts(row)
@@ -672,7 +719,7 @@ class TailoringService:
         assert job is not None
         analysis = JobAnalysis.model_validate(job.analysis)
         have = {(c.kind, c.target_id) for c in row.changes}
-        proposals = focus(facts, analysis, match(facts, analysis))
+        proposals = keep_length(facts, focus(facts, analysis, match(facts, analysis)))
         # Sessions started before this change existed get it here.
         if ("add_job_skills", None) not in have and (wanted := job_skills(facts, analysis)):
             proposals.append(wanted)
@@ -715,6 +762,12 @@ class TailoringService:
         bullets = bullets[:FOCUS_BULLETS]
         # Bullets the user wrote about confirmed skills get polished in the same call.
         added = [c for c in row.changes if c.kind == "add_bullet" and c.decision != "rejected"]
+        rules_summary = next(
+            (dict(c.proposed) for c in row.changes if c.kind == "summary" and c.source == "rules"),
+            None,
+        )
+        # The user's own words, to fall back on: a skill they confirmed must reach the copy.
+        own = [(c, dict(_value(c)), list(c.flags), c.decision) for c in added]
         headline = next((c for c in row.changes if c.kind == "headline"), None) or (
             self._new_change(
                 row,
@@ -799,6 +852,23 @@ class TailoringService:
             warnings = check_claims_many(texts, facts, self._ai("tailoring.claims"))
             for c, found in zip(clean, warnings, strict=True):
                 c.flags = c.flags + [f.model_dump() for f in found]
+        # Flagged AI wording falls back to the rule-built version, made only of resume facts.
+        if headline.flags and fallback is not None:
+            headline.source, headline.reason = "rules", fallback.reason
+            headline.proposed = fallback.proposed
+            headline.flags = self._flags("headline", headline.proposed, facts)
+        if summary.flags and rules_summary is not None:
+            summary.source = "rules"
+            summary.reason = (
+                "Your summary, plus a sentence naming the job's skills your roles show. "
+                "The AI's wording needed a check."
+            )
+            summary.proposed = rules_summary
+            summary.flags = self._flags("summary", summary.proposed, facts)
+        for c, mine, mine_flags, mine_decision in own:
+            if c.flags:  # the polish needs a check; the user's own wording doesn't
+                c.proposed, c.flags, c.decision = mine, mine_flags, mine_decision
+                c.source, c.reason = "user", "Your own words: the AI's polish needed a check."
 
     def accept_clean(self, session_id: uuid.UUID) -> TailoringSession:
         """Accepts every change still to review that has no flags; flagged ones need a read."""
@@ -848,8 +918,13 @@ class TailoringService:
         return row
 
     def discard(self, session_id: uuid.UUID) -> None:
-        row = self._draft(session_id)
+        """Takes a session off the user's list, in review or finished. It stays on record, so a
+        tailored resume it made still knows its job (the ATS check and interview prep use that)."""
+        row = self._owned(session_id)
+        if row.status == "discarded":
+            raise SessionNotDraft()
         row.status = "discarded"
+        self._audit("tailoring.discard", str(row.id))
         self.db.commit()
 
     def _audit(self, action: str, resource_id: str) -> None:

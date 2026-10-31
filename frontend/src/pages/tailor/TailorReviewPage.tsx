@@ -8,7 +8,9 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
+import { AiProgress } from "@/components/ui/AiProgress";
 import { ErrorState, PageLoading } from "@/components/ui/States";
+import { useResume } from "@/hooks/useResumes";
 import {
   useAcceptClean,
   useConfirmSkill,
@@ -26,8 +28,14 @@ import { items, text, type Bullet, type Session, type TailoringChange } from "@/
 import { EvidenceList } from "@/pages/match/common";
 import { PageHeader } from "@/pages/resumes/common";
 
-// The changes that reshape the copy come first, so a strong focus is visible at the top.
+// The changes that reshape the copy come first, so maximum focus is visible at the top.
 const KIND_ORDER = ["add_job_skills", "headline", "summary", "reorder_sections", "add_bullet", "rewrite_bullet", "trim_bullets", "trim_projects", "trim_skills", "confirm_skill"];
+// What "Focus" really does, in order (see AiProgress for how the timing is shown).
+const FOCUS_STEPS = [
+  "Keeping only what the job needs",
+  "Rewriting the headline, summary and bullets",
+  "Checking every fact against the resume",
+];
 const rank = (kind: string) => (KIND_ORDER.includes(kind) ? KIND_ORDER.indexOf(kind) : KIND_ORDER.length);
 const ordered = (changes: TailoringChange[]) => [...changes].sort((a, b) => rank(a.kind) - rank(b.kind) || a.position - b.position);
 
@@ -48,11 +56,14 @@ export function TailorReviewPage() {
 function Review({ session: s }: { session: Session }) {
   const draft = s.status === "draft";
   const accepted = s.changes.filter((c) => c.decision === "accepted").length;
+  // An archived master is a resume pasted for this session, not the user's own master.
+  const base = useResume(s.master_resume_id).data;
+  const from = base?.status === "archived" ? "the pasted resume" : `master version ${s.base_version}`;
   return (
     <div>
       <PageHeader
         title={`Tailor for ${s.job_title}`}
-        description={`${accepted} of ${s.changes.length} changes accepted · based on master version ${s.base_version}`}
+        description={`${accepted} of ${s.changes.length} changes accepted · based on ${from}`}
         back={{ to: "/tailor", label: "Tailor Resume" }}
       />
       {s.master_current_version !== s.base_version && draft ? (
@@ -465,7 +476,7 @@ function MissingSkills({ session: s }: { session: Session }) {
       <CardHeader
         id={`${id}-title`}
         title={`This job asks for ${s.missing_skills.length} skill${s.missing_skills.length === 1 ? "" : "s"} your resume doesn't show`}
-        description="Tell us about the ones you've used: where, and what you did. Each becomes a bullet under that role in this tailored copy, and Strong focus polishes the wording. Your master resume stays as it is."
+        description="Tell us about the ones you've used: where, and what you did. Each becomes a bullet under that role in this tailored copy, and Maximum focus polishes the wording. Your master resume stays as it is."
       />
       {confirm.isError ? (
         <Notice tone="critical" title="That didn't work" className="mb-4">
@@ -537,16 +548,24 @@ function StrongFocus({ session: s }: { session: Session }) {
   const focus = useFocus(s.id);
   const id = useId();
   const done = s.changes.some((c) => c.kind === "headline");
+  // Focus ran (it adds the headline) but nothing came back from the AI: that step failed.
+  const aiMissed = s.ai.configured && done && !focus.isPending && !s.changes.some((c) => c.source === "llm");
   return (
     <Card aria-labelledby={`${id}-title`}>
       <CardHeader
         id={`${id}-title`}
-        title="Strong focus"
-        description="Reshape this copy around the job: a headline, a rewritten summary and bullets, unrelated bullets and projects left out, and projects first when they fit better. Nothing new is invented, and every change is yours to review."
+        title="Maximum focus"
+        description="Keep only what serves this job: a headline, a rewritten summary and bullets, and only the bullets, projects and skills the job relates to (every role stays). Nothing new is invented, and every change is yours to review."
       />
       {!s.ai.configured ? (
         <Notice tone="info" title="AI rewriting is not set up" className="mb-4">
           You'll get the headline, order and removals; the summary and bullets keep their wording.
+        </Notice>
+      ) : null}
+      {aiMissed ? (
+        <Notice tone="info" title="The AI rewrite didn't run this time" className="mb-4">
+          The AI was probably busy (free plans allow only a few requests a minute), so only the
+          headline, order and removals changed. Wait a minute, then click Focus again.
         </Notice>
       ) : null}
       {focus.isError ? (
@@ -562,6 +581,9 @@ function StrongFocus({ session: s }: { session: Session }) {
       <Button loading={focus.isPending} icon={<Target className="size-4" aria-hidden />} onClick={() => focus.mutate()}>
         {done ? "Focus again" : "Focus on this job"}
       </Button>
+      {focus.isPending ? (
+        <div className="mt-4"><AiProgress title="Focusing on this job" seconds={30} steps={FOCUS_STEPS} /></div>
+      ) : null}
       {s.missing_skills.length ? (
         <p className="mt-2 text-body-sm text-on-surface-variant">Confirm any skills you have first, so the rewrite can use them.</p>
       ) : null}
@@ -617,7 +639,8 @@ function Finish({ session: s, accepted }: { session: Session; accepted: number }
           disabledReason={accepted === 0 ? "Accept at least one change first" : undefined}
           onClick={() =>
             finalize.mutate(title.trim() || undefined, {
-              onSuccess: (done) => done.result_resume_id && navigate(`/resumes/${done.result_resume_id}`),
+              onSuccess: (done) =>
+                done.result_resume_id && navigate(`/resumes/${done.result_resume_id}`, { state: { created: true } }),
             })
           }
         >

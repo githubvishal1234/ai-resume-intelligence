@@ -4,33 +4,58 @@
  */
 import type { ResumeDoc } from "@/services/resumeService";
 
-export type StepId = "style" | "contact" | "experience" | "education" | "skills" | "summary" | "finish";
+export type StepId = "style" | "contact" | "experience" | "projects" | "education" | "skills" | "summary" | "finish";
 
 export type Check = { id: string; label: string; ok: boolean; step: StepId; hint: string };
 
 const hasNumber = (s: string) => /\d/.test(s);
 
-/** What a solid one-page resume needs, in the order the builder asks for it. */
-export function resumeChecklist(doc: ResumeDoc): Check[] {
+/**
+ * What a solid one-page resume needs, in the order the builder asks for it. Sections the user
+ * chose to skip are left out, so they neither count against them nor get flagged.
+ */
+export function resumeChecklist(doc: ResumeDoc, skipped: readonly StepId[] = []): Check[] {
   const c = doc.contact;
   const roles = doc.experience.filter((e) => e.title.trim() || e.company.trim());
   const bullets = doc.experience.flatMap((e) => e.bullets);
   const quantified = bullets.filter(hasNumber).length;
   const summaryLength = doc.summary.trim().length;
-  return [
+  const checks: Check[] = [
     { id: "name", label: "Name and email", ok: Boolean(c.full_name.trim() && c.email.trim()), step: "contact", hint: "Recruiters need both to reach you." },
     { id: "reach", label: "Phone or location", ok: Boolean(c.phone.trim() || c.location.trim()), step: "contact", hint: "Add at least one; many roles filter by location." },
     { id: "role", label: "At least one role with title and company", ok: roles.some((e) => e.title.trim() && e.company.trim()), step: "experience", hint: "Internships and part-time work count." },
     { id: "bullets", label: "Two or more bullet points per role", ok: roles.length > 0 && roles.every((e) => e.bullets.length >= 2), step: "experience", hint: "Describe what you achieved, one point per line." },
     { id: "numbers", label: "Half your bullet points include a number", ok: bullets.length > 0 && quantified * 2 >= bullets.length, step: "experience", hint: "Percentages, money, time saved, users or team size." },
+    { id: "project", label: "A project with what you built", ok: doc.projects.some((p) => p.name.trim() && p.bullets.length > 0), step: "projects", hint: "Personal, academic or open-source work counts. No projects? Skip the section." },
     { id: "education", label: "Education", ok: doc.education.some((e) => e.institution.trim() || e.degree.trim()), step: "education", hint: "Your highest degree or most relevant course." },
     { id: "skills", label: "Five or more skills", ok: doc.skills.length >= 5, step: "skills", hint: "Use the words job postings use." },
     { id: "summary", label: "A short summary", ok: summaryLength >= 60 && summaryLength <= 700, step: "summary", hint: "Two to four sentences about who you are and what you bring." },
   ];
+  return checks.filter((c) => !skipped.includes(c.step));
 }
 
-export function completeness(doc: ResumeDoc): number {
-  const checks = resumeChecklist(doc);
+/** Steps whose section can be skipped while it is still empty. */
+export const SKIPPABLE: readonly StepId[] = ["experience", "projects", "education", "skills", "summary"];
+
+export function isSectionEmpty(doc: ResumeDoc, step: StepId): boolean {
+  switch (step) {
+    case "experience":
+      return !doc.experience.some((e) => e.title.trim() || e.company.trim());
+    case "projects":
+      return !doc.projects.some((p) => p.name.trim());
+    case "education":
+      return !doc.education.some((e) => e.institution.trim() || e.degree.trim());
+    case "skills":
+      return doc.skills.length === 0;
+    case "summary":
+      return !doc.summary.trim();
+    default:
+      return false;
+  }
+}
+
+export function completeness(doc: ResumeDoc, skipped: readonly StepId[] = []): number {
+  const checks = resumeChecklist(doc, skipped);
   return Math.round((100 * checks.filter((c) => c.ok).length) / checks.length);
 }
 

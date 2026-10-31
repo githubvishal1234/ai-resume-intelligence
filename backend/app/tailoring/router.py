@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.auth.deps import CurrentAuth
@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import EvidenceRef
 from app.models import Job, Resume, TailoringSession
+from app.resumes.extraction import extract_text
 from app.tailoring.factcheck import known_skills
 from app.tailoring.proposer import EDITABLE_KINDS
 from app.tailoring.schemas import (
@@ -25,7 +26,9 @@ from app.tailoring.schemas import (
     PlaceOut,
     QuickTailorIn,
     RequirementRef,
+    ResumeTextOut,
     RewriteBulletIn,
+    TailorIn,
     TailoringSessionOut,
     TailoringSessionSummaryOut,
 )
@@ -144,6 +147,19 @@ def quick_tailor(body: QuickTailorIn, service: Service) -> TailoringSessionOut:
     return _out(service, service.quick(body.resume_text, body.job_text))
 
 
+@router.post("/resume-text", response_model=ResumeTextOut)
+async def resume_text(
+    _: CurrentAuth,
+    settings: Annotated[Settings, Depends(get_settings)],
+    file: Annotated[UploadFile, File(description="PDF, DOCX or TXT resume")],
+) -> ResumeTextOut:
+    """Reads a resume file's text for the paste box. Nothing is stored."""
+    data = await file.read(settings.max_upload_bytes + 1)
+    return ResumeTextOut(
+        text=extract_text(file.filename or "resume", data, settings.max_upload_bytes).text
+    )
+
+
 @router.get("/{session_id}", response_model=TailoringSessionOut)
 def get_session(session_id: uuid.UUID, service: Service) -> TailoringSessionOut:
     return _out(service, service.get(session_id))
@@ -181,6 +197,13 @@ def confirm_skill(
     session_id: uuid.UUID, body: ConfirmSkillIn, service: Service
 ) -> TailoringSessionOut:
     return _out(service, service.confirm_skill(session_id, body.skill, body.note, body.where))
+
+
+@router.post("/{session_id}/tailor", response_model=TailoringSessionOut)
+def tailor(session_id: uuid.UUID, body: TailorIn, service: Service) -> TailoringSessionOut:
+    """After the skill questions: add the user's skills, run maximum focus, accept clean."""
+    used = [(s.skill, s.where, s.note) for s in body.skills]
+    return _out(service, service.tailor(session_id, used))
 
 
 @router.post("/{session_id}/accept-clean", response_model=TailoringSessionOut)

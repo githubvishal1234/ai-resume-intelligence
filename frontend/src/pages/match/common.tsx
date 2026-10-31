@@ -4,10 +4,12 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
-import { useJobList } from "@/hooks/useJobs";
+import { useDeleteControls } from "@/hooks/useDeleteControls";
+import { JOB_DELETE_NOTE, useDeleteJob, useJobList } from "@/hooks/useJobs";
 import { useMatchList } from "@/hooks/useMatches";
 import { scoreLevel } from "@/lib/score";
-import type { EvidenceRef, MatchStatus, Severity } from "@/services/matchService";
+import type { JobSummary } from "@/services/jobService";
+import type { EvidenceRef, MatchStatus, MatchSummary, Severity } from "@/services/matchService";
 import { PageHeader } from "@/pages/resumes/common";
 
 export const STATUS_ICON: Record<MatchStatus, React.ReactNode> = {
@@ -63,37 +65,45 @@ export function JobMatchIndex({ title, description, to }: { title: string; descr
         />
       ) : (
         <ul className="space-y-3">
-          {jobs.data.map((job) => {
-            const m = byJob.get(job.id);
-            return (
-              <li key={job.id}>
-                <Card className="relative hover:border-primary">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link to={to(job.id)} className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary">
-                        {job.title}
-                      </Link>
-                      <p className="mt-1 text-body-md text-on-surface-variant">
-                        {[job.company, job.location].filter(Boolean).join(" · ") || "Company not set"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {m ? (
-                        <>
-                          <ScorePill value={m.overall} />
-                          {m.stale ? <Pill tone="missing">Out of date</Pill> : null}
-                        </>
-                      ) : (
-                        <Pill>Not matched yet</Pill>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              </li>
-            );
-          })}
+          {jobs.data.map((job) => (
+            <li key={job.id}>
+              <MatchJobCard job={job} match={byJob.get(job.id)} to={to(job.id)} />
+            </li>
+          ))}
         </ul>
       )}
     </div>
+  );
+}
+
+/** A saved job with its latest match. Each card is a job, so deleting removes the saved job. */
+function MatchJobCard({ job, match: m, to }: { job: JobSummary; match: MatchSummary | undefined; to: string }) {
+  const remove = useDeleteJob(job.id);
+  const del = useDeleteControls({ name: job.title, note: `This removes the saved job everywhere. ${JOB_DELETE_NOTE}`, action: remove });
+  return (
+    <Card className="relative hover:border-primary">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Link to={to} className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary">
+            {job.title}
+          </Link>
+          <p className="mt-1 text-body-md text-on-surface-variant">
+            {[job.company, job.location].filter(Boolean).join(" · ") || "Company not set"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {m ? (
+            <>
+              <ScorePill value={m.overall} />
+              {m.stale ? <Pill tone="missing">Out of date</Pill> : null}
+            </>
+          ) : (
+            <Pill>Not matched yet</Pill>
+          )}
+          {del.button}
+        </div>
+      </div>
+      {del.confirm}
+    </Card>
   );
 }

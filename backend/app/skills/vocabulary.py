@@ -39,6 +39,7 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "Bash": ("language", ("shell scripting", "shell")),
     "PowerShell": ("language", ()),
     "SQL": ("language", ()),
+    "PL/SQL": ("language", ("plsql", "pl sql")),
     "HTML": ("language", ("html5",)),
     "XML": ("language", ()),
     "XSLT": ("language", ()),
@@ -100,6 +101,7 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "MySQL": ("database", ()),
     "SQLite": ("database", ()),
     "MongoDB": ("database", ("mongo",)),
+    "NoSQL": ("database", ()),
     "Redis": ("database", ()),
     "Elasticsearch": ("database", ("elastic search", "opensearch")),
     "Cassandra": ("database", ()),
@@ -165,7 +167,22 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "Jenkins": ("tool", ()),
     "GitHub Actions": ("tool", ()),
     "GitLab CI": ("tool", ("gitlab ci/cd",)),
-    "CI/CD": ("concept", ("ci cd", "continuous integration")),
+    "CI/CD": ("concept", ("ci cd", "ci-cd", "continuous integration")),
+    "GitHub": ("tool", ()),
+    "GitLab": ("tool", ()),
+    "Bitbucket": ("tool", ("bit bucket",)),
+    "Azure DevOps": ("tool", ("azure pipelines",)),
+    "Maven": ("tool", ()),
+    "Gradle": ("tool", ()),
+    "Swagger": ("tool", ()),
+    "OpenAPI": ("tool", ("open api",)),
+    "ELK": ("tool", ("elk stack", "elastic stack")),
+    "CloudWatch": ("cloud", ("cloud watch", "amazon cloudwatch")),
+    "AWS Glue": ("cloud", ()),
+    "Athena": ("cloud", ("aws athena", "amazon athena")),
+    "DevSecOps": ("concept", ()),
+    "Cloud Computing": ("concept", ()),
+    "Networking": ("concept", ("computer networks", "networking concepts")),
     "Linux": ("tool", ()),
     "Git": ("tool", ()),
     "Nginx": ("tool", ()),
@@ -193,6 +210,7 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "Hadoop": ("tool", ()),
     "Airflow": ("tool", ("apache airflow",)),
     "dbt": ("tool", ()),
+    "Databricks": ("tool", ("data bricks",)),
     "ETL": ("concept", ("elt",)),
     "Machine Learning": ("concept", ("ml",)),
     "Deep Learning": ("concept", ()),
@@ -201,6 +219,11 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "LLMs": ("concept", ("llm", "large language model", "large language models")),
     "Data Analysis": ("concept", ()),
     "Data Engineering": ("concept", ()),
+    "Data Quality": ("concept", ()),
+    "Data Visualization": ("concept", ("data visualisation",)),
+    "Predictive Modeling": ("concept", ("predictive modelling",)),
+    "Business Intelligence": ("concept", ()),
+    "Stored Procedures": ("concept", ("stored procedure", "stored procs")),
     "Statistics": ("concept", ()),
     "Tableau": ("tool", ()),
     "Power BI": ("tool", ("powerbi",)),
@@ -210,9 +233,12 @@ _VOCAB: dict[str, tuple[str, tuple[str, ...]]] = {
     "MLOps": ("concept", ()),
     "A/B Testing": ("concept", ("ab testing", "a/b tests")),
     # testing & quality
-    "Unit Testing": ("concept", ("unit tests",)),
+    "Unit Testing": ("concept", ("unit tests", "unit and integration tests")),
+    "Integration Testing": ("concept", ("integration tests", "unit and integration tests")),
+    "Code Review": ("concept", ("code reviews",)),
     "pytest": ("tool", ()),
     "Jest": ("tool", ()),
+    "Babel": ("tool", ()),
     "Cypress": ("tool", ()),
     "Playwright": ("tool", ()),
     "Selenium": ("tool", ()),
@@ -338,6 +364,29 @@ def _cased_hit(text: str, definition: SkillDef) -> bool:
             )
         )
     return bool(re.search(rf"(?<![\w]){re.escape(definition.name)}(?![\w])", text))
+
+
+_GLUE = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def unglue(text: str) -> str:
+    """Splits skills pasted without spaces, like Naukri's key-skill chips
+    ("LangchainPython" -> "Langchain Python"), keeping names like "JavaScript" whole."""
+
+    def split(word: str) -> str:
+        parts = _GLUE.split(word)
+        out = [parts[0]]
+        for part in parts[1:]:
+            joined, spaced = out[-1] + part, f"{out[-1]} {part}"
+            if canonical(joined):
+                out[-1] = joined
+            elif canonical(spaced):
+                out[-1] = spaced
+            else:
+                out.append(part)
+        return " ".join(out)
+
+    return re.sub(r"[A-Za-z0-9]+", lambda m: split(m.group(0)), text)
 
 
 def canonical(name: str) -> str | None:

@@ -5,10 +5,11 @@ Every proposal only reorders or re-surfaces what the master resume already conta
 - bullets and projects that mention the job's skills move up,
 - skills shown in experience or projects but missing from the skills list are added to it,
 - the summary gains one sentence naming job skills the experience already shows.
-Strong focus (`focus`, on request) goes further, still only with the master's own content:
+Maximum focus (`focus`) goes further, still only with the master's own content:
 - a headline under the name from the latest title and the job skills the resume shows,
 - projects before experience when a project fits the job better than any role,
-- bullets and projects that share nothing with the job are left out of the copy.
+- bullets, projects and skills that share nothing with the job are left out of the copy;
+  every role stays, with at least its most relevant bullet.
 Each proposal carries the reason, the requirements it serves and its evidence.
 """
 
@@ -21,6 +22,7 @@ from pydantic import BaseModel, Field
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import TIER_WEIGHT, EvidenceRef, MatchResult
 from app.output.templates import HEADINGS, RESUME_ORDER, arrange
+from app.resumes.analysis import MIN_SKILLS, MIN_WORDS, word_count
 from app.resumes.content import ResumeContent, Skill, new_id
 from app.skills.vocabulary import canonical, category_of, find_skills
 from app.tailoring.factcheck import known_skills
@@ -46,10 +48,10 @@ EDITABLE_KINDS: frozenset[str] = frozenset({"summary", "rewrite_bullet", "headli
 FOCUS_KINDS: frozenset[str] = frozenset(
     {"headline", "reorder_sections", "trim_bullets", "trim_projects", "trim_skills"}
 )
-# Strong focus never leaves a role with fewer bullets than this.
-KEEP_BULLETS = 3
-# Strong focus keeps the job's skills and, when there are fewer, tops up to this many.
-SKILLS_KEPT = 12
+# Maximum focus keeps every role (no gaps in the history), with at least this many bullets.
+KEEP_BULLETS = 1
+# It never trims a copy below the ATS minimum, with room for AI wording, which runs shorter.
+FOCUS_MIN_WORDS = MIN_WORDS + 50
 # Kinds whose text is new wording, so it goes through the factual check.
 TEXT_KINDS: frozenset[str] = EDITABLE_KINDS
 
@@ -245,7 +247,7 @@ def propose(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> lis
 
 
 def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[Proposal]:
-    """The strong-focus proposals: they reshape the copy around the job, inventing nothing."""
+    """The maximum-focus proposals: only what serves the job stays, and nothing is invented."""
     weights = _weights(job)
     out: list[Proposal] = []
 
@@ -307,7 +309,7 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
             )
         )
 
-    # 3. Bullets that share nothing with the job; every role keeps at least three.
+    # 3. Bullets that share nothing with the job; every role keeps its most relevant one.
     for exp in master.experience:
         if len(exp.bullets) <= KEEP_BULLETS:
             continue
@@ -345,31 +347,42 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
                 )
             )
 
-    # 5. Skills the job doesn't ask for; a long list of them hides the ones it does.
-    if len(master.skills) > SKILLS_KEPT:
-        wanted = [s for s in master.skills if weights.get(canonical(s.name) or "")]
-        # Top up with neighbours of the job's skills (same group) before anything else.
+    # 5. Skills the job doesn't ask for: only the job's own stay (confirmed ones included),
+    # topped up from the same groups to the ATS minimum. With none in common, all stay.
+    wanted = [s for s in master.skills if weights.get(canonical(s.name) or "")]
+    if wanted and len(wanted) < MIN_SKILLS:
         groups = {s.category for s in wanted}
         others = sorted(
             (s for s in master.skills if s not in wanted), key=lambda s: s.category not in groups
         )
-        keep_ids = {s.id for s in wanted + others[: max(0, SKILLS_KEPT - len(wanted))]}
-        kept_skills = [s for s in master.skills if s.id in keep_ids]
-        if len(kept_skills) < len(master.skills):
-            out.append(
-                Proposal(
-                    kind="trim_skills",
-                    title="Leave out skills this job doesn't ask for",
-                    original={"items": [{"id": s.id, "text": s.name} for s in master.skills]},
-                    proposed={"items": [{"id": s.id, "text": s.name} for s in kept_skills]},
-                    reason="A shorter list shows the skills this job asks for first. "
-                    "The rest stay in your master resume.",
-                    requirement_ids=requirements_for(
-                        job, {canonical(s.name) or s.name for s in wanted}
-                    ),
-                )
+        wanted = [s for s in master.skills if s in wanted + others[: MIN_SKILLS - len(wanted)]]
+    if wanted and len(wanted) < len(master.skills):
+        out.append(
+            Proposal(
+                kind="trim_skills",
+                title="Leave out skills this job doesn't ask for",
+                original={"items": [{"id": s.id, "text": s.name} for s in master.skills]},
+                proposed={"items": [{"id": s.id, "text": s.name} for s in wanted]},
+                reason="Only the skills this job asks for stay, so a reader sees them at once. "
+                "The rest stay in your master resume.",
+                requirement_ids=requirements_for(
+                    job, {canonical(s.name) or s.name for s in wanted}
+                ),
             )
+        )
     return out
+
+
+def keep_length(master: ResumeContent, proposals: list[Proposal]) -> list[Proposal]:
+    """Drops project trims, then bullet trims, while they would leave the copy too short."""
+    for kind in ("trim_projects", "trim_bullets"):
+        doc = master
+        for p in sorted(proposals, key=lambda p: apply_order(p.kind)):
+            doc = apply(doc, p, p.proposed)
+        if word_count(doc) >= FOCUS_MIN_WORDS:
+            break
+        proposals = [p for p in proposals if p.kind != kind]
+    return proposals
 
 
 def job_skills(master: ResumeContent, job: JobAnalysis) -> Proposal | None:
@@ -442,16 +455,9 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
         for item in value["items"]:
             name = str(item["text"])
             if name.lower() not in have:
-                # Into the group that already holds this kind of skill, right after it.
-                kind = category_of(name)
-                near = [
-                    i
-                    for i, s in enumerate(doc.skills)
-                    if kind and category_of(canonical(s.name) or s.name) == kind
-                ]
-                group = doc.skills[near[-1]].category if near else ""
+                group, at = _place(doc.skills, name)
                 skill = Skill(id=item.get("id") or new_id(), name=name, category=group)
-                doc.skills.insert(near[-1] + 1 if near else len(doc.skills), skill)
+                doc.skills.insert(at, skill)
     elif change.kind == "summary":
         doc.summary = str(value["text"]).strip()
     elif change.kind == "rewrite_bullet":
@@ -477,6 +483,51 @@ def apply(content: ResumeContent, change: Proposal, value: dict[str, Any]) -> Re
     return doc
 
 
+# A group for an added skill that fits no existing one, named by its kind.
+KIND_GROUPS = {
+    "language": "Languages",
+    "framework": "Frameworks",
+    "library": "Libraries",
+    "database": "Databases",
+    "cloud": "Cloud",
+    "tool": "Tools",
+    "concept": "Practices",
+    "soft": "Soft Skills",
+}
+# ponytail: a short list; a group named "Front-end" takes only these, extend as needed.
+FRONT_END = frozenset(
+    {"React", "Angular", "Vue", "Svelte", "Next.js", "HTML", "CSS", "JavaScript", "TypeScript",
+     "Tailwind CSS", "Bootstrap", "Redux", "jQuery"}
+)  # fmt: skip
+
+
+def _place(skills: list[Skill], name: str) -> tuple[str, int]:
+    """The group and position for an added skill: with front-end skills when it is one, else
+    after the last skill of its kind (never into a front-end group it doesn't belong to), else
+    a group named by its kind when the list uses groups at all."""
+    kind = category_of(name)
+
+    def front(category: str) -> bool:
+        return "front" in category.lower()
+
+    spots = [i for i, s in enumerate(skills) if front(s.category)] if name in FRONT_END else []
+    spots = spots or [
+        i
+        for i, s in enumerate(skills)
+        if kind
+        and category_of(canonical(s.name) or s.name) == kind
+        and (name in FRONT_END or not front(s.category))
+    ]
+    if spots:
+        return skills[spots[-1]].category, spots[-1] + 1
+    group = KIND_GROUPS.get(kind or "", "Other") if any(s.category for s in skills) else ""
+    same = [i for i, s in enumerate(skills) if group and s.category == group]
+    return group, same[-1] + 1 if same else len(skills)
+
+
 def apply_order(kind: str) -> int:
-    """Rewrites and added bullets go last, so reorders and trims see the master's own text."""
-    return 1 if kind in ("rewrite_bullet", "add_bullet") else 0
+    """Reorders and trims see the master's own content. Added skills come after them, so each
+    joins a group that is kept; rewrites and added bullets go last."""
+    if kind in ("add_skills", "confirm_skill", "add_job_skills"):
+        return 1
+    return 2 if kind in ("rewrite_bullet", "add_bullet") else 0

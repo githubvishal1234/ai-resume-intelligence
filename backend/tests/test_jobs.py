@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.jobs.analyzer import analyze_job, guess_title
-from app.skills.vocabulary import canonical, find_skills
+from app.skills.vocabulary import canonical, find_skills, unglue
 from tests.conftest import login_as
 from tests.fixtures import make_docx, make_pdf
 
@@ -304,3 +304,63 @@ def test_work_experience_heading_and_robotics_skills() -> None:
     assert {"NVIDIA Omniverse", "Isaac Sim", "ROS"} <= set(find_skills(ROBOTICS_JD))
     # Ordinary words are not skills.
     assert find_skills("We value unity, and pay in USD.") == []
+
+
+def test_title_guess_skips_job_board_labels() -> None:
+    posting = "Job description\nSenior Data Engineer\nRequirements"
+    assert guess_title(posting) == "Senior Data Engineer"
+    assert guess_title("About the job\nReact Developer") == "React Developer"
+    assert guess_title("Role: Senior Full Stack Engineer (.NET / React)\nLocation: Remote") == (
+        "Senior Full Stack Engineer (.NET / React)"
+    )
+    assert guess_title("Job Title : Devops Engineer\nLocation : Hyderabad") == "Devops Engineer"
+
+
+def test_glued_key_skill_chips_are_split_but_names_stay_whole() -> None:
+    assert unglue("Gen aiGenerative AiLangchainPython") == "Gen ai Generative Ai Langchain Python"
+    assert find_skills(unglue("KubernetesKafkaPostgresqlDocker")) == [
+        "Kubernetes", "Kafka", "PostgreSQL", "Docker",
+    ]  # fmt: skip
+    for name in ("JavaScript", "PostgreSQL", "FastAPI", "PyTorch", "GitHub", "NoSQL", "DevOps"):
+        assert unglue(name) == name
+
+
+ONE_PARAGRAPH_JD = """AI Engineer
+Key Responsibilities:
+- Build LLM features for our products. - Work with product teams. Minimum Qualifications: \
+- Bachelor's degree in Computer Science. - 3+ years of experience with Python and NLP. \
+Preferred Qualifications: - Experience with PyTorch or TensorFlow. Good to have skills: \
+Docker, Kubernetes
+Education
+UG: Any Graduate
+Key Skills
+LangchainRetrieval Augmented GenerationFastapi
+"""
+
+
+def test_one_paragraph_posting_with_inline_bullets_and_a_tag_cloud() -> None:
+    analysis = analyze_job(ONE_PARAGRAPH_JD, "AI Engineer")
+    tiers = {s.name: s.tier for s in analysis.skills}
+    assert tiers["Python"] == tiers["NLP"] == "required"
+    assert tiers["PyTorch"] == tiers["TensorFlow"] == tiers["Docker"] == "preferred"
+    # The tag cloud adds its known skills as preferred, but is never a requirement itself.
+    assert tiers["LangChain"] == tiers["RAG"] == tiers["FastAPI"] == "preferred"
+    assert not any("Langchain" in r.text for r in analysis.requirements)
+
+
+SKILL_LINES_JD = """Backend Developer
+Java 17 Spring Boot
+Docker Kubernetes Microsoft Azure
+JUnit Git Maven/Gradle
+We are a fast growing logistics company with offices in five cities.
+Required Candidate profile
+Design REST APIs and microservices
+"""
+
+
+def test_bare_skill_lists_are_requirements_but_prose_is_not() -> None:
+    analysis = analyze_job(SKILL_LINES_JD, "Backend Developer")
+    required = {s.name for s in analysis.skills if s.tier == "required"}
+    assert {"Java", "Docker", "Kubernetes", "Azure", "JUnit", "Git", "Maven", "Gradle"} <= required
+    assert "Required Candidate profile" in analysis.sections_found
+    assert not any(r.text.startswith("We are") for r in analysis.requirements)

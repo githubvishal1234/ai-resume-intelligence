@@ -13,7 +13,7 @@ import { Notice } from "@/components/ui/Notice";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import { ErrorState, PageLoading } from "@/components/ui/States";
 import { useCapabilities } from "@/hooks/useCapabilities";
-import { useAiAnalyzeJob, useDeleteJob, useJob, useReanalyzeJob, useUpdateJob } from "@/hooks/useJobs";
+import { JOB_DELETE_NOTE, useAiAnalyzeJob, useDeleteJob, useJob, useReanalyzeJob, useUpdateJob } from "@/hooks/useJobs";
 import { applyServerErrors } from "@/lib/formErrors";
 import { TIER_LABEL, type JobDetail, type Requirement, type Tier } from "@/services/jobService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
@@ -331,7 +331,7 @@ function DeleteJob({ job }: { job: JobDetail }) {
             </div>
           }
         >
-          The saved description and its analysis are removed. This cannot be undone.
+          {JOB_DELETE_NOTE}
         </Notice>
       ) : (
         <Button variant="destructive" icon={<Trash2 className="size-4" aria-hidden />} onClick={() => setConfirming(true)}>
