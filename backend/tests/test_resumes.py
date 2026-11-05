@@ -15,6 +15,7 @@ from app.models import Resume, ResumeFile, ResumeVersion
 from app.resumes.analysis import analyze
 from app.resumes.content import MAX_BULLETS, ResumeContent
 from app.resumes.parser import parse_resume
+from app.tailoring.factcheck import master_text
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT, make_docm, make_docx, make_encrypted_pdf, make_pdf
 
@@ -480,3 +481,123 @@ def test_a_role_with_many_bullets_keeps_them_and_says_when_it_cannot() -> None:
     )
     assert len(parsed.content.experience[0].bullets) == MAX_BULLETS
     assert any("the first 100 were kept" in n for s in parsed.sections for n in s.notes)
+
+
+PROJECT_STYLE = """Ravi Kumar
++91 9876543210
+ravi@example.com
+
+Professional Summary:
+
+\u2022 Having 2+ years of experience in web applications.
+
+Skill Set:
+
+
+
+Professional Experience:
+\u2022 Project 2
+\u2022 Project: Human Resource System
+\u2022 Client: Acme Labs
+\u2022 Role: Software Developer (Angular / .Net Core)
+\u2022 Duration: January 2026 \u2013 Present
+\u2022 Environment: .Net Core, C#, Angular 16
+
+Description:
+
+\u2022 A web application to manage employees, attendance and payroll
+across every department of the business.
+Languages TypeScript, C#
+Frontend
+Technologies
+Angular 16, TypeScript, HTML
+Backend
+Technologies
+ASP.NET Core Web API, Entity Framework Core
+State Management RxJS, BehaviorSubject
+Security JWT Authentication, Role-Based Authorization,
+CORS
+Database Microsoft SQL Server (MSSQL), T-SQL (Joins, Stored
+Procedures)
+Development Tools VS Code, Jira
+\u2022 The application follows a layered architecture.
+
+Responsibilities:
+\u2022 Developed dynamic UI components using Angular 16.
+
+\u2022 Project 1
+\u2022 Project: Enterprise resource planning
+\u2022 Client: Acme Labs
+\u2022 Role: Senior Software Developer (Angular / .Net Core / React)
+\u2022 Duration: July 2024 \u2013 December 2025
+\u2022 Environment: Angular, MSSQL
+
+Responsibilities:
+\u2022 Created MSSQL queries for inventory data.
+
+Educational Qualifications:
+
+\u2022 Bachelor of Technology (B. Tech) \u2013 Civil Engineering Andhra University, Andhra
+Pradesh - 2021
+
+
+Ravi Kumar
+Signature
+"""
+
+
+def test_a_project_style_resume_parses_block_by_block() -> None:
+    parsed = parse_resume(PROJECT_STYLE)
+    c = parsed.content
+    assert [(e.title, e.company, e.start_date, e.end_date) for e in c.experience] == [
+        ("Software Developer (Angular / .Net Core)", "Acme Labs", "January 2026", "Present"),
+        (
+            "Senior Software Developer (Angular / .Net Core / React)",
+            "Acme Labs",
+            "July 2024",
+            "December 2025",
+        ),
+    ]
+    first = c.experience[0]
+    assert first.current and first.bullets == [
+        "Project: Human Resource System",
+        "Environment: .Net Core, C#, Angular 16",
+        "A web application to manage employees, attendance and payroll "
+        "across every department of the business.",
+        "The application follows a layered architecture.",
+        "Developed dynamic UI components using Angular 16.",
+    ]
+    skills = {s.name: s.category for s in c.skills}
+    assert skills["TypeScript"] == "Languages"
+    assert skills["Angular 16"] == "Frontend Technologies"
+    assert skills["Entity Framework Core"] == "Backend Technologies"
+    assert skills["CORS"] == "Security"
+    assert skills["Microsoft SQL Server (MSSQL)"] == "Database"
+    assert skills["Stored Procedures"] == "Database"
+    assert skills["Jira"] == "Development Tools"
+    school = c.education[0]
+    assert (school.degree, school.field_of_study) == (
+        "Bachelor of Technology (B. Tech)",
+        "Civil Engineering",
+    )
+    assert school.institution == "Andhra University, Andhra Pradesh"
+    assert school.end_date == "2021"
+    assert "Signature" not in master_text(c)
+    report = {s.section: s.confidence for s in parsed.sections}
+    assert report["skills"] == "high" and report["education"] == "high"
+
+
+def test_a_skill_line_with_a_table_word_stays_whole() -> None:
+    text = "SKILLS\nSpring Security, Hibernate, Docker\nPython\nGo\nRust\nSQL\n"
+    names = [s.name for s in parse_resume(text).content.skills]
+    assert names == ["Spring Security", "Hibernate", "Docker", "Python", "Go", "Rust", "SQL"]
+
+
+def test_a_filled_skills_section_leaves_short_lines_in_experience_alone() -> None:
+    text = (
+        "Ravi Kumar\nravi@example.com\nSKILLS\nPython, SQL\nEXPERIENCE\n"
+        "Engineer | Acme\n2019 - 2021\nLed a team\nShipped the app\nRan audits\nFixed bugs\n"
+    )
+    c = parse_resume(text).content
+    assert [s.name for s in c.skills] == ["Python", "SQL"]
+    assert len(c.experience) == 1

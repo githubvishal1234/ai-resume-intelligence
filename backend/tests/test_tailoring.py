@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from app.ai.provider import LLMCapabilities, LLMMessage, LLMProvider, LLMUsage, StructuredResult
 from app.ai.registry import register_provider, unregister_provider
 from app.core.config import Settings, get_settings
+from app.core.errors import AiProviderFailed
 from app.jobs.analyzer import analyze_job
 from app.matching.matcher import match
 from app.resumes.content import Experience, OtherSection, Project, ResumeContent, Skill
@@ -347,6 +348,21 @@ def fake_ai(app: FastAPI, settings: Settings) -> Iterator[None]:
     _FakeProvider.reply = "Python backend engineer who scaled APIs 10x at Google."
     _FakeProvider.structured = {}
     _FakeProvider.calls = []
+
+
+def test_tailoring_keeps_the_rule_changes_when_the_ai_fails(
+    user_client: TestClient, fake_ai: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*args: Any, **kwargs: Any) -> None:
+        raise AiProviderFailed()
+
+    monkeypatch.setattr(_FakeProvider, "generate_structured", fail)
+    started = user_client.post(f"{API}/quick", json={"resume_text": SAMPLE_TEXT, "job_text": JD})
+    assert started.status_code == 201, started.text
+    tailored = user_client.post(f"{API}/{started.json()['id']}/tailor", json={"skills": []})
+    assert tailored.status_code == 200, tailored.text
+    headline = _change(tailored.json(), "headline")
+    assert headline["source"] == "rules" and headline["decision"] == "accepted"
 
 
 def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: None) -> None:

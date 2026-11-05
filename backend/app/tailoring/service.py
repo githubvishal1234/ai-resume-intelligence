@@ -12,6 +12,7 @@ Invariants:
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -116,6 +117,8 @@ class FocusOut(BaseModel):
     summary: str = Field(min_length=1, max_length=5000)
     bullets: list[FocusBullet] = Field(default_factory=list, max_length=60)
 
+
+logger = logging.getLogger(__name__)
 
 REWRITE_INSTRUCTIONS = (
     "You rewrite a resume summary for a specific job. Use ONLY facts present in the resume "
@@ -388,8 +391,9 @@ class TailoringService:
         self.db.commit()
         try:
             self.focus(session_id)
-        except AppError:  # AI busy or over its limit: the rule-based changes still stand
+        except AppError as exc:  # AI busy or over its limit: the rule-based changes still stand
             self.db.rollback()
+            logger.warning("tailor_ai_skipped", extra={"code": exc.code, "error": str(exc)[:300]})
         return self.accept_clean(session_id)
 
     def _pasted(self, text: str) -> tuple[Resume, ResumeVersion]:
@@ -765,6 +769,7 @@ class TailoringService:
                     requirement_ids=p.requirement_ids,
                     flags=self._flags(p.kind, p.proposed, facts),
                 )
+        self.db.commit()  # the rule-built changes stand even if the AI step below fails
         if ai_status(self.settings).configured:
             fallback = next((p for p in proposals if p.kind == "headline"), None)
             self._focus_ai(row, facts, job, fallback)
