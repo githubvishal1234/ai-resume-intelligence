@@ -136,7 +136,7 @@ const FAQ = [
   { q: "Will applicant tracking systems read my resume?", a: "Every template is real, selectable text with standard headings in a fixed reading order. One-column designs are the safest; sidebar and timeline designs are labelled ATS-friendly. After you download, the ATS check reads the PDF back the way screening software does and shows you the result." },
   { q: "Can I start from my existing resume?", a: "Yes. Upload a PDF, DOCX or TXT file. You review everything that was read before anything is saved." },
   { q: "Do I need AI to use it?", a: "No. The builder, job analysis, matching, tailoring and interview questions all work with built-in rules. When AI is switched on for your account, it adds rewrites and extra questions, and those are checked against your resume too." },
-  { q: "Who can see my resume?", a: "Only you, when signed in. You can delete your account, and with it every resume and uploaded file, from Settings at any time." },
+  { q: "Who can see my resume?", a: "Only you, when signed in. When AI is switched on, the text of your resume and job descriptions also goes to our AI provider so it can read and rewrite them, and the app tells you when that applies. You can delete your account, and with it every resume and uploaded file, from Settings at any time." },
   { q: "Is it free?", a: "Yes. The free plan includes the builder, every template, the ATS check, matching and tailoring. Pro adds AI help and is on a waitlist for now." },
 ];
 

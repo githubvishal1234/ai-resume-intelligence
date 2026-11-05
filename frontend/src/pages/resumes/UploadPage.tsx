@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { FileDrop } from "@/components/resume/FileDrop";
+import { AiDataNote } from "@/components/system/AiDataNote";
 import { Card } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
 import { PageLoading } from "@/components/ui/States";
@@ -17,6 +18,7 @@ export function UploadPage() {
         description="We extract the text and organize it into sections. Nothing is saved until you review it."
         back={{ to: "/resumes", label: "My Resumes" }}
       />
+      <AiDataNote className="mb-4" />
       <Card>
         {upload.isPending ? (
           <PageLoading label="Reading your resume" />

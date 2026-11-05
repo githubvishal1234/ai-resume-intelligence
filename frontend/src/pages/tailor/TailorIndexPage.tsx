@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, FileText, Sparkles, UploadCloud } from "lucide-react";
 import { useId, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { AiDataNote } from "@/components/system/AiDataNote";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
@@ -173,6 +174,7 @@ function QuickTailor({ master }: { master: { title: string; current_version: num
           {error instanceof ApiError ? error.message : "Something went wrong. Please try again."}
         </Notice>
       ) : null}
+      <AiDataNote className="mb-4" />
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Job description" hint={`The posting you're targeting (at least ${MIN_JOB} characters).`}>
           {({ id: fieldId, describedBy }) => (

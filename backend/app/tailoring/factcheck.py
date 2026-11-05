@@ -3,6 +3,9 @@
 Any text that would go into a tailored resume is compared with the master resume. Numbers,
 years, technologies and capitalized names that the master does not contain are flagged: they
 may be true, but the resume never said so, and the user has to fix or remove them.
+
+A bullet belongs to one role or project, so `check_role` also holds its tools and numbers to
+what that entry shows: a skill from another job is in the resume, but not in this job.
 """
 
 from __future__ import annotations
@@ -12,10 +15,12 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.resumes.content import ResumeContent
+from app.resumes.content import Experience, OtherSection, Project, ResumeContent
 from app.skills.vocabulary import find_skills
 
 FlagKind = Literal["number", "date", "technology", "name", "claim"]
+# The section of a session's facts holding what the user told us about a skill.
+CONFIRMED_HEADING = "Confirmed by the candidate"
 
 
 class FactFlag(BaseModel):
@@ -66,6 +71,13 @@ def master_text(master: ResumeContent) -> str:
     for o in c.other:
         parts += [o.heading, *o.lines]
     return "\n".join(p for p in parts if p)
+
+
+def place_label(entry: Experience | Project) -> str:
+    """How a role or project is named to the user, and in the notes it confirmed."""
+    if isinstance(entry, Project):
+        return f"Project: {entry.name or 'untitled'}"
+    return " at ".join(p for p in (entry.title, entry.company) if p) or "A role"
 
 
 def known_skills(master: ResumeContent) -> set[str]:
@@ -137,3 +149,45 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
         if phrase.lower() not in lowered and find_skills(m.group(1)):
             add("name", phrase, f"“{phrase}” reads as a job title your master resume doesn't show.")
     return flags
+
+
+def check_role(
+    text: str,
+    master: ResumeContent,
+    entry_id: str,
+    severity: Literal["block", "warn"] = "block",
+) -> list[FactFlag]:
+    """Tools, numbers and years the resume has, but not under this role or project.
+
+    Only what `check_text` passes is reported here, so nothing is flagged twice. Names stay
+    resume-wide: a capitalized word in one role's text is no evidence about another's.
+    """
+    role = next((e for e in master.experience if e.id == entry_id), None)
+    project = next((p for p in master.projects if p.id == entry_id), None)
+    entry = role or project
+    if entry is None:
+        return []
+    used_here = f"(used in {place_label(entry)})"
+    notes = [
+        line
+        for section in master.other
+        if section.heading == CONFIRMED_HEADING
+        for line in section.lines
+        if used_here in line
+    ]
+    scope = ResumeContent(
+        experience=[role] if role else [],
+        projects=[project] if project else [],
+        other=[OtherSection(heading=CONFIRMED_HEADING, lines=notes)] if notes else [],
+    )
+    wide = {(f.kind, f.value.lower()) for f in check_text(text, master)}
+    return [
+        FactFlag(
+            kind=f.kind,
+            value=f.value,
+            severity=severity,
+            message=f"“{f.value}” is in your master resume, but not under this role or project.",
+        )
+        for f in check_text(text, scope)
+        if f.kind in ("number", "date", "technology") and (f.kind, f.value.lower()) not in wide
+    ]
