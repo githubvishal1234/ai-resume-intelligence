@@ -334,7 +334,7 @@ Documentation (`docs/ARCHITECTURE.md`, `API.md`, `DATABASE.md`, `AI_ARCHITECTURE
 | D-02 | Official product name | **Pending** | Keep existing names; flag inconsistencies | Before public release |
 | D-03 | LLM provider / model(s) / key ownership / budget | **Decided: Groq (2026-10-13), OpenAI adapter also available** (model, key ownership and budget still open) | Provider-neutral interface; "AI not configured" state | Phase 2 verification |
 | D-04 | User model: single-org users, multi-tenant orgs, or consumer accounts; roles; SSO | **Pending** | Owner-scoped via `AccessPolicy` seam; no org tables | Before any sharing/team feature |
-| D-05 | Approved job sources (any scraping/API/partner access) | **Pending** | Manual paste + file upload only | Phase 3 extension |
+| D-05 | Approved job sources (any scraping/API/partner access) | **Decided 2026-10-22** | Greenhouse, Lever and Ashby public job-board APIs; other career pages via schema.org `JobPosting`, honouring robots.txt. LinkedIn, Indeed, Naukri and similar stay paste-only (their terms forbid automated reading). | Phase 3 extension |
 | D-06 | Deployment target, hosting, object storage | **Pending** | Provider-neutral containers + env config | Phase 9 |
 | D-07 | Email provider (verification, reset, notifications) | **Pending** | `EmailSender` boundary; email-dependent features disabled when unconfigured | Phase 1 (if auth needs it) |
 | D-08 | Data retention, deletion SLAs, backups, privacy/regulatory scope, user export | **Pending — no policy invented** | No auto-deletion; user-initiated delete only | Before production launch |

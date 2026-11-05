@@ -174,7 +174,7 @@ def test_url_import_is_refused_with_paste_fallback(user_client: TestClient) -> N
     assert response.status_code == 422
     body = response.json()
     assert body["code"] == "JOB_SOURCE_NOT_SUPPORTED"
-    assert "Paste the job description" in body["message"]
+    assert "paste it instead" in body["message"]
     assert user_client.get(API).json() == []
     bad = user_client.post(f"{API}/from-url", json={"url": "file:///etc/passwd"})
     assert bad.status_code == 422 and bad.json()["code"] == "VALIDATION_ERROR"

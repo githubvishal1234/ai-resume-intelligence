@@ -33,7 +33,7 @@ from app.models import Job, Resume, ResumeVersion, TailoringChange, TailoringSes
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 from app.tailoring.claims import check_claims
-from app.tailoring.factcheck import FactFlag, blocking, check_text
+from app.tailoring.factcheck import FactFlag, blocking, check_text, known_skills
 from app.tailoring.proposer import (
     EDITABLE_KINDS,
     METHOD_VERSION,
@@ -367,6 +367,14 @@ class TailoringService:
         else:
             instructions, target, limit = BULLET_INSTRUCTIONS, "BULLET TO REWRITE", 200
             text = str(change.original.get("text", ""))
+        # Naming the job's skills the resume doesn't show stops the model borrowing them from
+        # the job text; those rewrites were blocked by the fact check, wasting the call.
+        missing = sorted(set(find_skills(job.raw_text)) - known_skills(master))
+        if missing:
+            instructions += (
+                " These skills from the job are NOT in the resume, so never mention them, not "
+                "even inside a phrase: " + ", ".join(missing) + "."
+            )
         result = provider.generate_structured(
             RewriteOut,
             [

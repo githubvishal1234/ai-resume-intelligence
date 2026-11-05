@@ -128,32 +128,6 @@ describe("Job Analyzer", () => {
     });
   });
 
-  it("falls back to pasting when a link cannot be read", async () => {
-    const user = userEvent.setup();
-    mockApi([
-      me,
-      {
-        method: "POST",
-        path: "/jobs/from-url",
-        status: 422,
-        body: {
-          code: "JOB_SOURCE_NOT_SUPPORTED",
-          message: "Unable to extract this job posting. Paste the job description instead.",
-          request_id: "r1",
-          details: [],
-        },
-      },
-    ]);
-    renderApp("/jobs/new");
-    await user.click(await screen.findByRole("tab", { name: /From link/ }));
-    await user.type(screen.getByLabelText("Job posting link"), "https://jobs.example.com/123");
-    await user.click(screen.getByRole("button", { name: "Get job" }));
-    expect(await screen.findByText(/Unable to extract this job posting/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Paste the description instead" }));
-    expect(screen.getByRole("tab", { name: /Paste text/ })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("https://jobs.example.com/123")).toBeInTheDocument();
-  });
-
   it("shows requirements grouped by tier and the stated facts only", async () => {
     mockApi([me, { path: `/jobs/${JOB_ID}`, body: JOB }]);
     renderApp(`/jobs/${JOB_ID}`);

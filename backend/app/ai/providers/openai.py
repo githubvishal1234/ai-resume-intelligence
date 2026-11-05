@@ -39,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
 _RETRY_STATUSES = {408, 409, 429, 500, 502, 503, 504}
+# Groq sits behind Cloudflare, which answers 403 (error 1010) to urllib's default User-Agent.
+USER_AGENT = "ResumeIntelligence/1.0"
 _MAX_BACKOFF_SECONDS = 10.0
 
 
@@ -81,6 +83,7 @@ class OpenAIProvider(LLMProvider):
         self._retries = settings.llm_max_retries
         self._format = settings.llm_response_format
         self._min_tokens = max(self.min_output_tokens, settings.llm_min_output_tokens)
+        self._effort = settings.llm_reasoning_effort
 
     @property
     def model(self) -> str:
@@ -115,6 +118,8 @@ class OpenAIProvider(LLMProvider):
         }
         if max_output_tokens is not None:
             body["max_completion_tokens"] = max(max_output_tokens, self._min_tokens)
+        if self._effort:
+            body["reasoning_effort"] = self._effort
 
         started = time.monotonic()
         data = self._post(body)
@@ -157,6 +162,7 @@ class OpenAIProvider(LLMProvider):
                 method="POST",
                 headers={
                     "Authorization": f"Bearer {self._key}",
+                    "User-Agent": USER_AGENT,
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                 },

@@ -59,6 +59,12 @@ def master_text(master: ResumeContent) -> str:
     return "\n".join(p for p in parts if p)
 
 
+def known_skills(master: ResumeContent) -> set[str]:
+    """Skills the master resume shows anywhere; any other skill in new text is flagged."""
+    corpus = master_text(master)
+    return set(find_skills(corpus)) | set(find_skills(corpus, prose=False))
+
+
 def _norm_number(value: str) -> str:
     return re.sub(r"[\s,]", "", value).lower()
 
@@ -68,7 +74,7 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
     lowered = corpus.lower()
     known_numbers = {_norm_number(n) for n in _NUMBER.findall(corpus)}
     known_numbers |= {re.sub(r"%$", "", n) for n in known_numbers}
-    known_skills = set(find_skills(corpus)) | set(find_skills(corpus, prose=False))
+    shown = known_skills(master)
     flags: list[FactFlag] = []
     seen: set[tuple[str, str]] = set()
 
@@ -87,7 +93,7 @@ def check_text(text: str, master: ResumeContent) -> list[FactFlag]:
             add("number", raw.strip(), f"“{raw.strip()}” does not appear in your master resume.")
 
     for skill in find_skills(text):
-        if skill not in known_skills:
+        if skill not in shown:
             add("technology", skill, f"Your master resume does not mention {skill}.")
 
     skills_in_text = {s.lower() for s in find_skills(text)}

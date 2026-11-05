@@ -1,7 +1,8 @@
 """Saved job descriptions and their deterministic analysis.
 
-- Only pasted text and uploaded files are accepted. Fetching from a URL needs an approved
-  source adapter (Decision Register D-05); none is registered, so URLs get a clear refusal.
+- Text comes from a paste, an uploaded file or a link. Links are read only by an approved source
+  adapter (`sources.py`, D-05); sites that forbid it, or pages that can't be read, get a clear
+  refusal that points to pasting the text.
 - Every lookup goes through the access policy; another user's job looks like "not found".
 """
 
@@ -21,8 +22,9 @@ from app.core.config import Settings
 from app.core.errors import AppError, NotFound
 from app.jobs.ai_analyzer import AiAnalysisEmpty, ai_analyze
 from app.jobs.analyzer import ANALYZER_VERSION, analyze_job, guess_title
+from app.jobs.fetch import tidy
 from app.jobs.schemas import MAX_JOB_CHARS, MIN_JOB_CHARS
-from app.jobs.sources import registered_adapters
+from app.jobs.sources import blocked_site, registered_adapters
 from app.models import Job
 from app.resumes.extraction import extract_text, safe_display_name
 
@@ -125,11 +127,28 @@ class JobService:
         )
 
     def create_from_url(self, url: str) -> Job:
+        if site := blocked_site(url):
+            raise JobSourceNotSupported(
+                f"{site} doesn't allow other apps to read its postings. Open the job there, copy "
+                "the description and paste it instead."
+            )
         adapter = next((a for a in registered_adapters() if a.matches(url)), None)
         if adapter is None:
             raise JobSourceNotSupported()
-        raw = adapter.fetch(url)  # pragma: no cover - no adapters are approved yet (D-05)
-        return self.create(raw.text, source="url", source_url=raw.source_url or url)
+        raw = adapter.fetch(url)
+        text = tidy(raw.text)
+        if len(text) < MIN_JOB_CHARS:
+            raise JobSourceNotSupported(
+                "That posting has too little text to analyse. Paste the job description instead."
+            )
+        return self.create(
+            text,
+            source="url",
+            source_url=raw.source_url or url,
+            title=raw.title,
+            company=raw.company,
+            location=raw.location,
+        )
 
     def update(
         self,
