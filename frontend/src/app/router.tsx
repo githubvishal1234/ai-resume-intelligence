@@ -28,6 +28,7 @@ export const routes: RouteObject[] = [
   // Public product page; signed-out visitors to "/" land here (see RequireAuth).
   { path: "/welcome", HydrateFallback: AppLoading, ...page(() => import("@/pages/LandingPage"), "LandingPage") },
   { path: "/pricing", HydrateFallback: AppLoading, ...page(() => import("@/pages/PricingPage"), "PricingPage") },
+  { path: "/templates", HydrateFallback: AppLoading, ...page(() => import("@/pages/TemplatesPage"), "TemplatesPage") },
   {
     HydrateFallback: AppLoading,
     element: <RedirectIfAuthed />,

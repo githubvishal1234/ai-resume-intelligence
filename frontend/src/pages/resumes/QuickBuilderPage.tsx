@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, CircleAlert, Eye, EyeOff, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { TextBacked } from "@/components/resume/ResumeEditor";
 import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
@@ -78,7 +78,11 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
     return readDraft<Draft>(draftKey) ?? { doc: emptyResume(), template: DEFAULT_TEMPLATE, title: "Master resume", step: 0 };
   });
   const [doc, setDoc] = useState<ResumeDoc>(initial.doc);
-  const [template, setTemplate] = useState(templates.some((t) => t.id === initial.template) ? initial.template : (templates[0]?.id ?? DEFAULT_TEMPLATE));
+  // A template picked in the gallery (?template=) wins over the one saved in the draft.
+  const [params] = useSearchParams();
+  const [template, setTemplate] = useState(
+    [params.get("template"), initial.template].find((id) => templates.some((t) => t.id === id)) ?? templates[0]?.id ?? DEFAULT_TEMPLATE,
+  );
   const [title, setTitle] = useState(initial.title);
   const [step, setStep] = useState(Math.min(initial.step, STEPS.length - 1));
   const [showPreview, setShowPreview] = useState(false);

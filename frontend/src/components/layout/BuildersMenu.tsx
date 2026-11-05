@@ -17,9 +17,9 @@ const SAMPLE_PROFILE = draftProfile(SAMPLE_RESUME);
 function MiniProfile() {
   return (
     <div role="img" aria-label="Sample profile" className="overflow-hidden rounded-[2px] bg-white text-[#111]">
-      <div className="h-6 bg-[linear-gradient(120deg,#2a4bf2,#1a33c2)]" />
+      <div className="h-6 bg-[linear-gradient(120deg,#047857,#064e3b)]" />
       <div className="px-3 pb-3">
-        <div className="-mt-4 flex size-9 items-center justify-center rounded-full border-2 border-white bg-[#eef1ff] text-[11px] font-bold text-[#0e1a66]">AM</div>
+        <div className="-mt-4 flex size-9 items-center justify-center rounded-full border-2 border-white bg-[#ecfdf5] text-[11px] font-bold text-[#064e3b]">AM</div>
         <p className="mt-1 text-[11px] font-bold">{SAMPLE_RESUME.contact.full_name}</p>
         <p className="text-[9px] leading-tight">{SAMPLE_PROFILE.headlines[1]}</p>
         <p className="mt-1.5 line-clamp-4 text-[8px] leading-snug text-[#444]">{SAMPLE_PROFILE.about}</p>
@@ -32,22 +32,22 @@ const BUILDERS: { to: string; title: string; body: string; tone: string; preview
   {
     to: "/resumes/new",
     title: "Resume Builder",
-    body: "A one-page, ATS-safe resume in six templates, built step by step.",
-    tone: "bg-accent",
+    body: "A one-page, ATS-safe resume in dozens of templates, built step by step.",
+    tone: "bg-[#d1fae5]",
     preview: <ResumePaper doc={SAMPLE_RESUME} template="modern" label="Sample resume" />,
   },
   {
     to: "/cv-builder",
     title: "CV Builder",
     body: "A full-length CV that leads with education, with room for publications and languages.",
-    tone: "bg-[#f4a493]",
+    tone: "bg-[#e7e5e4]",
     preview: <ResumePaper doc={SAMPLE_RESUME} template="cv-academic" label="Sample CV" />,
   },
   {
     to: "/cover-letters",
     title: "Cover Letter Builder",
     body: "A draft matched to the job, where every claim is a line from your resume.",
-    tone: "bg-[#8cc9cf]",
+    tone: "bg-[#fef3c7]",
     preview: (
       <LetterPaper contact={SAMPLE_RESUME.contact} recipient="Dana Lee" company="Northwind" body={SAMPLE_LETTER} template="classic" label="Sample cover letter" />
     ),
@@ -56,7 +56,7 @@ const BUILDERS: { to: string; title: string; body: string; tone: string; preview
     to: "/profile-builder",
     title: "Profile Builder",
     body: "A headline and About section for your professional profile, from your resume's own words.",
-    tone: "bg-[#b9c4ff]",
+    tone: "bg-[#ccfbf1]",
     preview: <MiniProfile />,
   },
 ];

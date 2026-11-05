@@ -13,12 +13,21 @@ from collections.abc import Callable
 from datetime import date
 from xml.sax.saxutils import escape
 
-from reportlab.lib.colors import HexColor
+from reportlab.lib.colors import Color, HexColor, white
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import HRFlowable, KeepTogether, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.platypus import (
+    HRFlowable,
+    KeepTogether,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 from reportlab.platypus.flowables import Flowable
 
 from app.output import fonts
@@ -67,6 +76,12 @@ def _make_safe(template: Template) -> Callable[[str], str]:
     return safe
 
 
+def tint(hex_colour: str, amount: float = 0.12) -> Color:
+    """``hex_colour`` mixed with white; ``amount`` is the share of the colour."""
+    c = HexColor(hex_colour)
+    return Color(*(1 - amount * (1 - v) for v in (c.red, c.green, c.blue)))
+
+
 def _dates(start: str, end: str, current: bool = False) -> str:
     end_text = "Present" if current else end
     return " – ".join(p for p in (start, end_text) if p)
@@ -100,8 +115,10 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
         fontSize=t.heading_size,
         leading=t.heading_size * 1.3,
         textColor=accent,
-        spaceBefore=t.body_size * 0.9,
-        spaceAfter=2,
+        spaceBefore=t.body_size * (1.4 if t.heading_band else 0.9),
+        spaceAfter=5 if t.heading_band else 2,
+        backColor=tint(t.accent) if t.heading_band else None,
+        borderPadding=(2, 4, 2, 4) if t.heading_band else 0,
     )
     entry = ParagraphStyle("entry", parent=base, fontName=t.font_bold)
     meta = ParagraphStyle("meta", parent=base, fontSize=t.body_size - 0.5)
@@ -111,13 +128,33 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
 
     story: list[Flowable] = []
     c = content
-    if c.contact.full_name:
-        story.append(_p(c.contact.full_name, name_style))
     contact = " | ".join(
         p for p in (c.contact.email, c.contact.phone, c.contact.location, *c.contact.links) if p
     )
+    if t.header == "banner":
+        name_style.textColor = contact_style.textColor = white
+        contact_style.spaceAfter = 0
+    head: list[Flowable] = []
+    if c.contact.full_name:
+        head.append(_p(c.contact.full_name, name_style))
     if contact:
-        story.append(_p(contact, contact_style))
+        head.append(_p(contact, contact_style))
+    if t.header == "banner" and head:
+        band = Table([[head]], colWidths=["100%"])
+        band.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), accent),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                    ("TOPPADDING", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ]
+            )
+        )
+        story += [band, Spacer(1, 4)]
+    else:
+        story += head
 
     def section(key: str) -> None:
         story.append(_p(HEADINGS[key], heading))
@@ -224,7 +261,13 @@ def render_pdf(content: ResumeContent, template: Template, title: str = "Resume"
         author=_safe(c.contact.full_name),
         creator="Resume Intelligence",
     )
-    doc.build(story or [_p(" ", base)])
+
+    def stripe(canvas: Canvas, _doc: SimpleDocTemplate) -> None:
+        if t.header == "stripe":
+            canvas.setFillColor(accent)
+            canvas.rect(0, 0, 5 * mm, A4[1], stroke=0, fill=1)
+
+    doc.build(story or [_p(" ", base)], onFirstPage=stripe, onLaterPages=stripe)
     return out.getvalue()
 
 

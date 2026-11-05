@@ -55,7 +55,7 @@ export async function payWithRazorpay(
       name: details.productName,
       description: details.description,
       prefill: { name: details.name, email: details.email },
-      theme: { color: "#2a4bf2" },
+      theme: { color: "#047857" },
       handler: (result) => resolve(result),
       modal: { ondismiss: () => resolve(null) },
     }).open();

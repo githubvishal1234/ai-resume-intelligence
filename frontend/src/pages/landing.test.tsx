@@ -8,10 +8,11 @@ describe("Landing page", () => {
     const { router } = renderApp("/");
     expect(await screen.findByRole("heading", { level: 1, name: /Build a resume that gets read/ })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/welcome");
-    // Every template is shown with the sample resume.
-    for (const name of ["Classic", "Modern", "Executive", "Minimal", "Compact", "Serif"]) {
+    // A showcase of templates with the sample resume, and a link to the full gallery.
+    for (const name of ["Classic", "Banner · Forest", "Executive", "Stripe · Charcoal", "Elegant · Teal", "Statement · Navy"]) {
       expect(screen.getByRole("img", { name: `Sample resume in the ${name} template` })).toBeInTheDocument();
     }
+    expect(screen.getByRole("link", { name: /Browse all templates/ })).toHaveAttribute("href", "/templates");
     for (const link of screen.getAllByRole("link", { name: /Build my resume/ })) expect(link).toHaveAttribute("href", "/register");
     expect(screen.getAllByRole("link", { name: "Sign in" })[0]).toHaveAttribute("href", "/login");
   });

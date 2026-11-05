@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { ThemeChoice } from "@/components/layout/ThemeToggle";
 import { CapabilitiesCard } from "@/components/system/CapabilitiesCard";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -31,6 +32,7 @@ export function SettingsPage() {
       <h1 className="font-display text-headline-lg text-on-surface">Settings</h1>
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileCard />
+        <AppearanceCard />
         <PlanCard />
         <PasswordCard />
         <SignInsCard />
@@ -38,6 +40,15 @@ export function SettingsPage() {
         <DeleteAccountCard />
       </div>
     </div>
+  );
+}
+
+function AppearanceCard() {
+  return (
+    <Card aria-labelledby="appearance-title">
+      <CardHeader id="appearance-title" title="Appearance" description="Light, dark, or follow your device. Saved in this browser." />
+      <ThemeChoice />
+    </Card>
   );
 }
 

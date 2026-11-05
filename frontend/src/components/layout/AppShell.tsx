@@ -9,6 +9,7 @@ import { MobileTabBar } from "./MobileTabBar";
 import { NavDrawer } from "./NavDrawer";
 import { NavList } from "./NavList";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 
 function initials(name: string): string {
   return (
@@ -69,6 +70,7 @@ export function AppShell() {
           <GlobalSearch />
 
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <NotificationBell />
             {user ? (
               <div className="hidden items-center gap-2.5 sm:flex">

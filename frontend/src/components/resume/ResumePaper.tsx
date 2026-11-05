@@ -9,6 +9,12 @@ const MM = 2.8346;
 
 const HEADINGS = { summary: "Summary", experience: "Experience", education: "Education", skills: "Skills", projects: "Projects", certifications: "Certifications" };
 
+/** `hex` mixed with white (12% colour), as `tint` in backend/app/output/pdf.py. */
+function tint(hex: string) {
+  const mix = (i: number) => Math.round(255 - 0.12 * (255 - parseInt(hex.slice(i, i + 2), 16)));
+  return `rgb(${mix(1)}, ${mix(3)}, ${mix(5)})`;
+}
+
 function dates(start: string, end: string, current = false) {
   return [start, current ? "Present" : end].filter(Boolean).join(" – ");
 }
@@ -56,11 +62,13 @@ export function ResumePaper({ doc, template, className, label }: { doc: ResumeDo
     marginBottom: pt(3),
     paddingBottom: t.rule ? pt(2) : undefined,
     borderBottom: t.rule ? `${pt(0.6)} solid ${t.accent}` : undefined,
+    ...(t.band ? { background: tint(t.accent), padding: `${pt(2)} ${pt(4)}`, marginTop: pt(body * 1.4), marginBottom: pt(5) } : {}),
   };
   const meta: CSSProperties = { fontSize: pt(body - 0.5) };
   const gap: CSSProperties = { marginBottom: pt(4) };
   const c = doc.contact;
   const contact = [c.email, c.phone, c.location, ...c.links].filter(Boolean).join(" | ");
+  const banner = t.header === "banner" && Boolean(c.full_name || contact);
 
   const groups: { category: string; names: string[] }[] = [];
   for (const s of doc.skills) {
@@ -149,13 +157,16 @@ export function ResumePaper({ doc, template, className, label }: { doc: ResumeDo
       <div
         role="img"
         aria-label={label ?? `Preview in the ${t.name} template`}
-        className="aspect-[210/297] w-full overflow-hidden rounded-[2px] shadow-level-2 ring-1 ring-black/5"
+        className="relative aspect-[210/297] w-full overflow-hidden rounded-[2px] shadow-level-2 ring-1 ring-black/5"
         style={page}
       >
-        {c.full_name ? (
-          <p style={{ fontWeight: 700, fontSize: pt(t.namePt), lineHeight: 1.2, textAlign: t.center ? "center" : "left" }}>{c.full_name}</p>
-        ) : null}
-        {contact ? <p style={{ marginBottom: pt(4), textAlign: t.center ? "center" : "left", overflowWrap: "anywhere" }}>{contact}</p> : null}
+        {t.header === "stripe" ? <div aria-hidden style={{ position: "absolute", inset: "0 auto 0 0", width: pt(5 * MM), background: t.accent }} /> : null}
+        <div style={banner ? { background: t.accent, color: "#ffffff", padding: `${pt(10)} ${pt(12)}`, marginBottom: pt(4) } : undefined}>
+          {c.full_name ? (
+            <p style={{ fontWeight: 700, fontSize: pt(t.namePt), lineHeight: 1.2, textAlign: t.center ? "center" : "left" }}>{c.full_name}</p>
+          ) : null}
+          {contact ? <p style={{ marginBottom: banner ? 0 : pt(4), textAlign: t.center ? "center" : "left", overflowWrap: "anywhere" }}>{contact}</p> : null}
+        </div>
 
         {t.order.map((key) => (
           <Fragment key={key}>{sections[key]}</Fragment>
