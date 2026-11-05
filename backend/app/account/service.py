@@ -14,12 +14,14 @@ from datetime import datetime
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.account.photo import photo_key
 from app.auth.repository import AuditRepository
 from app.auth.service import WeakPassword
 from app.billing.service import BillingService
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
 from app.core.security import hash_password, verify_password
+from app.db import cleanup
 from app.models import AuditLog, ResumeFile, User, UserSession
 from app.storage.base import StorageBackend
 
@@ -112,6 +114,9 @@ class AccountService:
         keys = list(
             self.db.scalars(select(ResumeFile.storage_key).where(ResumeFile.owner_id == user_id))
         )
+        if self.storage.exists(photo_key(user_id)):
+            keys.append(photo_key(user_id))
+        cleanup.account(self.db, user_id)
         self.db.execute(delete(User).where(User.id == user_id))
         # Kept without the user: the audit trail records that a deletion happened, not who.
         self.audit.record(

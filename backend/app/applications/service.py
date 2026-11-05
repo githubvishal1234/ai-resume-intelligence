@@ -14,13 +14,14 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
-from sqlalchemy import func, select, update
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import func, insert, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.errors import AppError, NotFound
+from app.db import cleanup
 from app.models import Application, ApplicationEvent, Job, Notification, Resume
 from app.models.application import CLOSED_STATUSES
 
@@ -256,8 +257,7 @@ class ApplicationService:
         return application
 
     def delete(self, application_id: uuid.UUID) -> None:
-        application = self._owned(application_id)
-        self.db.delete(application)
+        cleanup.application(self.db, self._owned(application_id).id)
         self._audit("application.delete", str(application_id))
         self.db.commit()
 
@@ -313,13 +313,13 @@ class NotificationService:
             for a in due
             if f"follow_up:{a.id}:{a.follow_up_on}" not in existing
         ]
-        if rows:  # ON CONFLICT still guards against two requests racing
-            self.db.execute(
-                insert(Notification)
-                .values(rows)
-                .on_conflict_do_nothing(constraint="uq_notifications_owner_id_dedupe_key")
-            )
-            self.db.commit()
+        if rows:
+            try:
+                self.db.execute(insert(Notification), rows)
+                self.db.commit()
+            except IntegrityError:
+                # Another request created the same reminders first; the unique key kept one.
+                self.db.rollback()
 
     def list_notifications(self) -> list[Notification]:
         return list(

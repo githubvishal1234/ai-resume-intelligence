@@ -65,6 +65,22 @@ const JOB = { id: JOB_ID, source: "paste", title: "Senior Backend Engineer", com
 const MASTER = { id: RESUME_ID, kind: "master", status: "active", title: "Master resume", current_version: 2, master_resume_id: null, created_at: "2026-10-12T05:00:00Z", updated_at: "2026-10-12T05:00:00Z" };
 
 describe("Interview Prep", () => {
+  it("deletes a prep from the list after a confirm", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/interview/preps", body: [SUMMARY] },
+      { path: "/jobs", body: [JOB] },
+      { path: "/resumes", body: [MASTER] },
+      { method: "DELETE", path: `/interview/preps/${PREP_ID}`, status: 204 },
+    ]);
+    renderApp("/interview");
+    await user.click(await screen.findByRole("button", { name: "Delete Senior Backend Engineer" }));
+    await user.click(screen.getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
+    expect(calls.find((c) => c.method === "DELETE")?.path).toBe(`/interview/preps/${PREP_ID}`);
+  });
+
   it("builds a question set for a job", async () => {
     const { calls } = mockApi([
       me,

@@ -21,6 +21,7 @@ import {
   useSaveAnswer,
   useStartPractice,
 } from "@/hooks/useInterview";
+import { useDeleteControls } from "@/hooks/useDeleteControls";
 import { useJobList } from "@/hooks/useJobs";
 import { useMasterSummary, useResumeList } from "@/hooks/useResumes";
 import { cn } from "@/lib/cn";
@@ -28,6 +29,7 @@ import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
   type PracticeSession,
+  type PrepSummary,
   type PracticeSessionSummary,
   type PrepDetail,
   type Question,
@@ -76,25 +78,7 @@ export function InterviewIndexPage() {
           <ul className="space-y-3">
             {preps.data.map((p) => (
               <li key={p.id}>
-                <Card className="relative hover:border-primary">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link
-                        to={`/interview/${p.id}`}
-                        className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary"
-                      >
-                        {p.job_title}
-                      </Link>
-                      <p className="mt-1 text-body-sm text-on-surface-variant">
-                        {[p.company, `${p.resume_title ?? "Resume"} v${p.resume_version}`, formatDate(p.created_at)].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Pill tone="brand">{p.question_count} questions</Pill>
-                      <Pill>{p.session_count} practice sessions</Pill>
-                    </div>
-                  </div>
-                </Card>
+                <PrepCard prep={p} />
               </li>
             ))}
           </ul>
@@ -649,5 +633,38 @@ function FeedbackList({ title, items }: { title: string; items: string[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** One interview prep: the whole card opens it; its delete button sits above that link. */
+function PrepCard({ prep: p }: { prep: PrepSummary }) {
+  const remove = useDeletePrep(p.id);
+  const del = useDeleteControls({
+    name: p.job_title,
+    note: "Its questions and practice sessions, with your answers, are removed. The job and your resumes stay. This can't be undone.",
+    action: remove,
+  });
+  return (
+    <Card className="relative hover:border-primary">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <Link
+            to={`/interview/${p.id}`}
+            className="font-display text-headline-sm text-on-surface after:absolute after:inset-0 hover:text-primary"
+          >
+            {p.job_title}
+          </Link>
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            {[p.company, `${p.resume_title ?? "Resume"} v${p.resume_version}`, formatDate(p.created_at)].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill tone="brand">{p.question_count} questions</Pill>
+          <Pill>{p.session_count} practice sessions</Pill>
+          {del.button}
+        </div>
+      </div>
+      {del.confirm}
+    </Card>
   );
 }

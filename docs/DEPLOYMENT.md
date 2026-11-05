@@ -7,7 +7,7 @@ whatever it is: what runs, what it needs, how to release, and how to recover.
 
 | Piece | Image / command | Notes |
 |---|---|---|
-| Database | PostgreSQL 16 | Needs `gen_random_uuid()` (built in since 13). One database per environment. |
+| Database | Microsoft SQL Server 2019+ | One database per environment, created with `python -m app.db.create_database`. The API image includes Microsoft ODBC Driver 18. |
 | API | `backend/Dockerfile` → `uvicorn app.main:app` on :8000 | Stateless apart from upload storage. Runs as uid 10001. |
 | Web | `frontend/Dockerfile` → nginx on :8080 | Serves the SPA and proxies `/api/` to the API, so both share one origin and need no CORS. |
 | Migrations | `alembic upgrade head` (same API image) | A separate, explicit release step. The API never migrates itself. |
@@ -25,7 +25,7 @@ safe development defaults. In production:
 | Variable | Value |
 |---|---|
 | `APP_ENV` | `production`. The app then refuses to start with the dev database password, an insecure cookie or `*` CORS. It also hides `/api/docs`. |
-| `DATABASE_URL` | `postgresql+psycopg://…` with a real password, from the host's secret store. |
+| `DATABASE_URL` | `mssql+pyodbc://…?driver=ODBC+Driver+18+for+SQL+Server` with a dedicated login (never `sa`) and a real password, from the host's secret store. Drop `TrustServerCertificate=yes` once the server has a trusted certificate. |
 | `SESSION_COOKIE_SECURE` | `true` (HTTPS only). |
 | `FORWARDED_ALLOW_IPS` | The IPs of the proxy in front of the API (the web container's network). Never `*` in production: rate limiting keys on the client IP from `X-Forwarded-For`. |
 | `STORAGE_BACKEND` | `local` (default) or `s3`. |
@@ -83,12 +83,17 @@ compatible, its PR must say so and include the downgrade plan.
 
 ## Backups
 
-`scripts/backup.sh` writes a timestamped folder with a `pg_dump` custom-format dump, a tarball of
-the upload storage, and `SHA256SUMS`. It keeps the newest `BACKUP_KEEP` (default 14) folders.
+Back up the database with SQL Server's own backups (a SQL Server Agent job, or your DBA's
+maintenance plan), for example:
 
-```bash
-DATABASE_URL=… STORAGE_LOCAL_ROOT=/app/var/storage BACKUP_DIR=/backups ./scripts/backup.sh
+```sql
+BACKUP DATABASE resume_intel TO DISK = N'D:\Backups\resume_intel.bak'
+  WITH COMPRESSION, CHECKSUM, INIT;
 ```
+
+Back up the upload storage folder (`STORAGE_LOCAL_ROOT`) on the same schedule. Note that
+`scripts/backup.sh` and `scripts/restore.sh` still use `pg_dump`/`pg_restore` from the PostgreSQL
+era: their storage steps work, their database steps do not apply to SQL Server.
 
 - Run it at least daily, and before every release. Copy `BACKUP_DIR` off the host (object
   storage with its own retention). How long backups are kept is part of D-08 (retention).
@@ -97,13 +102,12 @@ DATABASE_URL=… STORAGE_LOCAL_ROOT=/app/var/storage BACKUP_DIR=/backups ./scrip
 
 ### Restore
 
-`scripts/restore.sh` checks the checksums and restores into an **empty** database and an empty
-storage folder. It refuses to touch a database that already has tables.
+Restore into a new, empty database and a copy of the storage folder:
 
-```bash
-createdb resume_intel_restore
-DATABASE_URL=…/resume_intel_restore STORAGE_LOCAL_ROOT=/restore/storage \
-  ./scripts/restore.sh /backups/20261012T065400Z
+```sql
+RESTORE DATABASE resume_intel_restore FROM DISK = N'D:\Backups\resume_intel.bak'
+  WITH MOVE 'resume_intel' TO N'D:\Data\resume_intel_restore.mdf',
+       MOVE 'resume_intel_log' TO N'D:\Data\resume_intel_restore_log.ldf';
 ```
 
 Then point an API instance at it and check `GET /api/v1/health/ready`.

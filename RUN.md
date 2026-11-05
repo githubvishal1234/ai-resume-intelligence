@@ -2,7 +2,7 @@
 
 All 18 phases in `PHASES.md` are built. This page takes you from a fresh PC to a running app.
 The app has two parts that run at the same time: the **backend** (Python API on port 8000) and
-the **frontend** (website on port 5173). Both use a **PostgreSQL** database.
+the **frontend** (website on port 5173). Both use a **Microsoft SQL Server** database.
 
 ## 1. Install the prerequisites (once)
 
@@ -10,31 +10,44 @@ the **frontend** (website on port 5173). Both use a **PostgreSQL** database.
 |---|---|---|---|
 | Python | 3.12 or newer | https://www.python.org/downloads/ | On Windows, tick **"Add python.exe to PATH"** in the installer. |
 | Node.js | 22 or newer | https://nodejs.org/ | The LTS version is fine. |
-| PostgreSQL | 16 | https://www.postgresql.org/download/ | Remember the password you set for the `postgres` user. |
+| SQL Server | 2019 or newer | Your company server, or SQL Server Developer/Express edition | You need a login that can create databases. |
+| Microsoft ODBC Driver 18 for SQL Server | 18 | https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server | The Python driver (`pyodbc`) uses it. |
 
 Check them in a new terminal:
 
 ```powershell
 python --version
 node --version
-psql --version
+Get-OdbcDriver -Name "ODBC Driver 18 for SQL Server"
 ```
 
-If `psql` is not found on Windows, add `C:\Program Files\PostgreSQL\16\bin` to your PATH, or use
-the full path, for example `& "C:\Program Files\PostgreSQL\16\bin\psql.exe" --version`.
+## 2. Create the database and login (once)
 
-## 2. Create the database (once)
+In SQL Server Management Studio, connect as an administrator, open **New Query** and run this,
+with a strong password of your own in place of `CHOOSE_A_STRONG_PASSWORD`:
 
-Open a terminal and run (enter the `postgres` password when asked):
+```sql
+CREATE LOGIN resume_app WITH PASSWORD = 'CHOOSE_A_STRONG_PASSWORD', CHECK_POLICY = ON;
+CREATE DATABASE resume_intel;
+CREATE DATABASE resume_intel_test;
+GO
+USE resume_intel;      CREATE USER resume_app FOR LOGIN resume_app; ALTER ROLE db_owner ADD MEMBER resume_app;
+GO
+USE resume_intel_test; CREATE USER resume_app FOR LOGIN resume_app; ALTER ROLE db_owner ADD MEMBER resume_app;
+GO
+```
 
-```powershell
-psql -U postgres -c "CREATE ROLE resume_app LOGIN PASSWORD 'dev_only_password';"
-psql -U postgres -c "CREATE DATABASE resume_intel OWNER resume_app;"
-psql -U postgres -c "CREATE DATABASE resume_intel_test OWNER resume_app;"
+Then set both URLs in `backend/.env`. Take the host and port from SSMS's "Server name"; a comma
+there is a colon in the URL (`192.168.29.53,50491` becomes `192.168.29.53:50491`):
+
+```
+DATABASE_URL=mssql+pyodbc://resume_app:PASSWORD@HOST:PORT/resume_intel?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+TEST_DATABASE_URL=mssql+pyodbc://resume_app:PASSWORD@HOST:PORT/resume_intel_test?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
 ```
 
 `resume_intel` is the app's database. `resume_intel_test` is only for the test suite, which
-deletes its tables on each run. `dev_only_password` is for local development only.
+deletes its tables on each run. The app never needs `sa`: use this dedicated login. If the
+password contains `@`, `:` or `/`, write it URL-encoded (`@` becomes `%40`).
 
 ## 3. Start the backend (terminal 1)
 
@@ -136,8 +149,10 @@ npm run build
 
 | Problem | Fix |
 |---|---|
-| `password authentication failed for user "resume_app"` | Step 2 was skipped or used a different password. Re-run it, or change `DATABASE_URL` in `backend/.env`. |
-| `connection refused` on port 5432 | PostgreSQL is not running. Start the "postgresql-x64-16" service (Windows) or `brew services start postgresql@16` (macOS). |
+| `Login failed for user 'resume_app'` | Step 2 was skipped or the password in `backend/.env` differs. Check `DATABASE_URL`. |
+| `Can't open lib 'ODBC Driver 18 for SQL Server'` | Install Microsoft ODBC Driver 18 for SQL Server (step 1). |
+| `TCP Provider: ... timeout` | Wrong or blocked host/port. Use SSMS's "Server name"; its comma is a colon in the URL. |
+| `Cannot open database "resume_intel"` | Run `python -m app.db.create_database` once, then `alembic upgrade head`. |
 | Website shows network errors | The backend (terminal 1) is not running. |
 | `Port 5173 is in use` | Close the other dev server, or use the port Vite prints instead. |
 | Backend tests refuse to run | `TEST_DATABASE_URL` must point at a database whose name ends in `_test`. |
@@ -161,7 +176,7 @@ download the PDF) against the real API and database. From `frontend/`, once:
 npx playwright install chromium
 ```
 
-Then, with PostgreSQL running and `backend/.env` set up:
+Then, with SQL Server reachable and `backend/.env` set up:
 
 ```powershell
 npm run e2e

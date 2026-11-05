@@ -20,6 +20,8 @@ export type ResumeDoc = {
   projects: Project[];
   certifications: Certification[];
   other: OtherSection[];
+  /** Sections read in this order where the first of them sits; empty: the template's order. */
+  section_order: NonNullable<S["ResumeContent"]["section_order"]>;
 };
 
 export type ResumeSummary = S["ResumeSummaryOut"];
@@ -41,6 +43,7 @@ export function normalizeContent(raw: S["ResumeContent"] | undefined): ResumeDoc
   return {
     contact: {
       full_name: c.contact?.full_name ?? "",
+      headline: c.contact?.headline ?? "",
       email: c.contact?.email ?? "",
       phone: c.contact?.phone ?? "",
       location: c.contact?.location ?? "",
@@ -58,6 +61,7 @@ export function normalizeContent(raw: S["ResumeContent"] | undefined): ResumeDoc
     })),
     certifications: (c.certifications ?? []).map((x) => ({ ...x, id: x.id ?? newId() })),
     other: (c.other ?? []).map((o) => ({ ...o, id: o.id ?? newId(), lines: o.lines ?? [] })),
+    section_order: c.section_order ?? [],
   };
 }
 

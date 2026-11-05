@@ -28,7 +28,7 @@ export function Notice({
   return (
     <div
       role={tone === "critical" || tone === "warning" ? "alert" : "status"}
-      className={cn("flex gap-3 rounded-control border p-4", box, className)}
+      className={cn("flex animate-fade gap-3 rounded-control border p-4", box, className)}
     >
       <Icon className="mt-0.5 size-5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">

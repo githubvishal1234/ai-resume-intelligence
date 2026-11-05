@@ -54,7 +54,12 @@ def _all_bullets(content: ResumeContent) -> list[str]:
     return bullets
 
 
-def _word_count(content: ResumeContent) -> int:
+# Below these the ATS check warns: too few skills, too short a resume.
+MIN_SKILLS = 5
+MIN_WORDS = 250
+
+
+def word_count(content: ResumeContent) -> int:
     parts = [content.summary]
     for e in content.experience:
         parts += [e.title, e.company, *e.bullets]
@@ -238,17 +243,17 @@ def analyze(content: ResumeContent) -> tuple[int, list[Check]]:
         "skills.count",
         "Skills listed",
         "skills",
-        "pass" if n_skills >= 5 else "warn" if n_skills else "fail",
+        "pass" if n_skills >= MIN_SKILLS else "warn" if n_skills else "fail",
         f"{_count(n_skills, 'skill')}. Listing at least 5 concrete skills helps keyword matching.",
         3,
     )
 
-    total = _word_count(content)
+    total = word_count(content)
     add(
         "length.words",
         "Overall length",
         "style",
-        "pass" if 250 <= total <= 1100 else "warn",
+        "pass" if MIN_WORDS <= total <= 1100 else "warn",
         f"About {total} words. Most one-to-two page resumes fall between 250 and 1,100 words.",
         1,
     )

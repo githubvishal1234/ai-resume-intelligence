@@ -7,7 +7,7 @@ exactly the experience, bullet source, skill or project they rely on.
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -28,6 +28,8 @@ class _Strict(BaseModel):
 
 class Contact(_Strict):
     full_name: Short = ""
+    # One line under the name, e.g. "Backend Developer | Python, FastAPI, SQL".
+    headline: Short = ""
     email: Short = ""
     phone: Short = ""
     location: Short = ""
@@ -83,6 +85,9 @@ class OtherSection(_Strict):
     lines: list[Bullet] = Field(default_factory=list, max_length=50)
 
 
+SectionKey = Literal["summary", "experience", "education", "skills", "projects", "certifications"]
+
+
 class ResumeContent(_Strict):
     contact: Contact = Field(default_factory=Contact)
     summary: Long = ""
@@ -92,6 +97,9 @@ class ResumeContent(_Strict):
     projects: list[Project] = Field(default_factory=list, max_length=50)
     certifications: list[Certification] = Field(default_factory=list, max_length=50)
     other: list[OtherSection] = Field(default_factory=list, max_length=20)
+    # Sections to read in this order, placed where the first of them sits in the template.
+    # Empty: the template's own order (see `arrange` in output/templates.py).
+    section_order: list[SectionKey] = Field(default_factory=list, max_length=6)
 
     @model_validator(mode="after")
     def _unique_ids(self) -> ResumeContent:

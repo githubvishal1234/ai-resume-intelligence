@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { ThemeChoice } from "@/components/layout/ThemeToggle";
+import { ProfilePhotoCard } from "@/components/resume/ProfilePhotoCard";
 import { CapabilitiesCard } from "@/components/system/CapabilitiesCard";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -33,6 +34,7 @@ export function SettingsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileCard />
         <AppearanceCard />
+        <ProfilePhotoCard />
         <PlanCard />
         <PasswordCard />
         <SignInsCard />

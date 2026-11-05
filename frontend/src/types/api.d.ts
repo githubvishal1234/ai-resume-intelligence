@@ -289,6 +289,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Photo */
+        get: operations["get_photo_api_v1_account_photo_get"];
+        /** Put Photo */
+        put: operations["put_photo_api_v1_account_photo_put"];
+        post?: never;
+        /** Delete Photo */
+        delete: operations["delete_photo_api_v1_account_photo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/system/capabilities": {
         parameters: {
             query?: never;
@@ -708,6 +727,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tailoring/quick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quick Tailor
+         * @description Paste a resume and a job description; get a session with the changes proposed.
+         */
+        post: operations["quick_tailor_api_v1_tailoring_quick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/resume-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Text
+         * @description Reads a resume file's text for the paste box. Nothing is stored.
+         */
+        post: operations["resume_text_api_v1_tailoring_resume_text_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tailoring/{session_id}": {
         parameters: {
             query?: never;
@@ -770,6 +829,77 @@ export interface paths {
         put?: never;
         /** Rewrite Bullet */
         post: operations["rewrite_bullet_api_v1_tailoring__session_id__bullets_rewrite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/focus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Focus */
+        post: operations["focus_api_v1_tailoring__session_id__focus_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Skill */
+        post: operations["confirm_skill_api_v1_tailoring__session_id__skills_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/tailor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tailor
+         * @description After the skill questions: add the user's skills, run maximum focus, accept clean.
+         */
+        post: operations["tailor_api_v1_tailoring__session_id__tailor_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tailoring/{session_id}/accept-clean": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Clean */
+        post: operations["accept_clean_api_v1_tailoring__session_id__accept_clean_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1697,6 +1827,22 @@ export interface components {
             ai_daily_limit: number;
             subscription: components["schemas"]["SubscriptionOut"] | null;
         };
+        /** Body_put_photo_api_v1_account_photo_put */
+        Body_put_photo_api_v1_account_photo_put: {
+            /**
+             * File
+             * @description JPEG, PNG or WebP, at most 5 MB
+             */
+            file: string;
+        };
+        /** Body_resume_text_api_v1_tailoring_resume_text_post */
+        Body_resume_text_api_v1_tailoring_resume_text_post: {
+            /**
+             * File
+             * @description PDF, DOCX or TXT resume
+             */
+            file: string;
+        };
         /** Body_upload_job_api_v1_jobs_upload_post */
         Body_upload_job_api_v1_jobs_upload_post: {
             /**
@@ -1776,7 +1922,7 @@ export interface components {
              * Source
              * @enum {string}
              */
-            source: "rules" | "llm";
+            source: "rules" | "llm" | "user";
             /** Target Id */
             target_id: string | null;
             /** Title */
@@ -1853,6 +1999,21 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** ConfirmSkillIn */
+        ConfirmSkillIn: {
+            /** Skill */
+            skill: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Where
+             * @default
+             */
+            where: string;
+        };
         /** Contact */
         Contact: {
             /**
@@ -1860,6 +2021,11 @@ export interface components {
              * @default
              */
             full_name: string;
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
             /**
              * Email
              * @default
@@ -1996,6 +2162,8 @@ export interface components {
             decision: "pending" | "accepted" | "rejected";
             /** Edited Text */
             edited_text?: string | null;
+            /** Keep Skills */
+            keep_skills?: string[] | null;
         };
         /** Education */
         Education: {
@@ -2621,6 +2789,16 @@ export interface components {
              */
             email: string;
         };
+        /**
+         * PlaceOut
+         * @description A role or project of the master that a confirmed skill can be placed under.
+         */
+        PlaceOut: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+        };
         /** PracticeAnswerOut */
         PracticeAnswerOut: {
             /** Question Id */
@@ -2876,6 +3054,13 @@ export interface components {
              */
             source: "rules" | "ai";
         };
+        /** QuickTailorIn */
+        QuickTailorIn: {
+            /** Resume Text */
+            resume_text?: string | null;
+            /** Job Text */
+            job_text: string;
+        };
         /** RegisterRequest */
         RegisterRequest: {
             /**
@@ -2971,6 +3156,8 @@ export interface components {
             certifications?: components["schemas"]["Certification"][];
             /** Other */
             other?: components["schemas"]["OtherSection"][];
+            /** Section Order */
+            section_order?: ("summary" | "experience" | "education" | "skills" | "projects" | "certifications")[];
         };
         /** ResumeDetailOut */
         ResumeDetailOut: {
@@ -3040,6 +3227,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** ResumeTextOut */
+        ResumeTextOut: {
+            /** Text */
+            text: string;
         };
         /** RevokedOut */
         RevokedOut: {
@@ -3369,6 +3561,11 @@ export interface components {
             /** Suggestions */
             suggestions: components["schemas"]["SuggestionOut"][];
         };
+        /** TailorIn */
+        TailorIn: {
+            /** Skills */
+            skills?: components["schemas"]["ConfirmSkillIn"][];
+        };
         /** TailoringSessionOut */
         TailoringSessionOut: {
             /**
@@ -3418,6 +3615,10 @@ export interface components {
             /** Bullets */
             bullets: components["schemas"]["BulletOut"][];
             ai: components["schemas"]["AiStatusOut"];
+            /** Missing Skills */
+            missing_skills: string[];
+            /** Places */
+            places: components["schemas"]["PlaceOut"][];
         };
         /** TailoringSessionSummaryOut */
         TailoringSessionSummaryOut: {
@@ -4059,6 +4260,73 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProWaitlistOut"];
                 };
+            };
+        };
+    };
+    get_photo_api_v1_account_photo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_photo_api_v1_account_photo_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_put_photo_api_v1_account_photo_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_photo_api_v1_account_photo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5030,6 +5298,72 @@ export interface operations {
             };
         };
     };
+    quick_tailor_api_v1_tailoring_quick_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuickTailorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_text_api_v1_tailoring_resume_text_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_resume_text_api_v1_tailoring_resume_text_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumeTextOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_session_api_v1_tailoring__session_id__get: {
         parameters: {
             query?: never;
@@ -5143,6 +5477,138 @@ export interface operations {
                 "application/json": components["schemas"]["RewriteBulletIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    focus_api_v1_tailoring__session_id__focus_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_skill_api_v1_tailoring__session_id__skills_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmSkillIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tailor_api_v1_tailoring__session_id__tailor_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TailorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailoringSessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_clean_api_v1_tailoring__session_id__accept_clean_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

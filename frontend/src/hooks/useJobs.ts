@@ -56,6 +56,11 @@ export function useAiAnalyzeJob(id: string) {
   return useMutation({ mutationFn: () => jobService.aiAnalyze(id), onSuccess: settle });
 }
 
+/** What deleting a saved job takes with it, said the same way wherever a job can be deleted. */
+export const JOB_DELETE_NOTE =
+  "Its match results, tailoring sessions and interview prep go with it. Tailored resumes, " +
+  "applications and cover letters stay. This can't be undone.";
+
 export function useDeleteJob(id: string) {
   const client = useQueryClient();
   return useMutation({

@@ -4,7 +4,9 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
-import { useResumeList } from "@/hooks/useResumes";
+import { useDeleteControls } from "@/hooks/useDeleteControls";
+import { useDeleteResume, useResumeList } from "@/hooks/useResumes";
+import type { ResumeSummary } from "@/services/resumeService";
 import { formatDate, PageHeader } from "./common";
 
 export function ResumesPage() {
@@ -82,21 +84,36 @@ export function ResumesPage() {
           <ul className="space-y-2">
             {tailored.map((t) => (
               <li key={t.id}>
-                <Card className="relative hover:border-primary">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Link to={`/resumes/${t.id}`} className="text-label-md text-on-surface after:absolute after:inset-0 hover:text-primary">
-                      {t.title}
-                    </Link>
-                    <span className="flex items-center gap-2 text-body-sm text-on-surface-variant">
-                      <Pill tone="info">Tailored</Pill> updated {formatDate(t.updated_at)}
-                    </span>
-                  </div>
-                </Card>
+                <TailoredCard resume={t} />
               </li>
             ))}
           </ul>
         )}
       </section>
     </div>
+  );
+}
+
+/** One tailored version: the whole card opens it; its delete button sits above that link. */
+function TailoredCard({ resume: t }: { resume: ResumeSummary }) {
+  const remove = useDeleteResume(t.id);
+  const del = useDeleteControls({
+    name: t.title,
+    note: "This tailored resume and its versions are removed. Your master resume isn't affected. This can't be undone.",
+    action: remove,
+  });
+  return (
+    <Card className="relative hover:border-primary">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to={`/resumes/${t.id}`} className="min-w-0 text-label-md text-on-surface after:absolute after:inset-0 hover:text-primary">
+          {t.title}
+        </Link>
+        <span className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+          <Pill tone="info">Tailored</Pill> updated {formatDate(t.updated_at)}
+          {del.button}
+        </span>
+      </div>
+      {del.confirm}
+    </Card>
   );
 }

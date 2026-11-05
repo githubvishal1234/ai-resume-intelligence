@@ -16,7 +16,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,7 @@ from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, NotFound
+from app.db import cleanup
 from app.models import Resume, ResumeFile, ResumeImport, ResumeVersion
 from app.resumes.ai_parse import METHOD_VERSION as AI_PARSE_VERSION
 from app.resumes.ai_parse import ai_parse
@@ -212,7 +213,8 @@ class ResumeService:
         )
         if not still_used:
             self.storage.delete(file.storage_key)
-            self.db.delete(file)  # cascades to the import row
+            cleanup.resume_files(self.db, [file.id])
+            self.db.execute(delete(ResumeFile).where(ResumeFile.id == file.id))
         self.db.commit()
 
     def ai_available(self) -> bool:
@@ -331,17 +333,20 @@ class ResumeService:
         ids = [resume.id] + list(
             self.db.scalars(select(Resume.id).where(Resume.master_resume_id == resume.id))
         )
-        file_ids = set(
-            self.db.scalars(
-                select(ResumeVersion.file_id).where(
-                    ResumeVersion.resume_id.in_(ids), ResumeVersion.file_id.is_not(None)
-                )
+        file_ids = {
+            f
+            for f in self.db.scalars(
+                select(ResumeVersion.file_id).where(ResumeVersion.resume_id.in_(ids))
             )
-        )
+            if f is not None
+        }
         files = list(self.db.scalars(select(ResumeFile).where(ResumeFile.id.in_(file_ids))))
-        self.db.delete(resume)
-        for file in files:
-            self.db.delete(file)
+        cleanup.resumes(self.db, ids)
+        # Tailored copies first: they point at the master.
+        self.db.execute(delete(Resume).where(Resume.id.in_(ids[1:])))
+        self.db.execute(delete(Resume).where(Resume.id == resume.id))
+        cleanup.resume_files(self.db, file_ids)
+        self.db.execute(delete(ResumeFile).where(ResumeFile.id.in_(file_ids)))
         self._audit("resume.delete", "resume", str(resume_id))
         self.db.commit()
         for file in files:  # after commit: a failed commit must not lose files

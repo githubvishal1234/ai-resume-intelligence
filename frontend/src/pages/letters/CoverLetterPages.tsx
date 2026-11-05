@@ -73,7 +73,7 @@ function NewLetter() {
   const [jobId, setJobId] = useState("");
   const [template, setTemplate] = useState("classic");
   const list = resumes.data ?? [];
-  const chosen = resumeId || list.find((r) => r.kind === "master")?.id || list[0]?.id || "";
+  const chosen = resumeId || list.find((r) => r.kind === "master" && r.status === "active")?.id || list[0]?.id || "";
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -171,7 +171,7 @@ function Editor({ letter }: { letter: Letter }) {
     return () => window.removeEventListener("beforeunload", stop);
   }, [dirty]);
 
-  const contact = resume.data?.content.contact ?? { full_name: "", email: "", phone: "", location: "", links: [] };
+  const contact = resume.data?.content.contact ?? { full_name: "", headline: "", email: "", phone: "", location: "", links: [] };
   const words = draft.body.trim() ? draft.body.trim().split(/\s+/).length : 0;
 
   return (

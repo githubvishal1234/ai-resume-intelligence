@@ -10,6 +10,7 @@ from fastapi import APIRouter, Query, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.account.photo import load_photo
 from app.auth.deps import CurrentAuth
 from app.core.errors import AppError
 from app.jobs.analyzer import JobAnalysis
@@ -82,7 +83,8 @@ def export_pdf(
     t = _template(template)
     resume, current = service.get(resume_id)
     row = service.version(resume_id, version) if version else current
-    pdf = render_pdf(ResumeContent.model_validate(row.content), t, resume.title)
+    photo = load_photo(service.storage, resume.owner_id) if t.photo else None
+    pdf = render_pdf(ResumeContent.model_validate(row.content), t, resume.title, photo)
     return Response(
         content=pdf,
         media_type="application/pdf",
@@ -97,4 +99,6 @@ def ats_report(
     t = _template(template)
     resume, current = service.get(resume_id)
     content = ResumeContent.model_validate(current.content)
-    return ats_check(content, render_pdf(content, t, resume.title), t.id, _job_for(service, resume))
+    photo = load_photo(service.storage, resume.owner_id) if t.photo else None
+    pdf = render_pdf(content, t, resume.title, photo)
+    return ats_check(content, pdf, t.id, _job_for(service, resume), photo is not None)

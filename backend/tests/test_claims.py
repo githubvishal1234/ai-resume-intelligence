@@ -14,7 +14,8 @@ from app.ai.provider import LLMCapabilities, LLMMessage, LLMProvider, LLMUsage, 
 from app.ai.registry import register_provider, unregister_provider
 from app.core.config import Settings, get_settings
 from app.core.errors import AiProviderFailed
-from app.tailoring.claims import ClaimReport, check_claims
+from app.tailoring.claims import ClaimReport, _backed, _norm, check_claims
+from app.tailoring.factcheck import master_text
 from tests.test_tailoring import API, _change, _decide, _master, _session
 
 
@@ -162,3 +163,14 @@ def test_without_ai_only_layer_one_runs(user_client: TestClient) -> None:
     )
     assert response.status_code == 200, response.text
     assert _change(response.json(), "summary")["flags"] == []
+
+
+def test_evidence_quoted_in_pieces_or_lightly_trimmed_still_counts() -> None:
+    corpus = _norm(master_text(_master()))
+    # Pieces joined by an ellipsis, AI hyphens, and one dropped word are all real master text.
+    assert _backed("Backend engineer ... 6 years of experience building data‑heavy Python", corpus)
+    assert _backed("Designed FastAPI service handling 2M requests/day", corpus)
+    # Every piece must be backed, and invented wording is not.
+    assert not _backed("Backend engineer … owned the product roadmap for analytics", corpus)
+    assert not _backed("Led a platform team of twelve engineers", corpus)
+    assert not _backed("...", corpus)

@@ -12,13 +12,15 @@ change is checked against the master. The product name is pending (decision D-02
 
 ## Stack
 
-The backend uses FastAPI, SQLAlchemy 2, Alembic and PostgreSQL 16. The frontend uses React 19,
+The backend uses FastAPI, SQLAlchemy 2, Alembic and Microsoft SQL Server (2019 or newer, through
+pyodbc and Microsoft ODBC Driver 18). The frontend uses React 19,
 Vite, TypeScript, Tailwind 4, TanStack Query, and React Hook Form with Zod.
 
 ## Quick start with Docker
 
 ```bash
 docker compose up -d db
+docker compose run --rm api python -m app.db.create_database
 docker compose run --rm api alembic upgrade head
 docker compose up --build
 # open http://localhost:8080
@@ -26,20 +28,18 @@ docker compose up --build
 
 ## Local development
 
-Prerequisites: Python 3.12+, Node 22+, and PostgreSQL 16 with a `resume_app` role.
+Prerequisites: Python 3.12+, Node 22+, Microsoft ODBC Driver 18 for SQL Server, and a SQL Server
+login allowed to create databases (see [`RUN.md`](RUN.md) for the SQL to create one).
 
 ```bash
-# database (once)
-createuser -P resume_app            # password: dev_only_password (dev only)
-createdb -O resume_app resume_intel
-createdb -O resume_app resume_intel_test
 
 # backend
 cd backend
 python -m venv ../.venv
 # macOS/Linux: source ../.venv/bin/activate     Windows: ..\.venv\Scripts\activate
 pip install -r requirements.lock -e ".[dev]"
-cp ../.env.example .env              # adjust if needed
+cp ../.env.example .env              # set DATABASE_URL and TEST_DATABASE_URL
+python -m app.db.create_database     # once: creates the database named in DATABASE_URL
 alembic upgrade head
 uvicorn app.main:app --reload        # http://localhost:8000/api/docs
 

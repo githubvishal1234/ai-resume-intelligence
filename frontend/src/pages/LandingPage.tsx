@@ -100,13 +100,13 @@ function ClaimScene() {
 }
 
 const PROBLEMS = [
-  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is one column of real text.", tone: "ring-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink", scene: <ScrambledScene /> },
+  { title: "Screening software can't read it", body: "Columns, tables and text boxes scramble the order, so key details never reach a recruiter.", fix: "Every template is real text in reading order.", tone: "ring-critical-surface", tag: "Text out of order", tagTone: "bg-critical-border/60 text-critical-ink", scene: <ScrambledScene /> },
   { title: "It doesn't match the job", body: "The same resume for every posting misses the skills each one asks for.", fix: "See evidence and gaps for every requirement.", tone: "ring-warning-surface", tag: "Required skills missing", tagTone: "bg-warning-border/70 text-warning-ink", scene: <MismatchScene /> },
   { title: "Claims you can't back up", body: "Inflated wording falls apart in the interview, when it matters most.", fix: "Changes your resume can't support are flagged.", tone: "ring-info-surface", tag: "Unsupported claim", tagTone: "bg-info-border/70 text-info-ink", scene: <ClaimScene /> },
 ];
 
 const STEPS = [
-  { title: "Pick a template", body: `${TEMPLATE_STYLES.length} single-column designs that applicant tracking systems can read. Switch any time.` },
+  { title: "Pick a template", body: `${TEMPLATE_STYLES.length} designs that applicant tracking systems can read, from one-column classics to sidebars. Switch any time.` },
   { title: "Answer short questions", body: "Contact, experience, education, skills. Tips flag weak bullet points as you type." },
   { title: "Download and check", body: "Get a PDF and see exactly what screening software reads from it." },
 ];
@@ -133,7 +133,7 @@ const ALONE = [
 ];
 
 const FAQ = [
-  { q: "Will applicant tracking systems read my resume?", a: "Every template is one column of real text with standard headings, and no images, tables or text boxes. After you download, the ATS check reads the PDF back the way screening software does and shows you the result." },
+  { q: "Will applicant tracking systems read my resume?", a: "Every template is real, selectable text with standard headings in a fixed reading order. One-column designs are the safest; sidebar and timeline designs are labelled ATS-friendly. After you download, the ATS check reads the PDF back the way screening software does and shows you the result." },
   { q: "Can I start from my existing resume?", a: "Yes. Upload a PDF, DOCX or TXT file. You review everything that was read before anything is saved." },
   { q: "Do I need AI to use it?", a: "No. The builder, job analysis, matching, tailoring and interview questions all work with built-in rules. When AI is switched on for your account, it adds rewrites and extra questions, and those are checked against your resume too." },
   { q: "Who can see my resume?", a: "Only you, when signed in. You can delete your account, and with it every resume and uploaded file, from Settings at any time." },
@@ -314,7 +314,7 @@ export function LandingPage() {
             <div className="relative mx-auto max-w-3xl text-center">
               <p className={eyebrowOnInk}>How it works</p>
               <h2 id="how-title" className={cn(h2, "mt-3")}>From a blank page to a PDF in three steps</h2>
-              <p className="mt-4 text-body-lg text-on-ink-muted">Seven short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
+              <p className="mt-4 text-body-lg text-on-ink-muted">Eight short steps and a live preview. Tips appear as you type, and the summary is drafted only from what you entered.</p>
             </div>
             <ol className="relative mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-3">
               {STEPS.map(({ title, body }, i) => (
@@ -458,7 +458,7 @@ export function LandingPage() {
               <div>
                 <p className={eyebrow}>Templates</p>
                 <h2 id="templates-title" className={cn(h2, "mt-3")}>{TEMPLATE_STYLES.length} templates, one click apart</h2>
-                <p className="mt-3 max-w-2xl text-body-lg text-on-surface-variant">Colour bands, side stripes, ribbons and classic serif. All single-column with real, selectable text, so screening software reads them top to bottom.</p>
+                <p className="mt-3 max-w-2xl text-body-lg text-on-surface-variant">One-column classics, sidebars, timelines and photo layouts. All real, selectable text in a fixed reading order, so screening software reads them top to bottom.</p>
               </div>
               <ButtonLink to="/templates" variant="primary">Browse all templates <ArrowRight className="size-4" aria-hidden /></ButtonLink>
             </div>

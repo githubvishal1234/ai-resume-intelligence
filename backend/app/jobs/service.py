@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.ai.registry import get_llm_provider
@@ -20,6 +20,7 @@ from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, NotFound
+from app.db import cleanup
 from app.jobs.ai_analyzer import AiAnalysisEmpty, ai_analyze
 from app.jobs.analyzer import ANALYZER_VERSION, analyze_job, guess_title
 from app.jobs.fetch import tidy
@@ -199,7 +200,8 @@ class JobService:
 
     def delete(self, job_id: uuid.UUID) -> None:
         job = self._owned(job_id)
-        self.db.delete(job)
+        cleanup.job(self.db, job.id)
+        self.db.execute(delete(Job).where(Job.id == job.id))
         self._audit("job.delete", str(job_id))
         self.db.commit()
 

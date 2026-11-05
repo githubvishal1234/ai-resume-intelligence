@@ -7,7 +7,7 @@ This document describes only what exists. Phase status is in `../PHASES.md`.
 The app is a modular monolith with two deployables:
 
 ```
-Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► PostgreSQL
+Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► SQL Server
         ▲                                         │
         └── nginx serves the static build and proxies /api (same origin, so no CORS)
                                                   └──► StorageBackend (local filesystem or S3 API)
@@ -45,8 +45,8 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
   `{code, message, request_id, details?}`, with no stack traces or submitted values.
 - User-owned resources are checked with `ensure_access(actor, owner_id)`. An unauthorized
   access looks like a 404.
-- Resume content is a versioned JSONB document (`resume_versions.content`). Versions are
-  append-only, and a DB trigger rejects UPDATEs. `resumes.current_version` points at the
+- Resume content is a versioned JSON document (`resume_versions.content`, `NVARCHAR(MAX)`).
+  Versions are append-only, and an `INSTEAD OF UPDATE` trigger rejects UPDATEs. `resumes.current_version` points at the
   latest one. Edits send `base_version`, and a stale base returns `409 VERSION_CONFLICT`.
 - Uploads become a `ResumeImport` (pending review). Only `confirm` creates a master resume or
   a new master version, using the content the user reviewed.
@@ -90,3 +90,16 @@ Browser (React SPA) ──/api/v1, cookie session──► FastAPI ──► Pos
 ## Operations
 
 Deployment, backups, monitoring and dependency pinning are in [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+## Database (SQL Server)
+
+- Moved from PostgreSQL in October 2026. `backend/migrations` starts again from one SQL Server
+  baseline; `python -m app.db.copy_from_postgres` copies an old Postgres database across once.
+- Ids are `UNIQUEIDENTIFIER`, timestamps `DATETIMEOFFSET` (defaults `SYSDATETIMEOFFSET()`, UTC
+  offset kept), text `NVARCHAR` (Unicode), JSON documents `NVARCHAR(MAX)`.
+- SQL Server allows one cascading path per table, so only links to `users.id` cascade: deleting an
+  account still clears everything in one statement. Deleting one resume, job, application or
+  interview prep goes through `app/db/cleanup.py`, which removes or detaches dependents first.
+- "One active master resume" and "one live subscription" are filtered unique indexes.
+- The default collation is case-insensitive; `users.email` is kept lowercase by a check that uses
+  a case-sensitive collation.

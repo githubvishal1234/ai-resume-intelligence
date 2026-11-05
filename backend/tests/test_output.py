@@ -10,8 +10,8 @@ from pypdf import PdfReader
 
 from app.output.ats import ats_check
 from app.output.pdf import render_pdf
-from app.output.templates import DESIGNS, PALETTES, TEMPLATES
-from app.resumes.content import Contact, Experience, ResumeContent
+from app.output.templates import DESIGNS, PALETTES, RESUME_ORDER, TEMPLATES, arrange
+from app.resumes.content import Contact, Experience, Project, ResumeContent
 from app.resumes.parser import parse_resume
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
@@ -37,7 +37,9 @@ def test_every_template_renders_extractable_text_in_order(template: str) -> None
         "education": "Education",
         "skills": "Skills",
     }
-    order = [text.index(names[k]) for k in TEMPLATES[template].order if k in names]
+    # Heading lines, in any case ("EXPERIENCE" on One Page): an ATS reads both.
+    lines = [ln.strip().lower() for ln in text.splitlines()]
+    order = [lines.index(names[k].lower()) for k in TEMPLATES[template].order if k in names]
     assert order == sorted(order)
     report = ats_check(content, pdf, template)
     statuses = {c.id: c.status for c in report.checks}
@@ -78,7 +80,7 @@ def test_pdf_keeps_non_western_text(template: str) -> None:
         experience=[Experience(title="Інженер", company="Straße GmbH", start_date="Jan 2020")],
     )
     pdf = render_pdf(content, TEMPLATES[template])
-    text = _text(pdf)
+    text = " ".join(_text(pdf).split())  # a narrow sidebar may wrap the name onto two lines
     for fragment in (
         "José Núñez Ødegård",
         "Привет",
@@ -176,3 +178,37 @@ def test_every_design_comes_in_every_palette_with_readable_banner_text() -> None
     # White name and contact on the band, and the accent as heading text on white.
     for hex_colour in PALETTES.values():
         assert (1.05) / (_luminance(hex_colour) + 0.05) >= 4.5
+
+
+def test_headline_and_section_order_reach_the_pdf_and_the_ats_check() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.contact.headline = "Backend Engineer | Python, PostgreSQL"
+    content.projects = [Project(name="Search service", bullets=["Built a search API."])]
+    content.section_order = ["projects", "experience"]
+    assert arrange(RESUME_ORDER, content.section_order) == [
+        "summary", "projects", "experience", "education", "skills", "certifications",
+    ]  # fmt: skip
+    for template in ("classic", "sidebar-navy", "timeline-navy", "split-navy"):
+        pdf = render_pdf(content, TEMPLATES[template])
+        text = " ".join(_text(pdf).split())
+        assert "Backend Engineer | Python, PostgreSQL" in text, template
+        assert text.index("Projects") < text.index("Experience"), template
+        statuses = {c.id: c.status for c in ats_check(content, pdf, template).checks}
+        assert statuses["layout.order"] == "pass", template
+
+
+def test_one_page_template_fits_a_full_resume_on_one_page() -> None:
+    line = "Built Python and FastAPI services with authentication, retrieval and SQL storage, " * 2
+    content = parse_resume(SAMPLE_TEXT).content
+    content.summary = " ".join([content.summary] * 3)
+    content.experience[0].bullets = [line] * 4
+    content.experience = content.experience[:1]
+    content.projects = [Project(name=f"Project {i}", bullets=[line] * 5) for i in range(2)]
+    pdf = render_pdf(content, TEMPLATES["one-page"])
+    assert len(PdfReader(io.BytesIO(pdf)).pages) == 1
+    assert len(PdfReader(io.BytesIO(render_pdf(content, TEMPLATES["classic"]))).pages) == 2
+    text = _text(pdf)
+    assert "EXPERIENCE" in text and "PROJECTS" in text  # uppercase headings
+    assert {c.id: c.status for c in ats_check(content, pdf, "one-page").checks}["layout.order"] == (
+        "pass"
+    )

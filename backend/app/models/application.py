@@ -4,18 +4,19 @@ import uuid
 from datetime import UTC, date, datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Date,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    String,
-    Text,
+    Unicode,
+    UnicodeText,
     UniqueConstraint,
+    Uuid,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -46,24 +47,20 @@ class Application(TimestampMixin, Base):
         Index("ix_applications_owner_id_updated_at", "owner_id", "updated_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    job_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="SET NULL")
-    )
-    resume_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("resumes.id", ondelete="SET NULL")
-    )
+    job_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("jobs.id"))
+    resume_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("resumes.id"))
     resume_version: Mapped[int | None] = mapped_column(Integer)
-    company: Mapped[str] = mapped_column(String(200), nullable=False)
-    role: Mapped[str] = mapped_column(String(200), nullable=False)
-    url: Mapped[str | None] = mapped_column(String(2000))
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="saved")
+    company: Mapped[str] = mapped_column(Unicode(200), nullable=False)
+    role: Mapped[str] = mapped_column(Unicode(200), nullable=False)
+    url: Mapped[str | None] = mapped_column(Unicode(2000))
+    status: Mapped[str] = mapped_column(Unicode(16), nullable=False, default="saved")
     applied_on: Mapped[date | None] = mapped_column(Date)
     follow_up_on: Mapped[date | None] = mapped_column(Date)
-    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    notes: Mapped[str] = mapped_column(UnicodeText, nullable=False, default="")
 
     events: Mapped[list[ApplicationEvent]] = relationship(
         back_populates="application",
@@ -82,20 +79,20 @@ class ApplicationEvent(Base):
         Index("ix_application_events_application_id_created_at", "application_id", "created_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     application_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("applications.id"), nullable=False
     )
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    from_status: Mapped[str | None] = mapped_column(String(16))
-    to_status: Mapped[str | None] = mapped_column(String(16))
-    fields: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
-    note: Mapped[str | None] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Unicode(16), nullable=False)
+    from_status: Mapped[str | None] = mapped_column(Unicode(16))
+    to_status: Mapped[str | None] = mapped_column(Unicode(16))
+    fields: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    note: Mapped[str | None] = mapped_column(UnicodeText)
     # Set per row, not per transaction, so events written in one request keep their order.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
-        server_default=func.now(),
+        server_default=func.sysdatetimeoffset(),
         nullable=False,
     )
 
@@ -112,19 +109,17 @@ class Notification(Base):
         Index("ix_notifications_owner_id_created_at", "owner_id", "created_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    application_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("applications.id", ondelete="CASCADE")
-    )
-    kind: Mapped[str] = mapped_column(String(32), nullable=False)
-    dedupe_key: Mapped[str] = mapped_column(String(120), nullable=False)
-    title: Mapped[str] = mapped_column(String(300), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    link: Mapped[str | None] = mapped_column(String(300))
+    application_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("applications.id"))
+    kind: Mapped[str] = mapped_column(Unicode(32), nullable=False)
+    dedupe_key: Mapped[str] = mapped_column(Unicode(120), nullable=False)
+    title: Mapped[str] = mapped_column(Unicode(300), nullable=False)
+    body: Mapped[str] = mapped_column(UnicodeText, nullable=False, default="")
+    link: Mapped[str | None] = mapped_column(Unicode(300))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.sysdatetimeoffset(), nullable=False
     )

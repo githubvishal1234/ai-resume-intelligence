@@ -53,7 +53,13 @@ describe("Quick Resume Builder", () => {
     expect(screen.getByText(/Point 1: Start with an action verb/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Built" }));
     expect(screen.getByLabelText("What you achieved")).toHaveValue("Responsible for the API\nBuilt");
-    await user.click(screen.getByRole("button", { name: "Next: Education" }));
+    await user.click(screen.getByRole("button", { name: "Next: Projects" }));
+
+    // 4. Projects: no project to add, so the section is skipped and marked as such
+    expect(screen.getByRole("heading", { name: "Your projects" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Skip this section" }));
+    expect(screen.getByRole("heading", { name: "Your education" })).toBeInTheDocument();
+    expect(within(screen.getByRole("navigation", { name: "Builder steps" })).getByText("(skipped)")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next: Skills" }));
 
     // 5. Skills from the suggestions
@@ -67,8 +73,10 @@ describe("Quick Resume Builder", () => {
     expect(screen.getByText("Drafted only from what you entered")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next: Finish" }));
 
-    // 7. Finish: the checklist points back to what is missing
+    // 8. Finish: the checklist points back to what is missing, but not to the skipped section
     expect(screen.getByText(/things? would make it stronger/)).toBeInTheDocument();
+    expect(screen.queryByText("A project with what you built")).not.toBeInTheDocument();
+    expect(screen.getByText("You skipped:")).toBeInTheDocument();
     const skillsCheck = screen.getByText("Five or more skills").closest("li") as HTMLElement;
     await user.click(within(skillsCheck).getByRole("button", { name: "Fix" }));
     expect(screen.getByRole("heading", { name: "Your skills" })).toHaveFocus();
@@ -87,7 +95,7 @@ describe("Quick Resume Builder", () => {
     expect(body.content.skills.map((s) => s.name)).toEqual(["Python"]);
     // The draft is gone once saved.
     expect(Object.keys(window.localStorage).filter((k) => k.startsWith("resume-intel:draft:"))).toEqual([]);
-  }, 30_000); // a long, typed walk through all seven steps
+  }, 30_000); // a long, typed walk through all eight steps
 
   it("keeps an unsaved draft in this browser and brings it back", async () => {
     const user = userEvent.setup();
@@ -132,5 +140,29 @@ describe("Quick Resume Builder", () => {
     const save = screen.getByRole("button", { name: /Save and get my PDF/ });
     expect(save).toHaveAttribute("aria-disabled", "true");
     expect(save).toHaveAccessibleName(/Add your name in the Contact step first/);
+  });
+});
+
+describe("Photo templates", () => {
+  it("offers a photo upload right where a photo template is chosen", async () => {
+    const user = userEvent.setup();
+    const { calls } = mockApi([
+      me,
+      { path: "/resumes", body: [] },
+      { path: "/output/templates", body: [...TEMPLATES, { id: "portrait-teal", name: "Portrait · Teal", description: "Photo beside the name." }] },
+      { path: "/account/photo", status: 204 },
+      { method: "PUT", path: "/account/photo", status: 204 },
+    ]);
+    renderApp("/resumes/new");
+    expect(await screen.findByRole("heading", { name: "Pick a style" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload photo" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Portrait · Teal template preview/ }));
+    const panel = screen.getByRole("region", { name: /shows your photo/ });
+    expect(panel).toHaveTextContent("Without it, the PDF simply has no photo.");
+    const file = new File(["fake"], "me.png", { type: "image/png" });
+    const input = panel.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await user.upload(input, file);
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT" && c.path === "/account/photo")).toBe(true));
   });
 });

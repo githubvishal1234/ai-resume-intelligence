@@ -8,6 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { useMarket, useOutcomes } from "@/hooks/useInsights";
 import { useMasterSummary } from "@/hooks/useResumes";
 import { useSession } from "@/hooks/useSession";
+import { useTailoringList } from "@/hooks/useTailoring";
 import { AtAGlance } from "@/pages/dashboard/AtAGlance";
 
 const NEXT_STEPS: { icon: typeof FileText; title: string; body: string; phase: number; to?: string }[] = [
@@ -37,28 +38,29 @@ export function DashboardPage() {
       : step,
   );
   const doneCount = steps.filter((s) => done[s.phase]).length;
+  const tailoring = useTailoringList();
+  const next = nextStep({
+    master: Boolean(master),
+    job: done[3] ?? false,
+    tailored: Boolean(tailoring.data?.length),
+    applied: done[7] ?? false,
+  });
   return (
     <div className="space-y-6">
       <PhotoBanner
         photo="dashboard"
         eyebrow="Dashboard"
         title={`Welcome${firstName ? `, ${firstName}` : ""}`}
-        description="Here is where your resume workflow starts."
+        description={`Next step: ${next.hint}`}
         actions={
           <>
-            {master ? (
-              <ButtonLink to="/jobs/new" variant="primary">
-                <ScanSearch className="size-4" aria-hidden /> Analyze a job
+            <ButtonLink to={next.to} variant="primary">
+              <next.icon className="size-4" aria-hidden /> {next.label}
+            </ButtonLink>
+            {master ? null : (
+              <ButtonLink to="/resumes/upload">
+                <UploadCloud className="size-4" aria-hidden /> Upload one
               </ButtonLink>
-            ) : (
-              <>
-                <ButtonLink to="/resumes/new" variant="primary">
-                  <Sparkles className="size-4" aria-hidden /> Build my resume
-                </ButtonLink>
-                <ButtonLink to="/resumes/upload">
-                  <UploadCloud className="size-4" aria-hidden /> Upload one
-                </ButtonLink>
-              </>
             )}
           </>
         }
@@ -108,4 +110,15 @@ export function DashboardPage() {
       </div>
     </div>
   );
+}
+
+type Progress = { master: boolean; job: boolean; tailored: boolean; applied: boolean };
+
+/** The one thing to do next, in the order the workflow needs it. */
+export function nextStep(p: Progress): { label: string; hint: string; to: string; icon: typeof FileText } {
+  if (!p.master) return { label: "Build my resume", hint: "create your master resume, or upload the one you have.", to: "/resumes/new", icon: Sparkles };
+  if (!p.job) return { label: "Analyze a job", hint: "paste a job posting you want to apply for.", to: "/jobs/new", icon: ScanSearch };
+  if (!p.tailored) return { label: "Tailor my resume", hint: "make a copy of your resume aimed at your saved job.", to: "/tailor", icon: Sparkles };
+  if (!p.applied) return { label: "Track an application", hint: "record where you sent your tailored resume.", to: "/applications/new", icon: BriefcaseBusiness };
+  return { label: "Analyze another job", hint: "add the next job, or prepare for an interview.", to: "/jobs/new", icon: ScanSearch };
 }

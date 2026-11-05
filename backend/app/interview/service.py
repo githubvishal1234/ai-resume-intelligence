@@ -21,6 +21,7 @@ from app.auth.repository import AuditRepository
 from app.core.access import Actor, ensure_access
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, NotFound
+from app.db import cleanup
 from app.interview.ai_questions import MAX_AI_QUESTIONS, ai_questions
 from app.interview.questions import METHOD_VERSION, Question, build_questions
 from app.interview.schemas import Feedback
@@ -209,8 +210,7 @@ class InterviewService:
         return self._owned(InterviewPrep, prep_id)
 
     def delete_prep(self, prep_id: uuid.UUID) -> None:
-        prep = self._owned(InterviewPrep, prep_id)
-        self.db.delete(prep)
+        cleanup.interview_preps(self.db, [self._owned(InterviewPrep, prep_id).id])
         self._audit("interview.prep.delete", str(prep_id))
         self.db.commit()
 

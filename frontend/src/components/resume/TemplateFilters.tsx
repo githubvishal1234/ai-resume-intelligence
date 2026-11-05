@@ -3,14 +3,28 @@ import { useId } from "react";
 import { templateStyle, TEMPLATE_STYLES, type TemplateCategory, type TemplateStyle } from "@/constants/templates";
 import { cn } from "@/lib/cn";
 
-export type Filters = { category: TemplateCategory | ""; colour: string; font: "" | "sans" | "serif"; header: "" | TemplateStyle["header"] };
-export const NO_FILTERS: Filters = { category: "", colour: "", font: "", header: "" };
+export type Filters = {
+  category: TemplateCategory | "";
+  colour: string;
+  font: "" | "sans" | "serif";
+  header: "" | TemplateStyle["header"];
+  layout: "" | TemplateStyle["layout"];
+  photo: "" | "with" | "without";
+};
+export const NO_FILTERS: Filters = { category: "", colour: "", font: "", header: "", layout: "", photo: "" };
 
 const CATEGORIES: TemplateCategory[] = ["Professional", "Modern", "Creative", "Simple"];
 const HEADERS = [
-  { id: "plain", label: "Plain header" },
+  { id: "plain", label: "Plain" },
   { id: "banner", label: "Colour band" },
   { id: "stripe", label: "Side stripe" },
+  { id: "split", label: "Split" },
+  { id: "monogram", label: "Monogram" },
+] as const;
+const LAYOUTS = [
+  { id: "single", label: "One column" },
+  { id: "sidebar", label: "Sidebar" },
+  { id: "timeline", label: "Timeline" },
 ] as const;
 
 /** One swatch per colour name, using the first template's accent of that colour. */
@@ -22,7 +36,9 @@ export function matches(id: string, f: Filters): boolean {
     (!f.category || t.category === f.category) &&
     (!f.colour || t.colour === f.colour) &&
     (!f.font || t.serif === (f.font === "serif")) &&
-    (!f.header || t.header === f.header)
+    (!f.header || t.header === f.header) &&
+    (!f.layout || t.layout === f.layout) &&
+    (!f.photo || t.photo === (f.photo === "with"))
   );
 }
 
@@ -57,6 +73,8 @@ export function TemplateFilters({ value, onChange, className }: { value: Filters
   return (
     <div className={cn("flex flex-wrap gap-x-8 gap-y-4", className)}>
       <Chips legend="Style" options={CATEGORIES.map((c) => ({ id: c, label: c }))} value={value.category} onChange={set("category")} />
+      <Chips legend="Layout" options={LAYOUTS.map((l) => ({ id: l.id, label: l.label }))} value={value.layout} onChange={set("layout")} />
+      <Chips legend="Photo" options={[{ id: "with", label: "With photo" }, { id: "without", label: "No photo" }]} value={value.photo} onChange={set("photo")} />
       <fieldset className="min-w-0">
         <legend className="mb-1.5 text-label-sm font-semibold uppercase tracking-wide text-on-surface-variant">Colour</legend>
         <div className="flex flex-wrap items-center gap-1.5">

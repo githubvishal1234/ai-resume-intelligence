@@ -103,7 +103,7 @@ def test_delete_account_removes_data_and_files(app, user_client: TestClient, set
     )
     assert upload.status_code == 201, upload.text
     with get_engine().connect() as conn:
-        user_id = conn.scalar(text("select id from users where email = 'ada@example.com'"))
+        user_id = conn.scalar(text("select lower(id) from users where email = 'ada@example.com'"))
         key = conn.scalar(
             text("select storage_key from resume_files where owner_id = :u"), {"u": user_id}
         )
@@ -169,3 +169,26 @@ def test_pro_waitlist_is_per_user_and_idempotent(app, user_client: TestClient) -
 
 def test_pro_waitlist_needs_csrf(auth_client: TestClient) -> None:
     assert auth_client.post("/api/v1/account/pro-waitlist").status_code == 403
+
+
+def test_delete_account_with_master_and_tailored_resumes(user_client: TestClient) -> None:
+    # Resume versions are immutable in the database; deleting their author must still work.
+    from tests.test_tailoring import _session
+
+    master, session = _session(user_client)
+    change = session["changes"][0]
+    decided = user_client.post(
+        f"/api/v1/tailoring/{session['id']}/changes/{change['id']}/decision",
+        json={"decision": "accepted"},
+    )
+    assert decided.status_code == 200, decided.text
+    final = user_client.post(f"/api/v1/tailoring/{session['id']}/finalize", json={})
+    assert final.status_code == 200 and final.json()["result_resume_id"]
+    job_id = session["job_id"]
+    assert user_client.post("/api/v1/applications", json={"job_id": job_id}).status_code == 201
+
+    gone = user_client.post("/api/v1/account/delete", json={"password": STRONG_PASSWORD})
+    assert gone.status_code == 204, gone.text
+    with get_engine().connect() as conn:
+        assert conn.scalar(text("select count(*) from resumes")) == 0
+        assert conn.scalar(text("select count(*) from resume_versions")) == 0

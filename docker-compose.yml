@@ -1,27 +1,27 @@
-# Local/dev stack: Postgres + API + web (nginx serving the SPA and proxying /api).
+# Local/dev stack: SQL Server + API + web (nginx serving the SPA and proxying /api).
 #   docker compose up -d db
+#   docker compose run --rm api python -m app.db.create_database
 #   docker compose run --rm api alembic upgrade head
 #   docker compose up --build
 # Then open http://localhost:8080
 services:
   db:
-    image: postgres:16-alpine
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      POSTGRES_USER: resume_app
-      POSTGRES_PASSWORD: dev_only_password
-      POSTGRES_DB: resume_intel
-    ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: Dev_only_Passw0rd
+    ports: ["1433:1433"]
+    volumes: ["mssqldata:/var/opt/mssql"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U resume_app -d resume_intel"]
-      interval: 5s
-      retries: 10
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Dev_only_Passw0rd -Q 'SELECT 1'"]
+      interval: 10s
+      retries: 12
 
   api:
     build: ./backend
     environment:
       APP_ENV: development
-      DATABASE_URL: postgresql+psycopg://resume_app:dev_only_password@db:5432/resume_intel
+      DATABASE_URL: mssql+pyodbc://sa:Dev_only_Passw0rd@db:1433/resume_intel?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
       STORAGE_LOCAL_ROOT: /app/var/storage
       # Trust X-Forwarded-For only from the web container's network.
       FORWARDED_ALLOW_IPS: "*"
@@ -39,5 +39,5 @@ services:
     depends_on: [api]
 
 volumes:
-  pgdata:
+  mssqldata:
   storage:

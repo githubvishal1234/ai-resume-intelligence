@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emptyResume, type ResumeDoc } from "@/services/resumeService";
-import { bulletTips, completeness, draftSummary, resumeChecklist, SAMPLE_RESUME } from "./resumeHelpers";
+import { bulletTips, completeness, draftSummary, isSectionEmpty, resumeChecklist, SAMPLE_RESUME } from "./resumeHelpers";
 
 const NOW = new Date("2026-10-14T00:00:00Z");
 
@@ -11,8 +11,20 @@ function doc(patch: Partial<ResumeDoc>): ResumeDoc {
 describe("resume checklist", () => {
   it("starts at zero and reaches 100% for a complete resume", () => {
     expect(completeness(emptyResume())).toBe(0);
-    expect(resumeChecklist(SAMPLE_RESUME).filter((c) => !c.ok).map((c) => c.id)).toEqual([]);
-    expect(completeness(SAMPLE_RESUME)).toBe(100);
+    // The sample has no projects: with that section skipped it is complete.
+    expect(resumeChecklist(SAMPLE_RESUME, ["projects"]).filter((c) => !c.ok).map((c) => c.id)).toEqual([]);
+    expect(completeness(SAMPLE_RESUME, ["projects"])).toBe(100);
+  });
+
+  it("leaves skipped sections out of the checklist and the score", () => {
+    const noProjects = doc({ ...SAMPLE_RESUME });
+    expect(resumeChecklist(noProjects).find((c) => c.id === "project")?.ok).toBe(false);
+    expect(completeness(noProjects)).toBeLessThan(100);
+    expect(resumeChecklist(noProjects, ["projects"]).some((c) => c.step === "projects")).toBe(false);
+    expect(completeness(noProjects, ["projects"])).toBe(100);
+    expect(isSectionEmpty(noProjects, "projects")).toBe(true);
+    const withProject = { name: "Stock Alerts", url: "", description: "", technologies: [], bullets: ["Built alerts."], id: "p1" };
+    expect(isSectionEmpty(doc({ projects: [withProject] }), "projects")).toBe(false);
   });
 
   it("asks for numbers in at least half the bullet points", () => {

@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import { NAV_GROUPS, navDisabledReason, type NavItem } from "@/constants/navigation";
 import { cn } from "@/lib/cn";
 
@@ -48,11 +49,12 @@ export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () =>
 }
 
 export function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation();
+  const heading = "px-3 text-label-sm uppercase tracking-wider text-outline";
   return (
     <nav aria-label="Primary" className="space-y-5">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.id}>
-          <p className="mb-1.5 px-3 text-label-sm uppercase tracking-wider text-outline">{group.label}</p>
+      {NAV_GROUPS.map((group) => {
+        const list = (
           <ul className="space-y-0.5">
             {group.items.map((item) => (
               <li key={item.id}>
@@ -60,8 +62,26 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
               </li>
             ))}
           </ul>
-        </div>
-      ))}
+        );
+        if (group.collapsible) {
+          const here = group.items.some((i) => i.to && pathname.startsWith(i.to));
+          return (
+            <details key={group.id} open={here || undefined} className="group/more">
+              <summary className={cn(heading, "mb-1.5 flex cursor-pointer list-none items-center gap-1 hover:text-on-surface")}>
+                <ChevronRight className="size-3.5 transition-transform group-open/more:rotate-90" aria-hidden />
+                {group.label}
+              </summary>
+              {list}
+            </details>
+          );
+        }
+        return (
+          <div key={group.id}>
+            <p className={cn(heading, "mb-1.5")}>{group.label}</p>
+            {list}
+          </div>
+        );
+      })}
     </nav>
   );
 }
