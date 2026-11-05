@@ -36,7 +36,16 @@ from app.resumes.content import Experience, OtherSection, Project, ResumeContent
 from app.resumes.parser import parse_resume
 from app.skills.vocabulary import canonical, find_skills
 from app.tailoring.claims import check_claims_many
-from app.tailoring.factcheck import FactFlag, blocking, check_text, known_skills, master_text
+from app.tailoring.factcheck import (
+    CONFIRMED_HEADING,
+    FactFlag,
+    blocking,
+    check_role,
+    check_text,
+    known_skills,
+    master_text,
+    place_label,
+)
 from app.tailoring.proposer import (
     EDITABLE_KINDS,
     METHOD_VERSION,
@@ -219,12 +228,8 @@ class TailoringService:
     def places(self, row: TailoringSession) -> dict[str, str]:
         """The roles and projects of the master a confirmed skill can be placed under."""
         master = self.base_content(row)
-        out = {
-            e.id: " at ".join(p for p in (e.title, e.company) if p) or "A role"
-            for e in master.experience
-        }
-        out.update({p.id: f"Project: {p.name or 'untitled'}" for p in master.projects})
-        return out
+        entries: list[Experience | Project] = [*master.experience, *master.projects]
+        return {e.id: place_label(e) for e in entries}
 
     def facts(self, row: TailoringSession) -> ResumeContent:
         """What new text may rely on: the master plus the skills the user confirmed here."""
@@ -243,7 +248,7 @@ class TailoringService:
                     )
                     notes.append(f"{skill}: {c.proposed['note']}")
         if notes:
-            content.other.append(OtherSection(heading="Confirmed by the candidate", lines=notes))
+            content.other.append(OtherSection(heading=CONFIRMED_HEADING, lines=notes))
         return content
 
     def get(self, session_id: uuid.UUID) -> TailoringSession:
@@ -424,11 +429,22 @@ class TailoringService:
         return content
 
     @staticmethod
-    def _flags(kind: str, value: dict[str, Any], master: ResumeContent) -> list[dict[str, Any]]:
+    def _flags(
+        kind: str,
+        value: dict[str, Any],
+        master: ResumeContent,
+        target_id: str | None = None,
+        mine: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Layer 1. `target_id` is the bullet's role or project; `mine` marks text the user
+        wrote there, which warns instead of blocks: they may know what the resume doesn't say."""
         if kind not in TEXT_KINDS:
             return []  # reorders and re-surfaced skills only use the master's own content
         text = str(value.get("text", ""))
         flags = [f.model_dump() for f in check_text(text, master)]
+        if target_id:
+            found = check_role(text, master, target_id, "warn" if mine else "block")
+            flags += [f.model_dump() for f in found]
         if kind == "headline":
             # The title before "|" must be one the candidate holds or already uses.
             title = text.split("|")[0].strip()
@@ -448,10 +464,15 @@ class TailoringService:
         return metered(get_llm_provider(self.settings), self.actor.user_id, feature, self.settings)
 
     def _checked_flags(
-        self, kind: str, value: dict[str, Any], master: ResumeContent
+        self,
+        kind: str,
+        value: dict[str, Any],
+        master: ResumeContent,
+        target_id: str | None = None,
+        mine: bool = False,
     ) -> list[dict[str, Any]]:
         """Layer 1, then layer 2 when AI is set up and layer 1 found nothing to fix."""
-        flags = self._flags(kind, value, master)
+        flags = self._flags(kind, value, master, target_id, mine)
         if kind not in TEXT_KINDS or blocking(flags) or not ai_status(self.settings).configured:
             return flags
         text = str(value.get("text", ""))
@@ -485,7 +506,9 @@ class TailoringService:
                 raise NotEditable()
             text = edited_text.strip()
             change.edited = None if text == change.proposed.get("text") else {"text": text}
-            change.flags = self._checked_flags(change.kind, _value(change), master)
+            change.flags = self._checked_flags(
+                change.kind, _value(change), master, change.target_id, mine=True
+            )
         blocked = blocking(change.flags)
         if decision == "accepted" and blocked:
             self.db.commit()  # keep the user's edit and its flags; only the accept is refused
@@ -616,9 +639,9 @@ class TailoringService:
         change.source = "llm"
         change.reason = f"Rewritten by {by}. Check every fact before accepting."
         change.flags = (
-            self._checked_flags(change.kind, change.proposed, facts)
+            self._checked_flags(change.kind, change.proposed, facts, change.target_id)
             if claims
-            else self._flags(change.kind, change.proposed, facts)
+            else self._flags(change.kind, change.proposed, facts, change.target_id)
         )
         if change.kind == "rewrite_bullet":
             analysis = JobAnalysis.model_validate(job.analysis)
@@ -702,7 +725,7 @@ class TailoringService:
             bullet.proposed = {"text": text}
             bullet.edited = None
             bullet.source = "user"
-            bullet.flags = self._flags("add_bullet", bullet.proposed, self.facts(row))
+            bullet.flags = self._flags("add_bullet", bullet.proposed, self.facts(row), where)
             bullet.decision = "pending" if blocking(bullet.flags) else "accepted"
         elif bullet is not None:
             bullet.decision = "rejected"  # the user took the role or the details back

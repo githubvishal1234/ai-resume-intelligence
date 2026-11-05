@@ -14,6 +14,31 @@ const caps = (configured: boolean) => ({
   },
 });
 
+describe("AI data notice", () => {
+  const page = async (configured: boolean) => {
+    mockApi([
+      me,
+      caps(configured),
+      { path: "/tailoring", body: [] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+    ]);
+    renderApp("/tailor");
+    await screen.findByText("Step 1: Paste the job and the resume");
+  };
+
+  it("names the provider where a resume is pasted", async () => {
+    await page(true);
+    expect(await screen.findByText("AI features send this text to Groq")).toBeInTheDocument();
+    expect(screen.getByText(/get their permission first/)).toBeInTheDocument();
+  });
+
+  it("stays hidden while AI is off", async () => {
+    await page(false);
+    expect(screen.queryByText(/AI features send this text/)).not.toBeInTheDocument();
+  });
+});
+
 describe("System status", () => {
   it("shows today's AI use when AI is set up", async () => {
     mockApi([

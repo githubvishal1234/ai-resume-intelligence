@@ -14,9 +14,9 @@ from app.ai.registry import register_provider, unregister_provider
 from app.core.config import Settings, get_settings
 from app.jobs.analyzer import analyze_job
 from app.matching.matcher import match
-from app.resumes.content import Project, ResumeContent, Skill
+from app.resumes.content import Experience, OtherSection, Project, ResumeContent, Skill
 from app.resumes.parser import parse_resume
-from app.tailoring.factcheck import check_text
+from app.tailoring.factcheck import CONFIRMED_HEADING, blocking, check_role, check_text
 from app.tailoring.proposer import (
     ChangeNotApplicable,
     Proposal,
@@ -60,6 +60,55 @@ def test_factual_check_accepts_facts_from_the_master() -> None:
     ]
     flags = check_text("Engineered Initech pipelines.", master)
     assert [(f.kind, f.value) for f in flags] == [("name", "Initech")]
+
+
+def _two_jobs() -> ResumeContent:
+    return ResumeContent(
+        experience=[
+            Experience(id="a", title="Engineer", company="Acme", bullets=["Ran Docker by 40%."]),
+            Experience(id="b", title="Developer", company="Initech", bullets=["Wrote Python."]),
+        ],
+        projects=[Project(id="p", name="Bot", technologies=["Redis"], bullets=["Cached it."])],
+    )
+
+
+def test_a_bullet_may_only_use_what_its_own_role_shows() -> None:
+    master = _two_jobs()
+    flags = check_role("Wrote Python on Docker, up 40%.", master, "b")
+    assert {(f.kind, f.value, f.severity) for f in flags} == {
+        ("technology", "Docker", "block"),
+        ("number", "40%", "block"),
+    }
+    assert check_text("Wrote Python on Docker, up 40%.", master) == []  # resume-wide it passes
+    assert check_role("Ran Docker with Python.", master, "a")[0].value == "Python"
+    assert check_role("Cached it in Redis.", master, "p") == []  # a project's tech list counts
+    assert check_role("Ran Rust.", master, "a") == []  # check_text reports this one, not twice
+    assert check_role("Wrote Docker.", master, "gone") == []
+
+
+def test_every_real_bullet_passes_its_own_role_check() -> None:
+    master = _master()
+    entries = [*master.experience, *master.projects]
+    assert any(e.bullets for e in entries)
+    for entry in entries:
+        for bullet in entry.bullets:
+            assert check_role(bullet, master, entry.id) == []
+
+
+def test_a_skill_confirmed_for_a_role_counts_there_only() -> None:
+    master = _two_jobs()
+    note = "Jira (used in Developer at Initech): ran sprints on Jira with Kafka"
+    master.other.append(OtherSection(heading=CONFIRMED_HEADING, lines=[note]))
+    assert check_role("Ran sprints on Jira with Kafka.", master, "b") == []
+    assert {f.value for f in check_role("Ran sprints on Jira.", master, "a")} == {"Jira"}
+
+
+def test_role_flags_block_ai_text_and_warn_on_the_users_own() -> None:
+    master, value = _two_jobs(), {"text": "Wrote Python on Docker."}
+    assert blocking(TailoringService._flags("rewrite_bullet", value, master, "b"))
+    mine = TailoringService._flags("rewrite_bullet", value, master, "b", mine=True)
+    assert [f["severity"] for f in mine] == ["warn"] and not blocking(mine)
+    assert TailoringService._flags("summary", value, master) == []  # a summary spans the roles
 
 
 def test_factual_check_flags_invented_facts() -> None:
