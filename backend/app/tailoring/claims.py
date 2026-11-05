@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from app.ai.provider import LLMMessage, LLMProvider
 from app.core.errors import AppError
 from app.resumes.content import ResumeContent
-from app.tailoring.factcheck import FactFlag, master_text
+from app.tailoring.factcheck import FactFlag, ai_context, master_text
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,10 @@ def check_claims_many(
             ClaimReport,
             [
                 LLMMessage(role="system", content=INSTRUCTIONS),
-                LLMMessage(role="user", content="MASTER RESUME:\n" + master_text(master)),
+                LLMMessage(
+                    role="user",
+                    content="MASTER RESUME:\n" + ai_context(master, " ".join(texts)),
+                ),
                 LLMMessage(role="user", content="TEXTS TO CHECK:\n" + "\n".join(numbered)),
             ],
             max_output_tokens=800 + 300 * (len(numbered) - 1),

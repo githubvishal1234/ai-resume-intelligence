@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.resumes.content import (
+    MAX_BULLETS,
     Certification,
     Contact,
     Education,
@@ -23,7 +24,7 @@ from app.resumes.content import (
     Skill,
 )
 
-PARSER_VERSION = "heuristic-v1"
+PARSER_VERSION = "heuristic-v2"
 Confidence = Literal["high", "medium", "low"]
 SectionKey = Literal[
     "summary", "experience", "education", "skills", "projects", "certifications", "other"
@@ -122,14 +123,15 @@ _MONTH = (
 _DATE = rf"(?:{_MONTH}\s*,?\s*\d{{4}}|\d{{1,2}}\s*/\s*\d{{4}}|\d{{4}}\s*-\s*\d{{2}}|\d{{4}})"
 _PRESENT = r"(?:present|current|currently|now|today|ongoing)"
 DATE_RANGE = re.compile(
-    rf"(?P<start>{_DATE})\s*(?:-|–|—|to|until|–|—)\s*(?P<end>{_DATE}|{_PRESENT})",
+    rf"(?P<start>{_DATE})\s*(?:-{{1,2}}|–|—|to|until)\s*(?P<end>{_DATE}|{_PRESENT})",
     re.IGNORECASE,
 )
 SINGLE_DATE = re.compile(
     rf"\b(?P<date>{_MONTH}\s*,?\s*\d{{4}}|\d{{1,2}}/\d{{4}}|(?:19|20)\d{{2}})\b", re.IGNORECASE
 )
 PRESENT_RE = re.compile(rf"^{_PRESENT}$", re.IGNORECASE)
-BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■□➢➤►✓✔]|\d{1,2}[.)])\s+")
+# \ue000-\uf8ff: Word's Symbol and Wingdings bullets reach PDFs as private-use characters.
+BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■□➢➤►✓✔\ue000-\uf8ff]|\d{1,2}[.)])\s+")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 PHONE = re.compile(r"(?<![\w])(\+?\d[\d\s().-]{7,}\d)(?![\w])")
 URL = re.compile(
@@ -177,7 +179,7 @@ def _norm_heading(line: str) -> str:
 
 
 def heading_key(line: str) -> SectionKey | None:
-    if not line or len(line) > 50 or BULLET.match(line):
+    if not line or len(line) > 50 or BULLET.match(line) or line.rstrip().endswith("."):
         return None
     norm = _norm_heading(line)
     if not norm or len(norm.split()) > 5:
@@ -186,6 +188,44 @@ def heading_key(line: str) -> SectionKey | None:
         return _HEADINGS[norm]
     norm_and = norm.replace(" & ", " and ")
     return _HEADINGS.get(norm_and)
+
+
+# Labels long Indian and US consulting resumes put under each role.
+ROLE_NOTE = re.compile(
+    r"^(?:project(?:\s+description)?|client|environment|technologies|tech\s+stack|tools)\s*:\s*\S",
+    re.IGNORECASE,
+)
+_ROLE_HEADING = re.compile(
+    r"^(?:(?:key\s+|roles?\s*(?:&|and)\s*)?(?:responsibilities|duties)|projects?\s+worked(?:\s+on)?)\s*:?$",
+    re.IGNORECASE,
+)
+_JOB_WORD = re.compile(
+    r"\b(?:developer|engineer|architect|consultant|manager|lead|analyst|administrator|"
+    r"programmer|designer|director|specialist|scientist|intern)\b",
+    re.IGNORECASE,
+)
+_COMPANY_SUFFIX = re.compile(r"^(?:inc|llc|llp|ltd|limited|corp|co|gmbh|plc|pvt)\b", re.IGNORECASE)
+
+
+def _split_header(pieces: list[str], location: str) -> tuple[str, str, str]:
+    """(title, company, location), for headers joined by commas as well as separators."""
+    if len(pieces) == 1 and "," in pieces[0]:
+        parts = [p.strip() for p in pieces[0].split(",") if p.strip()]
+        if _JOB_WORD.search(parts[0]) and not _JOB_WORD.search(parts[1]):
+            return parts[0], parts[1], location or ", ".join(parts[2:])
+    if len(pieces) >= 2 and "," in pieces[1] and not location:
+        company, _, place = pieces[1].partition(",")
+        if not _COMPANY_SUFFIX.match(place.strip()):
+            return pieces[0], company.strip(), place.strip()
+    return (pieces[0] if pieces else ""), (pieces[1] if len(pieces) > 1 else ""), location
+
+
+def _employer_only(header: str, body: list[str]) -> tuple[str, str] | None:
+    """(company, location) for an employer line with its client roles listed under it."""
+    if body or _JOB_WORD.search(header):
+        return None
+    company, _, place = re.sub(r"[/\s]*\(\s*\)", "", URL.sub("", header)).partition(",")
+    return company.strip(" /("), place.strip(" ,")
 
 
 def _strip_bullet(line: str) -> str:
@@ -286,10 +326,13 @@ def _group_entries(
         header, body = [], []
 
     for index, line in enumerate(lines):
-        if not line:
+        if not line or _ROLE_HEADING.match(line):
             continue
         if _is_bullet(line):
             body.append(_strip_bullet(line))
+            continue
+        if ROLE_NOTE.match(line):
+            body.append(re.sub(r"\s*:\s*", ": ", line, count=1))
             continue
         upcoming = [ln for ln in lines[index + 1 : index + 3] if ln]
         signals_new = (
@@ -325,9 +368,16 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
         pieces = _pieces(rest)
         location = next((p for p in pieces if LOCATION.match(p)), "")
         pieces = [p for p in pieces if p != location]
-        title = pieces[0] if pieces else ""
-        company = pieces[1] if len(pieces) > 1 else ""
+        title, company, location = _split_header(pieces, location)
         bullets = [b for b in body if b]
+        if len(bullets) > MAX_BULLETS:
+            report.confidence = "medium"
+            report.notes.append(
+                f"{title or 'One role'} has {len(bullets)} bullets; "
+                f"the first {MAX_BULLETS} were kept."
+            )
+        if start and not company and (employer := _employer_only(rest, bullets)):
+            title, company, location = "", *employer
         if not header and items:  # stray bullets: attach to the previous role
             items[-1].bullets.extend(bullets)
             continue
@@ -339,7 +389,7 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
                 start_date=start,
                 end_date=end,
                 current=current,
-                bullets=[b[:1000] for b in bullets][:40],
+                bullets=[b[:1000] for b in bullets][:MAX_BULLETS],
             )
         )
     if not items:
@@ -358,6 +408,13 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
                 f"{no_company} role(s) have no company; title and company may be swapped or merged."
             )
     return items, report
+
+
+def _degree_first(piece: str) -> list[str]:
+    """Splits "Master of Science, Some University, India" before the institution."""
+    parts = piece.split(",")
+    at = next((i for i, p in enumerate(parts) if INSTITUTION.search(p)), 0)
+    return [",".join(parts[:at]).strip(), ",".join(parts[at:]).strip()] if at else [piece]
 
 
 def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
@@ -389,7 +446,7 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
         if start or end:
             current.start_date = current.start_date or start
             current.end_date = current.end_date or end
-        for piece in _pieces(rest) if rest else []:
+        for piece in [d for p in _pieces(rest) for d in _degree_first(p)] if rest else []:
             if INSTITUTION.search(piece) and not current.institution:
                 current.institution = piece[:200]
             elif DEGREE.search(piece) and not current.degree:
@@ -408,6 +465,13 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
     return items, report
 
 
+# "Cloud Platforms AWS, GCP": a skills table loses its column break in a PDF.
+_SKILL_CATEGORY = re.compile(
+    r"^((?:[A-Za-z0-9/&+\-]+\s+){0,4}"
+    r"(?:languages?|frameworks?|technologies|frontend|front-end|backend|back-end|xml|tools|"
+    r"platforms?|servers?|systems?|databases?|services|libraries))\s+(\S.*,.*)$",
+    re.IGNORECASE,
+)
 _SKILL_SPLIT = re.compile(r"\s*(?:,|;|\||•|·|•|\s{2,}|\t)\s*")
 
 
@@ -418,8 +482,11 @@ def parse_skills(lines: list[str]) -> tuple[list[Skill], SectionReport]:
         line = _strip_bullet(raw)
         category = ""
         match = re.match(r"^([A-Za-z][A-Za-z &/+\-]{1,40}):\s*(.+)$", line)
+        match = match or _SKILL_CATEGORY.match(line)
         if match:
             category, line = match.group(1).strip(), match.group(2)
+        # "AWS (EC2, S3, RDS)": the parts are skills too, not "AWS (EC2".
+        line = re.sub(r"\(([^()]*,[^()]*)\)", r", \1", line)
         for item in _SKILL_SPLIT.split(line):
             name = item.strip(" .")
             if not name or len(name) > 60 or len(name.split()) > 5:
@@ -536,7 +603,11 @@ def parse_resume(text: str) -> ParseResult:
     sections = [(h, k, [ln for ln in body if ln not in moved]) for h, k, body in sections]
     contact, leftovers = parse_contact([ln for ln in header if ln] + moved)
     # A short line under the name ("GenAI Engineer | AI Engineer") is a headline, not summary.
-    if leftovers and len(leftovers[0]) <= 80 and not leftovers[0].rstrip().endswith("."):
+    if (
+        leftovers
+        and (len(leftovers[0]) <= 80 or ("|" in leftovers[0] and len(leftovers[0]) <= 200))
+        and not leftovers[0].rstrip().endswith(".")
+    ):
         contact.headline = _strip_bullet(leftovers.pop(0))[:200]
     content = ResumeContent(contact=contact)
     reports: dict[str, SectionReport] = {}

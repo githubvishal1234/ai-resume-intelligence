@@ -23,7 +23,7 @@ MEDIA_TYPES: dict[FileKind, str] = {
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "txt": "text/plain",
 }
-MAX_PDF_PAGES = 10
+MAX_PDF_PAGES = 20
 MAX_TEXT_CHARS = 60_000
 MAX_DOCX_UNCOMPRESSED = 25 * 1024 * 1024  # zip-bomb guard
 

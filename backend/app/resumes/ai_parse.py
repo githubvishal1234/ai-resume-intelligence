@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from app.ai.provider import LLMMessage, LLMProvider
 from app.resumes.content import (
+    MAX_BULLETS,
     Certification,
     Contact,
     Education,
@@ -172,7 +173,7 @@ def verify(answer: AiResume, source: str) -> tuple[ResumeContent, int, list[str]
             start_date=_fit(c.ok(e.start_date, "Start date"), 200),
             end_date=_fit(c.ok(e.end_date, "End date"), 200),
             current=e.current,
-            bullets=[_fit(b, 1000) for b in c.many(e.bullets, "Bullet")][:40],
+            bullets=[_fit(b, 1000) for b in c.many(e.bullets, "Bullet")][:MAX_BULLETS],
         )
         if exp.title or exp.company or exp.bullets:
             experience.append(exp)

@@ -308,15 +308,17 @@ def render_pdf(
         """Timeline layout: dates in a left gutter, the entry right of an accent line."""
         gutter = 25 * mm
         cell = [_p(when, s.meta_right)] if when else []
+        # One row per line: a single row can't break across pages, so a long role crashed.
+        rows = [[cell if i == 0 else [], [line]] for i, line in enumerate(body)]
         return [
             table(
-                [[cell, body]],
+                rows,
                 [gutter, width - gutter],
                 [
                     ("LINEBEFORE", (1, 0), (1, -1), 1.2, accent),
                     ("LEFTPADDING", (1, 0), (1, -1), 9),
                     ("RIGHTPADDING", (0, 0), (0, -1), 7),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, -1), (-1, -1), 5),
                 ],
             )
         ]

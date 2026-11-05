@@ -11,6 +11,7 @@ what that entry shows: a skill from another job is in the resume, but not in thi
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Literal
 
 from pydantic import BaseModel
@@ -73,6 +74,35 @@ def master_text(master: ResumeContent) -> str:
     return "\n".join(p for p in parts if p)
 
 
+# About 3,000 tokens: leaves room for the job text and the answer on free-tier AI plans.
+AI_RESUME_CHARS = 12_000
+_WORD = re.compile(r"[a-z0-9+#.]{3,}")
+
+
+def ai_context(master: ResumeContent, about: str, limit: int = AI_RESUME_CHARS) -> str:
+    """The resume text for an AI call: all of it, or for a long resume the parts about `about`.
+
+    Short lines (names, titles, dates, skills) always come first, so the model still sees the
+    whole career; the bullets that share the most words with `about` fill what is left.
+    """
+    full = master_text(master)
+    if len(full) <= limit:
+        return full
+    wanted = set(_WORD.findall(about.lower()))
+    lines = full.split("\n")
+
+    def rank(i: int) -> tuple[bool, int, int]:
+        return len(lines[i]) > 60, -len(wanted & set(_WORD.findall(lines[i].lower()))), i
+
+    keep: set[int] = set()
+    used = 0
+    for i in sorted(range(len(lines)), key=rank):
+        if used + len(lines[i]) < limit:
+            keep.add(i)
+            used += len(lines[i]) + 1
+    return "\n".join(lines[i] for i in sorted(keep))
+
+
 def place_label(entry: Experience | Project) -> str:
     """How a role or project is named to the user, and in the notes it confirmed."""
     if isinstance(entry, Project):
@@ -80,10 +110,16 @@ def place_label(entry: Experience | Project) -> str:
     return " at ".join(p for p in (entry.title, entry.company) if p) or "A role"
 
 
+@lru_cache(maxsize=32)
+def _skills_in(corpus: str) -> frozenset[str]:
+    # Every bullet is checked against the same resume: on 36,000 characters this scan takes
+    # 0.7s, so a long resume spent minutes repeating it.
+    return frozenset(find_skills(corpus)) | frozenset(find_skills(corpus, prose=False))
+
+
 def known_skills(master: ResumeContent) -> set[str]:
     """Skills the master resume shows anywhere; any other skill in new text is flagged."""
-    corpus = master_text(master)
-    return set(find_skills(corpus)) | set(find_skills(corpus, prose=False))
+    return set(_skills_in(master_text(master)))
 
 
 def _norm_number(value: str) -> str:

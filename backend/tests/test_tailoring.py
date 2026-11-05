@@ -16,7 +16,14 @@ from app.jobs.analyzer import analyze_job
 from app.matching.matcher import match
 from app.resumes.content import Experience, OtherSection, Project, ResumeContent, Skill
 from app.resumes.parser import parse_resume
-from app.tailoring.factcheck import CONFIRMED_HEADING, blocking, check_role, check_text
+from app.tailoring.factcheck import (
+    CONFIRMED_HEADING,
+    ai_context,
+    blocking,
+    check_role,
+    check_text,
+    master_text,
+)
 from app.tailoring.proposer import (
     ChangeNotApplicable,
     Proposal,
@@ -24,6 +31,7 @@ from app.tailoring.proposer import (
     apply_order,
     focus,
     keep_length,
+    pick_bullets,
     propose,
 )
 from app.tailoring.service import TailoringService
@@ -109,6 +117,35 @@ def test_role_flags_block_ai_text_and_warn_on_the_users_own() -> None:
     mine = TailoringService._flags("rewrite_bullet", value, master, "b", mine=True)
     assert [f["severity"] for f in mine] == ["warn"] and not blocking(mine)
     assert TailoringService._flags("summary", value, master) == []  # a summary spans the roles
+
+
+def test_ai_context_keeps_a_long_resume_small_and_on_topic() -> None:
+    assert ai_context(_master(), "anything") == master_text(_master())  # short: all of it
+    roles = [
+        Experience(
+            title=f"Engineer {n}",
+            company=f"Company {n}",
+            bullets=[f"Wrote billing reports and invoices for customer number {n} with care."] * 40,
+        )
+        for n in range(20)
+    ]
+    roles[-1].bullets[-1] = (
+        "Scaled the Kubernetes clusters that served every regional payments gateway."
+    )
+    text = ai_context(ResumeContent(experience=roles), "Kubernetes payments gateway", 2_000)
+    assert len(text) < 2_000
+    assert "Scaled the Kubernetes" in text  # the relevant bullet, from the very end
+    assert all(f"Company {n}" in text for n in range(20))  # and the whole career
+
+
+def test_ai_rewrites_are_shared_across_roles() -> None:
+    new, old = Experience(title="New"), Experience(title="Old")
+    items = [(new, f"Filed report number {i}.") for i in range(30)]
+    items += [(old, "Environment: Python, Docker"), (old, "Ran Docker in production.")]
+    picked = pick_bullets(items, {"Docker"}, 5)
+    assert len(picked) == 5 and (old, "Ran Docker in production.") in picked
+    assert (old, "Environment: Python, Docker") not in picked  # a tool list isn't rewritten
+    assert pick_bullets(items[:2], set(), 5) == items[:2]  # under the limit: all, in order
 
 
 def test_factual_check_flags_invented_facts() -> None:

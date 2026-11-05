@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.jobs.schemas import MAX_JOB_CHARS, MIN_JOB_CHARS
 from app.matching.matcher import EvidenceRef
 from app.resumes.content import ResumeContent
+from app.resumes.extraction import MAX_TEXT_CHARS
 from app.tailoring.factcheck import FactFlag
 
 
@@ -18,7 +19,7 @@ class CreateTailoringIn(BaseModel):
 
 class QuickTailorIn(BaseModel):
     # Left out: tailor the user's master resume instead.
-    resume_text: str | None = Field(default=None, min_length=200, max_length=40_000)
+    resume_text: str | None = Field(default=None, min_length=200, max_length=MAX_TEXT_CHARS)
     job_text: str = Field(min_length=MIN_JOB_CHARS, max_length=MAX_JOB_CHARS)
 
 

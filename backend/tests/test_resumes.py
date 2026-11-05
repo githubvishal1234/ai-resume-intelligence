@@ -13,7 +13,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from app.db.session import get_engine, get_sessionmaker
 from app.models import Resume, ResumeFile, ResumeVersion
 from app.resumes.analysis import analyze
-from app.resumes.content import ResumeContent
+from app.resumes.content import MAX_BULLETS, ResumeContent
 from app.resumes.parser import parse_resume
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT, make_docm, make_docx, make_encrypted_pdf, make_pdf
@@ -398,3 +398,85 @@ def test_import_finds_trailing_contact_headline_and_project_taglines() -> None:
     assert search.technologies == ["Python", "FastAPI", "PostgreSQL"]
     # A year range is not a phone number, so the college line stays in education.
     assert content.education[0].institution.startswith("St. Mary's Engineering College")
+
+
+def test_a_long_consulting_resume_parses_role_by_role() -> None:
+    """The layout of a 9-page Word export: Symbol bullets, labels and a comma header."""
+    text = """Asha Rao
+Lead Java Developer | Java, Spring Boot, Microservices, React, Angular, AWS, Azure, GCP, Kafka
+asha@example.com
+PROFESSIONAL SUMMARY:
+\uf0b7 14+ years building Java systems.
+TECHNICAL SKILLS:
+Languages Java, SQL, Python
+Database and Tools Oracle, MySQL
+Cloud Platforms AWS (EC2, S3), Azure
+EXPERIENCE:
+Lead Developer
+First Bank, Raleigh, NC 05/2025- Present
+Project: Modernized banking modules for customers
+across three regions.
+Environment: Java 17, Kafka
+Responsibilities:
+\uf0b7 Built Spring services for payments
+and transfers with shared
+projects.
+\uf0b7 Tuned SQL queries.
+Acme Consulting / (www.acme.com), Germany, 07/2021 - 04/2025
+Projects Worked:
+Java Developer, Volkswagen, Reston, Virginia 05/2023--04/2025
+Project:Built connected vehicle services.
+Responsibilities
+\uf0b7 Added remote diagnostics.
+Software Engineer | Siemens, Bengaluru, India 02/2012 -- 07/2013
+\uf0b7 Wrote schedulers.
+EDUCATION:
+\uf0b7 Master of Computer Applications, Nagarjuna University, India, 2008
+"""
+    parsed = parse_resume(text)
+    c = parsed.content
+    assert c.contact.headline.startswith("Lead Java Developer |")
+    assert c.projects == [] and len(c.experience) == 4
+    first, employer, client, last = c.experience
+    assert (first.title, first.company, first.location) == (
+        "Lead Developer",
+        "First Bank",
+        "Raleigh, NC",
+    )
+    assert first.current and first.bullets == [
+        "Project: Modernized banking modules for customers across three regions.",
+        "Environment: Java 17, Kafka",
+        "Built Spring services for payments and transfers with shared projects.",
+        "Tuned SQL queries.",
+    ]
+    assert (employer.title, employer.company, employer.location) == (
+        "",
+        "Acme Consulting",
+        "Germany",
+    )
+    assert (client.title, client.company, client.location) == (
+        "Java Developer",
+        "Volkswagen",
+        "Reston, Virginia",
+    )
+    assert (client.start_date, client.end_date) == ("05/2023", "04/2025")
+    assert client.bullets == [
+        "Project: Built connected vehicle services.",
+        "Added remote diagnostics.",
+    ]
+    assert (last.company, last.end_date) == ("Siemens", "07/2013")
+    skills = {s.name: s.category for s in c.skills}
+    assert skills["Oracle"] == "Database and Tools" and skills["EC2"] == "Cloud Platforms"
+    assert (c.education[0].degree, c.education[0].institution) == (
+        "Master of Computer Applications",
+        "Nagarjuna University, India",
+    )
+
+
+def test_a_role_with_many_bullets_keeps_them_and_says_when_it_cannot() -> None:
+    lines = "\n".join(f"- Shipped release number {i}." for i in range(MAX_BULLETS + 5))
+    parsed = parse_resume(
+        f"Asha Rao\nasha@example.com\nEXPERIENCE\nEngineer | Acme\n2019 - 2021\n{lines}"
+    )
+    assert len(parsed.content.experience[0].bullets) == MAX_BULLETS
+    assert any("the first 100 were kept" in n for s in parsed.sections for n in s.notes)
