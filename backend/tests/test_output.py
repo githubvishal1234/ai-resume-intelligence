@@ -212,3 +212,12 @@ def test_one_page_template_fits_a_full_resume_on_one_page() -> None:
     assert {c.id: c.status for c in ats_check(content, pdf, "one-page").checks}["layout.order"] == (
         "pass"
     )
+
+
+def test_a_very_long_role_renders_in_every_layout() -> None:
+    long_role = [f"Delivered release number {i} of the payments platform." for i in range(100)]
+    content = parse_resume(SAMPLE_TEXT).content
+    content.experience[0].bullets = long_role
+    for family in {t.split("-")[0]: t for t in TEMPLATES}.values():
+        text = " ".join(_text(render_pdf(content, TEMPLATES[family])).split())
+        assert "release number 99 of" in text, family

@@ -39,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
 _RETRY_STATUSES = {408, 409, 429, 500, 502, 503, 504}
+# Groq's 400 when a model's answer misses the schema. It varies by run, so asking again works.
+_RETRY_CODE = "json_validate_failed"
 # Groq sits behind Cloudflare, which answers 403 (error 1010) to urllib's default User-Agent.
 USER_AGENT = "ResumeIntelligence/1.0"
 _MAX_BACKOFF_SECONDS = 10.0
@@ -47,6 +49,15 @@ _MAX_BACKOFF_SECONDS = 10.0
 def _schema_name(schema: type[BaseModel]) -> str:
     name = "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in schema.__name__)
     return name[:64] or "result"
+
+
+def _error_code(exc: urllib.error.HTTPError) -> str:
+    """The provider's error code, and only that: the body can quote the prompt."""
+    try:
+        error = json.loads(exc.read()).get("error")
+        return str(error.get("code") or "")
+    except (ValueError, OSError, AttributeError):
+        return ""
 
 
 def _retry_after(headers: Message | None, attempt: int) -> float:
@@ -175,13 +186,17 @@ class OpenAIProvider(LLMProvider):
                         raise LLMOutputInvalid()
                     return result
             except urllib.error.HTTPError as exc:
+                code = _error_code(exc)
                 exc.close()
-                logger.warning("llm_http_error", extra={"status": exc.code, "attempt": attempt})
+                logger.warning(
+                    "llm_http_error",
+                    extra={"status": exc.code, "attempt": attempt, "provider_code": code},
+                )
                 if exc.code in (401, 403):
                     raise AiProviderFailed(
                         "The AI provider rejected the API key. An administrator must check it."
                     ) from None
-                if exc.code not in _RETRY_STATUSES:
+                if exc.code not in _RETRY_STATUSES and code != _RETRY_CODE:
                     raise AiProviderFailed() from None
                 retry_in = _retry_after(exc.headers, attempt)
             except (urllib.error.URLError, TimeoutError, OSError) as exc:

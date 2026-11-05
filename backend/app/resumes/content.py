@@ -16,6 +16,8 @@ Medium = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)
 Long = Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)]
 Bullet = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
 EntityId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,40}$")]
+# A long career has long roles: a 9-page resume here had 57 bullets under one role.
+MAX_BULLETS = 100
 
 
 def new_id() -> str:
@@ -44,7 +46,7 @@ class Experience(_Strict):
     start_date: Short = ""
     end_date: Short = ""
     current: bool = False
-    bullets: list[Bullet] = Field(default_factory=list, max_length=40)
+    bullets: list[Bullet] = Field(default_factory=list, max_length=MAX_BULLETS)
 
 
 class Education(_Strict):

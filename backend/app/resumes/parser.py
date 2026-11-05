@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from app.resumes.content import (
+    MAX_BULLETS,
     Certification,
     Contact,
     Education,
@@ -23,7 +24,7 @@ from app.resumes.content import (
     Skill,
 )
 
-PARSER_VERSION = "heuristic-v1"
+PARSER_VERSION = "heuristic-v2"
 Confidence = Literal["high", "medium", "low"]
 SectionKey = Literal[
     "summary", "experience", "education", "skills", "projects", "certifications", "other"
@@ -39,6 +40,7 @@ for _key, _aliases in {
         "professional profile",
         "objective",
         "career objective",
+        "profile summary",
         "about",
         "about me",
         "overview",
@@ -62,6 +64,12 @@ for _key, _aliases in {
         "education and training",
         "educational background",
         "qualifications",
+        "educational qualifications",
+        "educational qualification",
+        "academic qualifications",
+        "academic qualification",
+        "academic details",
+        "educational details",
     ],
     "skills": [
         "skills",
@@ -71,6 +79,11 @@ for _key, _aliases in {
         "core competencies",
         "competencies",
         "skills and tools",
+        "skill set",
+        "skillset",
+        "technical skill set",
+        "technical expertise",
+        "it skills",
         "technologies",
         "tech stack",
         "tools",
@@ -110,6 +123,11 @@ for _key, _aliases in {
         "leadership",
         "extracurricular activities",
         "references",
+        "declaration",
+        "personal details",
+        "personal information",
+        "languages known",
+        "strengths",
     ],
 }.items():
     for _alias in _aliases:
@@ -122,14 +140,15 @@ _MONTH = (
 _DATE = rf"(?:{_MONTH}\s*,?\s*\d{{4}}|\d{{1,2}}\s*/\s*\d{{4}}|\d{{4}}\s*-\s*\d{{2}}|\d{{4}})"
 _PRESENT = r"(?:present|current|currently|now|today|ongoing)"
 DATE_RANGE = re.compile(
-    rf"(?P<start>{_DATE})\s*(?:-|–|—|to|until|–|—)\s*(?P<end>{_DATE}|{_PRESENT})",
+    rf"(?P<start>{_DATE})\s*(?:-{{1,2}}|–|—|to|until)\s*(?P<end>{_DATE}|{_PRESENT})",
     re.IGNORECASE,
 )
 SINGLE_DATE = re.compile(
     rf"\b(?P<date>{_MONTH}\s*,?\s*\d{{4}}|\d{{1,2}}/\d{{4}}|(?:19|20)\d{{2}})\b", re.IGNORECASE
 )
 PRESENT_RE = re.compile(rf"^{_PRESENT}$", re.IGNORECASE)
-BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■□➢➤►✓✔]|\d{1,2}[.)])\s+")
+# \ue000-\uf8ff: Word's Symbol and Wingdings bullets reach PDFs as private-use characters.
+BULLET = re.compile(r"^\s*(?:[•\-\*▪●◦‣·■□➢➤►✓✔\ue000-\uf8ff]|\d{1,2}[.)])\s+")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 PHONE = re.compile(r"(?<![\w])(\+?\d[\d\s().-]{7,}\d)(?![\w])")
 URL = re.compile(
@@ -177,7 +196,7 @@ def _norm_heading(line: str) -> str:
 
 
 def heading_key(line: str) -> SectionKey | None:
-    if not line or len(line) > 50 or BULLET.match(line):
+    if not line or len(line) > 50 or BULLET.match(line) or line.rstrip().endswith("."):
         return None
     norm = _norm_heading(line)
     if not norm or len(norm.split()) > 5:
@@ -186,6 +205,115 @@ def heading_key(line: str) -> SectionKey | None:
         return _HEADINGS[norm]
     norm_and = norm.replace(" & ", " and ")
     return _HEADINGS.get(norm_and)
+
+
+# Labels long Indian and US consulting resumes put under each role.
+ROLE_NOTE = re.compile(
+    r"^(?:project(?:\s+description)?|client|environment|technologies|tech\s+stack|tools)\s*:\s*\S",
+    re.IGNORECASE,
+)
+_ROLE_HEADING = re.compile(
+    r"^(?:(?:key\s+|roles?\s*(?:&|and)\s*)?(?:responsibilities|duties)|(?:project\s+)?description|projects?\s+worked(?:\s+on)?)\s*:?$",
+    re.IGNORECASE,
+)
+_JOB_WORD = re.compile(
+    r"\b(?:developer|engineer|architect|consultant|manager|lead|analyst|administrator|"
+    r"programmer|designer|director|specialist|scientist|intern)\b",
+    re.IGNORECASE,
+)
+_COMPANY_SUFFIX = re.compile(r"^(?:inc|llc|llp|ltd|limited|corp|co|gmbh|plc|pvt)\b", re.IGNORECASE)
+
+
+# "Project / Client / Role / Duration / Environment": a role written as a block of labels.
+_ROLE_LABEL = re.compile(
+    r"^(project(?:\s+name)?|client|role|designation|position|duration|period|environment)"
+    r"\s*:\s*(.+)$",
+    re.IGNORECASE,
+)
+_PROJECT_NUMBER = re.compile(r"^project\s*(?:#|no\.?)?\s*\d+\s*:?$", re.IGNORECASE)
+
+
+def _label_blocks_to_roles(lines: list[str]) -> list[str]:
+    """Rewrites each label block as the "Role | Client dates" header the parser reads."""
+    plain = [_strip_bullet(line) for line in lines]
+    found = {m.group(1).lower() for m in map(_ROLE_LABEL.match, plain) if m}
+    if not found & {"role", "designation", "position"} or not found & {"duration", "period"}:
+        return lines
+    out: list[str] = []
+    block: dict[str, str] = {}
+
+    def close() -> None:
+        if block:
+            role = block.get("role") or block.get("designation") or block.get("position", "")
+            head = " | ".join(v for v in (role, block.get("client", "")) if v)
+            when = block.get("duration") or block.get("period", "")
+            out.append(f"{head} {when}".strip())
+            name = block.get("project") or block.get("project name")
+            out.extend([f"Project: {name}"] if name else [])
+            out.extend([f"Environment: {block['environment']}"] if "environment" in block else [])
+            block.clear()
+
+    for line, text in zip(lines, plain, strict=True):
+        label = _ROLE_LABEL.match(text)
+        if _PROJECT_NUMBER.match(text):
+            close()
+        elif label:
+            if label.group(1).lower() in block:
+                close()
+            block[label.group(1).lower()] = label.group(2).strip()
+        elif text or not block:
+            close()
+            out.append(line)
+    close()
+    return out
+
+
+def _lift_skills_table(lines: list[str]) -> tuple[list[str], list[str]]:
+    """A PDF can store a skills table in the middle of another section. Returns the lines
+    without it, and the table: the longest run of short lines that aren't bullets or prose."""
+
+    def in_table(line: str) -> bool:
+        return (
+            0 < len(line) <= 80
+            and not line.endswith(".")
+            and not _is_bullet(line)
+            and not _ROLE_LABEL.match(line)
+            and not _ROLE_HEADING.match(line)
+            and not DATE_RANGE.search(line)
+        )
+
+    best = (0, 0)
+    start = 0
+    for i, line in enumerate([*lines, ""]):
+        if in_table(line):
+            continue
+        if i - start > best[1] - best[0]:
+            best = (start, i)
+        start = i + 1
+    if best[1] - best[0] < 4:
+        return lines, []
+    return lines[: best[0]] + lines[best[1] :], lines[best[0] : best[1]]
+
+
+def _split_header(pieces: list[str], location: str) -> tuple[str, str, str]:
+    """(title, company, location), for headers joined by commas as well as separators."""
+    if len(pieces) == 1 and "," in pieces[0]:
+        parts = [p.strip() for p in pieces[0].split(",") if p.strip()]
+        if _JOB_WORD.search(parts[0]) and not _JOB_WORD.search(parts[1]):
+            return parts[0], parts[1], location or ", ".join(parts[2:])
+    if len(pieces) >= 2 and "," in pieces[1] and not location:
+        company, _, place = pieces[1].partition(",")
+        if not _COMPANY_SUFFIX.match(place.strip()):
+            return pieces[0], company.strip(), place.strip()
+    return (pieces[0] if pieces else ""), (pieces[1] if len(pieces) > 1 else ""), location
+
+
+def _employer_only(header: str, body: list[str]) -> tuple[str, str] | None:
+    """(company, location) for an employer line with its client roles listed under it."""
+    if body or _JOB_WORD.search(header):
+        return None
+    company, _, place = re.sub(r"[/\s]*\(\s*\)", "", URL.sub("", header)).partition(",")
+    return company.strip(" /("), place.strip(" ,")
 
 
 def _strip_bullet(line: str) -> str:
@@ -207,13 +335,22 @@ def _find_range(text: str) -> tuple[str, str, bool, str]:
     return start, end, current, re.sub(r"\s{2,}", " ", rest)
 
 
+def _trim(piece: str) -> str:
+    """Drops stray brackets, keeping balanced ones: "Developer (Angular / .NET)"."""
+    piece = piece.strip(" ,;")
+    if piece.startswith("(") and piece.endswith(")"):
+        return piece[1:-1].strip()
+    return piece.strip(" ,;()") if piece.count("(") != piece.count(")") else piece
+
+
 def _pieces(text: str) -> list[str]:
-    return [p.strip(" ,;()") for p in SEPARATORS.split(text) if p and p.strip(" ,;()")]
+    return [t for t in (_trim(p) for p in SEPARATORS.split(text) if p) if t]
 
 
 def _looks_like_header(line: str) -> bool:
     words = line.split()
-    return 0 < len(words) <= 12 and not line.rstrip().endswith(".")
+    limit = 18 if DATE_RANGE.search(line) else 12  # dates and separators count as words here
+    return 0 < len(words) <= limit and not line.rstrip().endswith(".")
 
 
 # ---- section parsers ---------------------------------------------------------------------
@@ -286,10 +423,13 @@ def _group_entries(
         header, body = [], []
 
     for index, line in enumerate(lines):
-        if not line:
+        if not line or _ROLE_HEADING.match(line):
             continue
         if _is_bullet(line):
             body.append(_strip_bullet(line))
+            continue
+        if ROLE_NOTE.match(line):
+            body.append(re.sub(r"\s*:\s*", ": ", line, count=1))
             continue
         upcoming = [ln for ln in lines[index + 1 : index + 3] if ln]
         signals_new = (
@@ -319,15 +459,22 @@ def _group_entries(
 def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]:
     report = SectionReport("experience", True, "high")
     items: list[Experience] = []
-    for header, body in _group_entries(lines):
+    for header, body in _group_entries(_label_blocks_to_roles(lines)):
         joined = " | ".join(header)
         start, end, current, rest = _find_range(joined)
         pieces = _pieces(rest)
         location = next((p for p in pieces if LOCATION.match(p)), "")
         pieces = [p for p in pieces if p != location]
-        title = pieces[0] if pieces else ""
-        company = pieces[1] if len(pieces) > 1 else ""
+        title, company, location = _split_header(pieces, location)
         bullets = [b for b in body if b]
+        if len(bullets) > MAX_BULLETS:
+            report.confidence = "medium"
+            report.notes.append(
+                f"{title or 'One role'} has {len(bullets)} bullets; "
+                f"the first {MAX_BULLETS} were kept."
+            )
+        if start and not company and (employer := _employer_only(rest, bullets)):
+            title, company, location = "", *employer
         if not header and items:  # stray bullets: attach to the previous role
             items[-1].bullets.extend(bullets)
             continue
@@ -339,7 +486,7 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
                 start_date=start,
                 end_date=end,
                 current=current,
-                bullets=[b[:1000] for b in bullets][:40],
+                bullets=[b[:1000] for b in bullets][:MAX_BULLETS],
             )
         )
     if not items:
@@ -360,11 +507,45 @@ def parse_experience(lines: list[str]) -> tuple[list[Experience], SectionReport]
     return items, report
 
 
+_FIELD_WORD = re.compile(
+    r"\b(?:Engineering|Sciences?|Technology|Commerce|Arts|Applications|Studies|Management)\b"
+)
+_FIELD_THEN_SCHOOL = re.compile(
+    rf"^(.*{_FIELD_WORD.pattern})\s+"
+    r"(.*\b[A-Z]\S*\s+(?:University|College|Institute|School|Academy)\b.*)$"
+)
+
+
+def _degree_first(piece: str) -> list[str]:
+    """Splits "Master of Science, Some University, India" before the institution, and
+    "Civil Engineering Andhra University" between the subject and the institution."""
+    both = _FIELD_THEN_SCHOOL.match(piece)
+    if both and not INSTITUTION.search(both.group(1)):
+        return [both.group(1), both.group(2)]
+    parts = piece.split(",")
+    at = next((i for i, p in enumerate(parts) if INSTITUTION.search(p)), 0)
+    return [",".join(parts[:at]).strip(), ",".join(parts[at:]).strip()] if at else [piece]
+
+
 def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
     report = SectionReport("education", True, "high")
     items: list[Education] = []
     current: Education | None = None
+    rows: list[str] = []
     for raw in (ln for ln in lines if ln):
+        wrapped = (
+            rows
+            and _is_bullet(rows[-1])
+            and not _is_bullet(raw)
+            and len(raw.split()) <= 4
+            and not (INSTITUTION.search(raw) or DEGREE.search(raw))
+            and not SINGLE_DATE.search(rows[-1])
+        )
+        if wrapped:
+            rows[-1] = f"{rows[-1]} {raw}"  # "... Andhra" / "Pradesh - 2021"
+        else:
+            rows.append(raw)
+    for raw in rows:
         line = _strip_bullet(raw)
         start, end, _, rest = _find_range(line)
         if not start:
@@ -389,7 +570,7 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
         if start or end:
             current.start_date = current.start_date or start
             current.end_date = current.end_date or end
-        for piece in _pieces(rest) if rest else []:
+        for piece in [d for p in _pieces(rest) for d in _degree_first(p)] if rest else []:
             if INSTITUTION.search(piece) and not current.institution:
                 current.institution = piece[:200]
             elif DEGREE.search(piece) and not current.degree:
@@ -397,6 +578,8 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
                 current.degree = parts[0][:200]
                 if len(parts) > 1:
                     current.field_of_study = parts[1][:200]
+            elif current.degree and not current.field_of_study and _FIELD_WORD.search(piece):
+                current.field_of_study = piece[:200]
             elif not LOCATION.match(piece):
                 current.details.append(piece[:1000])
     items = [i for i in items if i.institution or i.degree or i.details]
@@ -408,18 +591,62 @@ def parse_education(lines: list[str]) -> tuple[list[Education], SectionReport]:
     return items, report
 
 
+# "Cloud Platforms AWS, GCP": a skills table loses its column break in a PDF.
+_CATEGORY_WORD = (
+    r"(?:languages?|frameworks?|technologies|frontend|front-end|backend|back-end|tools|"
+    r"platforms?|servers?|systems?|databases?|services|libraries|management|integration|"
+    r"security)"
+)
+_SKILL_CATEGORY = re.compile(
+    rf"^((?:[A-Za-z0-9/&+\-]+\s+){{0,2}}?{_CATEGORY_WORD}(?:\s+{_CATEGORY_WORD})?"
+    r"(?:\s*(?:and|&)\s*[A-Za-z0-9/+\-]+)?)\s+(\S.*,.*)$",
+    re.IGNORECASE,
+)
+_CATEGORY_LINE = re.compile(rf"^{_CATEGORY_WORD}$", re.IGNORECASE)
+_CATEGORY_NEXT = re.compile(rf"^{_CATEGORY_WORD}\b", re.IGNORECASE)
+
+
+def _table_rows(lines: list[str]) -> list[str]:
+    """Puts table rows back together: "Frontend" / "Technologies" / "Angular, CSS" is one row,
+    and so is a row wrapped after a comma or inside brackets."""
+    rows: list[str] = []
+    lead = ""
+    for i, raw in enumerate(lines):
+        line = _strip_bullet(raw)
+        last = rows[-1] if rows else ""
+        if not lead and (last.endswith(",") or last.count("(") > last.count(")")):
+            rows[-1] = f"{last} {line}"
+            continue
+        after = lines[i + 1] if i + 1 < len(lines) else ""
+        if (
+            after
+            and not {",", ":"} & set(line)
+            and (
+                _CATEGORY_LINE.match(line)
+                or (len(line.split()) == 1 and _CATEGORY_NEXT.match(after))
+            )
+        ):
+            lead += f"{line} "
+            continue
+        rows.append(lead + line)
+        lead = ""
+    return rows + ([lead.strip()] if lead else [])
+
+
 _SKILL_SPLIT = re.compile(r"\s*(?:,|;|\||•|·|•|\s{2,}|\t)\s*")
 
 
 def parse_skills(lines: list[str]) -> tuple[list[Skill], SectionReport]:
     skills: list[Skill] = []
     seen: set[str] = set()
-    for raw in (ln for ln in lines if ln):
-        line = _strip_bullet(raw)
+    for line in _table_rows([ln for ln in lines if ln]):
         category = ""
         match = re.match(r"^([A-Za-z][A-Za-z &/+\-]{1,40}):\s*(.+)$", line)
+        match = match or _SKILL_CATEGORY.match(line)
         if match:
             category, line = match.group(1).strip(), match.group(2)
+        # "AWS (EC2, S3, RDS)": the parts are skills too, not "AWS (EC2".
+        line = re.sub(r"\(([^()]*,[^()]*)\)", r", \1", line)
         for item in _SKILL_SPLIT.split(line):
             name = item.strip(" .")
             if not name or len(name) > 60 or len(name.split()) > 5:
@@ -515,11 +742,16 @@ def parse_certifications(lines: list[str]) -> tuple[list[Certification], Section
 
 # ---- top level ---------------------------------------------------------------------------
 def split_sections(text: str) -> tuple[list[str], list[tuple[str, SectionKey, list[str]]]]:
-    lines = [ln.strip() for ln in text.split("\n")]
+    lines = [ln.strip() for ln in text.rstrip().split("\n")]
+    if lines[-1].lower().rstrip(":.") == "signature":
+        lines = "\n".join(lines[:-1]).rstrip().split("\n")[:-1]  # the signed name goes too
     header: list[str] = []
     sections: list[tuple[str, SectionKey, list[str]]] = []
+    previous = ""
     for line in lines:
-        key = heading_key(line)
+        # "Frontend" / "Technologies" in a skills table isn't the Technologies heading.
+        key = None if _CATEGORY_LINE.match(previous) else heading_key(line)
+        previous = line or previous
         if key:
             sections.append((line.strip().rstrip(":"), key, []))
         elif sections:
@@ -534,9 +766,24 @@ def parse_resume(text: str) -> ParseResult:
     # Contact lines that landed inside a section move to the header block.
     moved = [ln for _, _, body in sections for ln in body if ln and _is_contact_line(ln)]
     sections = [(h, k, [ln for ln in body if ln not in moved]) for h, k, body in sections]
+    if not any(any(body) for _, k, body in sections if k == "skills"):
+        for i, (h, k, body) in enumerate(sections):
+            rest, table = _lift_skills_table(body) if k == "experience" else (body, [])
+            if table:
+                sections[i] = (h, k, rest)
+                empty = next((j for j, sec in enumerate(sections) if sec[1] == "skills"), None)
+                if empty is None:
+                    sections.append(("Skills", "skills", table))
+                else:
+                    sections[empty] = (sections[empty][0], "skills", table)
+                break
     contact, leftovers = parse_contact([ln for ln in header if ln] + moved)
     # A short line under the name ("GenAI Engineer | AI Engineer") is a headline, not summary.
-    if leftovers and len(leftovers[0]) <= 80 and not leftovers[0].rstrip().endswith("."):
+    if (
+        leftovers
+        and (len(leftovers[0]) <= 80 or ("|" in leftovers[0] and len(leftovers[0]) <= 200))
+        and not leftovers[0].rstrip().endswith(".")
+    ):
         contact.headline = _strip_bullet(leftovers.pop(0))[:200]
     content = ResumeContent(contact=contact)
     reports: dict[str, SectionReport] = {}
