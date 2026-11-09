@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, FileText, Sparkles, UploadCloud } from "lucide-r
 import { useId, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AiDataNote } from "@/components/system/AiDataNote";
+import { AgentStage } from "@/components/tailor/AgentStage";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
@@ -124,12 +125,6 @@ function StartTailoring({ jobs }: { jobs: { id: string; label: string }[] }) {
 const MIN_RESUME = 200;
 // What the two waits really do, in order (see AiProgress for how the timing is shown).
 const READING_STEPS = ["Reading the resume", "Reading the job description", "Finding the skills the job asks for"];
-const TAILOR_STEPS = [
-  "Adding the skills you confirmed",
-  "Keeping only what the job needs",
-  "Rewriting the headline, summary and bullets",
-  "Checking every fact against the resume",
-];
 const MIN_JOB = 50;
 
 function QuickTailor({ master }: { master: { title: string; current_version: number } | null }) {
@@ -144,18 +139,24 @@ function QuickTailor({ master }: { master: { title: string; current_version: num
   const navigate = useNavigate();
   const ready = jobText.trim().length >= MIN_JOB && (useMaster || resumeText.trim().length >= MIN_RESUME);
   const error = quick.error ?? upload.error ?? tailor.error;
-  const run = (s: Session, skills: SkillAnswer[]) =>
-    tailor.mutate({ id: s.id, skills }, { onSuccess: (done) => navigate(`/tailor/${done.id}`) });
+  const [running, setRunning] = useState<Session | null>(null);
+  const [finished, setFinished] = useState<Session | null>(null);
+  const run = (s: Session, skills: SkillAnswer[]) => {
+    setRunning(s);
+    tailor.mutate({ id: s.id, skills }, { onSuccess: setFinished, onError: () => setRunning(null) });
+  };
   const client = useQueryClient();
   const back = (s: Session) => {
     setStarted(null); // the pasted text is still here to change; the draft session goes
     void tailoringService.discard(s.id).then(() => client.invalidateQueries({ queryKey: tailoringKeys.list() }));
   };
+  if (running) {
+    return <AgentStage before={running.preview} session={finished} onFinish={() => navigate(`/tailor/${running.id}`)} />;
+  }
   if (started) {
     return (
       <SkillQuestions
         session={started}
-        pending={tailor.isPending}
         error={tailor.error}
         onTailor={(skills) => run(started, skills)}
         onBack={() => back(started)}
@@ -229,7 +230,7 @@ function QuickTailor({ master }: { master: { title: string; current_version: num
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button
           disabled={!ready}
-          loading={quick.isPending || tailor.isPending}
+          loading={quick.isPending}
           icon={<ArrowRight className="size-4" aria-hidden />}
           onClick={() =>
             quick.mutate(
@@ -241,14 +242,12 @@ function QuickTailor({ master }: { master: { title: string; current_version: num
         >
           Next: check the job&apos;s skills
         </Button>
-        {quick.isPending || tailor.isPending ? null : (
+        {quick.isPending ? null : (
           <p className="text-body-sm text-on-surface-variant">Next, you&apos;ll say which of the job&apos;s skills you&apos;ve used.</p>
         )}
       </div>
       {quick.isPending ? (
         <div className="mt-4"><AiProgress title="Getting your questions ready" seconds={6} steps={READING_STEPS} /></div>
-      ) : tailor.isPending ? (
-        <div className="mt-4"><AiProgress title="Tailoring with maximum focus" seconds={35} steps={TAILOR_STEPS} /></div>
       ) : null}
     </Card>
   );
@@ -259,13 +258,11 @@ type Answer = { where: string; note: string };
 /** Step 2: the job's skills the resume doesn't show. Only the ones marked "Yes" are added. */
 function SkillQuestions({
   session: s,
-  pending,
   error,
   onTailor,
   onBack,
 }: {
   session: Session;
-  pending: boolean;
   error: Error | null;
   onTailor: (skills: SkillAnswer[]) => void;
   onBack: () => void;
@@ -330,21 +327,16 @@ function SkillQuestions({
         })}
       </ul>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button loading={pending} icon={<Sparkles className="size-4" aria-hidden />} onClick={() => onTailor(yes)}>
+        <Button icon={<Sparkles className="size-4" aria-hidden />} onClick={() => onTailor(yes)}>
           Tailor with maximum focus
         </Button>
-        <Button variant="ghost" disabledReason={pending ? "Tailoring is under way" : undefined} icon={<ArrowLeft className="size-4" aria-hidden />} onClick={onBack}>
+        <Button variant="ghost" icon={<ArrowLeft className="size-4" aria-hidden />} onClick={onBack}>
           Back to the text
         </Button>
-        {pending ? null : (
-          <p className="text-body-sm text-on-surface-variant">
-            {yes.length} of {count} marked as used. Only add skills you really have; interviewers will ask.
-          </p>
-        )}
+        <p className="text-body-sm text-on-surface-variant">
+          {yes.length} of {count} marked as used. Only add skills you really have; interviewers will ask.
+        </p>
       </div>
-      {pending ? (
-        <div className="mt-4"><AiProgress title="Tailoring with maximum focus" seconds={35} steps={TAILOR_STEPS} /></div>
-      ) : null}
     </Card>
   );
 }

@@ -330,6 +330,84 @@
 }
 
 /* No motion when the user asks for less: rise-ins show immediately, floats and marquees stop. */
+/* The resume page in the tailoring agent stage (components/tailor/AgentStage.tsx). */
+.agent-line {
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.agent-line[data-on] {
+  opacity: 1;
+  transform: none;
+}
+.agent-heading {
+  margin: 0.75rem 0 0.25rem;
+  border-bottom: 1px solid #e7e5e4;
+  padding-bottom: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0f6e56;
+}
+.agent-text {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #44403c;
+}
+.agent-chip {
+  border-radius: 0.25rem;
+  background: #f5f5f4;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+  color: #44403c;
+  transition: opacity 0.3s ease;
+}
+.agent-chip[data-gone] {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+.agent-bullet {
+  position: relative;
+  margin-top: 0.125rem;
+  border-radius: 0.1875rem;
+  padding: 0.0625rem 1.25rem 0.0625rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #44403c;
+  transition: background-color 0.3s ease;
+}
+.agent-bullet::before {
+  content: "";
+  position: absolute;
+  left: 0.125rem;
+  top: 0.5625rem;
+  width: 0.1875rem;
+  height: 0.1875rem;
+  border-radius: 50%;
+  background: #78716c;
+}
+.agent-bullet[data-state="writing"] {
+  background: #ffedd5;
+}
+.agent-bullet[data-state="ok"]::after,
+.agent-bullet[data-state="review"]::after {
+  position: absolute;
+  right: 0.25rem;
+  top: 0.0625rem;
+  font-weight: 700;
+  animation: var(--animate-pop);
+}
+.agent-bullet[data-state="ok"]::after {
+  content: "\2713";
+  color: #0f6e56;
+}
+.agent-bullet[data-state="review"] {
+  background: #fef3c7;
+}
+.agent-bullet[data-state="review"]::after {
+  content: "!";
+  color: #92400e;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -21,3 +21,6 @@ if (typeof HTMLDialogElement !== "undefined") {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+// jsdom has no scrolling; the router's ScrollRestoration calls this on every page.
+window.scrollTo = () => undefined;
