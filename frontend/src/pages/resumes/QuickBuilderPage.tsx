@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { TextBacked } from "@/components/resume/ResumeEditor";
+import { SectionOrderEditor } from "@/components/resume/SectionOrderEditor";
 import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
 import { linesToList, listToLines, skillsToText, textToSkills } from "@/components/resume/editorText";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +32,7 @@ import {
   type StepId,
 } from "@/lib/resumeHelpers";
 import { ApiError } from "@/services/apiClient";
-import { outputService } from "@/services/outputService";
+import { outputService, type SkillsStyle } from "@/services/outputService";
 import { emptyResume, newId, type Education, type Experience, type Project, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
 import { PageHeader } from "./common";
 
@@ -46,7 +47,7 @@ const STEPS: { id: StepId; label: string; title: string; description: string }[]
   { id: "finish", label: "Finish", title: "Review and save", description: "Check what's missing, then save and download your PDF." },
 ];
 
-type Draft = { doc: ResumeDoc; template: string; title: string; step: number; skipped?: StepId[] };
+type Draft = { doc: ResumeDoc; template: string; title: string; step: number; skipped?: StepId[]; font?: string; skills?: SkillsStyle };
 
 const blankRole = (): Experience => ({ id: newId(), title: "", company: "", location: "", start_date: "", end_date: "", current: false, bullets: [] });
 const blankProject = (): Project => ({ id: newId(), name: "", url: "", description: "", technologies: [], bullets: [] });
@@ -90,6 +91,10 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
     [params.get("template"), initial.template].find((id) => templates.some((t) => t.id === id)) ?? templates[0]?.id ?? DEFAULT_TEMPLATE,
   );
   const [title, setTitle] = useState(initial.title);
+  const [font, setFont] = useState(params.get("font") ?? initial.font ?? "");
+  const [skills, setSkills] = useState<SkillsStyle>(
+    (params.get("skills") ?? initial.skills) === "table" ? "table" : "",
+  );
   const [step, setStep] = useState(Math.min(initial.step, STEPS.length - 1));
   // Sections the user skipped; one counts again as soon as something is added to it.
   const [skipList, setSkipList] = useState<StepId[]>(initial.skipped ?? []);
@@ -114,8 +119,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   const allowLeave = useUnsavedGuard(Boolean(master) && JSON.stringify(doc) !== JSON.stringify(master?.content));
 
   useEffect(() => {
-    if (!master) writeDraft(draftKey, { doc, template, title, step, skipped: skipList } satisfies Draft);
-  }, [master, draftKey, doc, template, title, step, skipList]);
+    if (!master) writeDraft(draftKey, { doc, template, title, step, skipped: skipList, font, skills } satisfies Draft);
+  }, [master, draftKey, doc, template, title, step, skipList, font, skills]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -133,7 +138,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   const previewNote = blank ? "Sample shown until you add your details." : "The downloaded PDF uses the same layout with embedded fonts.";
   const wide = current.id === "style";
   const name = doc.contact.full_name.trim();
-  const goPdf = (id: string) => navigate(`/builder?resume=${id}&template=${template}`);
+  const goPdf = (id: string) => navigate(`/builder?resume=${id}&template=${template}${font ? `&font=${font}` : ""}${skills ? `&skills=${skills}` : ""}`);
 
   const onSave = () => {
     if (master) {
@@ -247,7 +252,12 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                 </span>
               </div>
             ) : null}
-            {current.id === "style" ? <TemplatePicker templates={templates} value={template} onChange={setTemplate} doc={previewDoc} columns="sm:grid-cols-2 xl:grid-cols-3" /> : null}
+            {current.id === "style" ? (
+              <SectionOrderEditor doc={doc} onChange={(order) => setDoc({ ...doc, section_order: order })} className="mb-6 max-w-md" />
+            ) : null}
+            {current.id === "style" ? (
+              <TemplatePicker templates={templates} value={template} onChange={setTemplate} doc={previewDoc} font={font} onFontChange={setFont} skills={skills} onSkillsChange={setSkills} columns="sm:grid-cols-2 xl:grid-cols-3" />
+            ) : null}
             {current.id === "contact" ? <ContactStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "experience" ? <ExperienceStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "projects" ? <ProjectsStep doc={doc} onChange={setDoc} /> : null}
@@ -265,7 +275,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
           </Card>
           {showPreview ? (
             <div className="mt-6 space-y-2 lg:hidden">
-              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
+              <ResumePaper doc={previewDoc} template={template} font={font} skillsTable={skills === "table"} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           ) : null}
@@ -278,7 +288,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                 <span aria-hidden className="size-2 animate-pulse rounded-full bg-success" />
                 Live preview · {TEMPLATE_STYLES.find((t) => t.id === template)?.name ?? template}
               </p>
-              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
+              <ResumePaper doc={previewDoc} template={template} font={font} skillsTable={skills === "table"} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           </aside>

@@ -11,16 +11,17 @@ real, selectable text in a fixed reading order, so applicant tracking systems ca
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 # Reading order of the standard sections. "Other" sections always come last.
-RESUME_ORDER = ("summary", "experience", "education", "skills", "projects", "certifications")
+# Summary, skills, experience, projects, education: what recruiters read first comes first.
+RESUME_ORDER = ("summary", "skills", "experience", "projects", "education", "certifications")
 # A CV leads with education and keeps everything; certifications and projects before skills.
 CV_ORDER = ("summary", "education", "experience", "projects", "certifications", "skills")
 # Sidebar layouts: these sections go in the sidebar, which is drawn (and read) first.
-SIDEBAR_SECTIONS = ("skills", "certifications", "education")
-SIDEBAR_ORDER = (*SIDEBAR_SECTIONS, "summary", "experience", "projects")
+SIDEBAR_SECTIONS = ("skills", "certifications")
+SIDEBAR_ORDER = (*SIDEBAR_SECTIONS, "summary", "experience", "projects", "education")
 
 
 def arrange(order: tuple[str, ...], lead: list[str]) -> list[str]:
@@ -61,9 +62,12 @@ class Template:
     photo: bool = False  # shows the user's profile photo when they have uploaded one
     dates_right: bool = False  # each role's dates right-aligned on its title line
     skills_grid: bool = False  # skills in three columns instead of comma lists
+    skills_table: bool = False  # skills in a ruled table: category | its skills, one row each
     line_height: float = 1.35  # body leading as a multiple of the body size
     upper_headings: bool = False  # "EXPERIENCE" instead of "Experience" (same text for an ATS)
     kind: Literal["resume", "cv"] = "resume"
+    # Type and spacing shrink, within limits, until the resume fits on one page.
+    fit_one_page: bool = False
     order: tuple[str, ...] = RESUME_ORDER
 
 
@@ -109,6 +113,7 @@ TEMPLATES: dict[str, Template] = {
         accent="#000000",
         line_height=1.2,
         upper_headings=True,
+        fit_one_page=True,
     ),
     "serif": Template(
         id="serif",
@@ -244,7 +249,7 @@ DESIGNS: dict[str, dict[str, Any]] = {
     },
     "sidebar": {
         "name": "Sidebar",
-        "description": "A solid colour sidebar with contact, skills and education.",
+        "description": "A solid colour sidebar with contact and skills.",
         **_SANS, "body_size": 9.5, "name_size": 19, "heading_size": 11, "margin_mm": 13,
         "heading_rule": True, "layout": "sidebar", "order": SIDEBAR_ORDER,
     },
@@ -293,6 +298,24 @@ for _design, _spec in DESIGNS.items():
         TEMPLATES[_id] = Template(
             **{**_spec, "id": _id, "name": f"{_spec['name']} · {_palette.title()}", "accent": _hex}
         )
+
+
+def with_font(template: Template, font: str | None) -> Template:
+    """The template set in another of the bundled fonts (`fonts.CHOICES`), or as it is."""
+    if not font:
+        return template
+    return replace(template, font=font, font_bold=f"{font}-Bold")
+
+
+SkillsStyle = Literal["table"]
+
+
+def with_skills(template: Template, style: SkillsStyle | None) -> Template:
+    """The template with its skills drawn another way, or as it is."""
+    if style != "table":
+        return template
+    return replace(template, skills_table=True, skills_grid=False)
+
 
 # Section headings used in every template, in reading order.
 HEADINGS = {

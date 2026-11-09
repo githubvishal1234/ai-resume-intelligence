@@ -116,7 +116,7 @@ white text above 4.5:1, which a test checks.
 | Monogram | One column | Initials in an accent square, serif | Dates right-aligned |
 | Ledger | One column | Plain, compact | Dates right-aligned, skills in a 3-column grid |
 | Portrait | One column | Photo beside the name | Ruled headings |
-| Sidebar | Sidebar | Name and contact at the top of a solid colour sidebar | Skills, certifications and education in the sidebar |
+| Sidebar | Sidebar | Name and contact at the top of a solid colour sidebar | Skills and certifications in the sidebar |
 | Portfolio | Sidebar | Photo, name and contact in a tinted sidebar | As Sidebar, with dark text |
 | Timeline | Timeline | Plain | Roles and education with dates in a gutter beside an accent line; skills grid |
 

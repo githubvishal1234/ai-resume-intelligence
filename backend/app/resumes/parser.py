@@ -690,14 +690,14 @@ def parse_projects(lines: list[str]) -> tuple[list[Project], SectionReport]:
             else:
                 current.description = f"{current.description} {raw}"[:5000]
             continue
-        if (
-            current is not None
-            and not current.bullets
-            and not current.description
-            and not (_looks_like_header(raw))
-        ):
-            current.description = raw[:5000]
-            continue
+        if current is not None and not current.bullets and not current.description:
+            listed = [t for t in _SKILL_SPLIT.split(_strip_bullet(raw)) if t]
+            if len(listed) >= 3 and not current.technologies:
+                current.technologies = listed[:40]  # "Python, FastAPI, React" under the name
+                continue
+            if not _looks_like_header(raw) or current.technologies:
+                current.description = raw[:5000]  # a tagline under the name and its stack
+                continue
         url = URL.search(raw)
         text = URL.sub("", raw).strip(" |–—-")
         parts = re.split(r"\s+[|–—-]\s+|\s*\|\s*", text, maxsplit=1)
