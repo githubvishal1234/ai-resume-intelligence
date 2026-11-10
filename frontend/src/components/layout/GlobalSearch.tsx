@@ -110,7 +110,7 @@ export function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
-        className="h-10 w-full rounded-control border border-hairline bg-surface-container-low pl-9 pr-14 text-body-md text-on-surface placeholder:text-placeholder focus:border-primary focus:bg-surface-container-lowest focus:shadow-focus focus:outline-none"
+        className="h-9 w-full rounded-control border border-hairline bg-surface-container-low pl-9 pr-14 text-body-md text-on-surface placeholder:text-placeholder focus:border-primary focus:bg-surface-container-lowest focus:shadow-focus focus:outline-none"
       />
       {text ? null : (
         <kbd aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-hairline-strong px-1.5 font-mono text-label-sm text-on-surface-variant">
@@ -118,7 +118,7 @@ export function GlobalSearch() {
         </kbd>
       )}
       {showPanel ? (
-        <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[70dvh] overflow-y-auto rounded-card border border-hairline bg-surface-container-lowest p-2 shadow-level-3">
+        <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[70dvh] origin-top animate-menu overflow-y-auto rounded-card border border-hairline bg-surface-container-lowest p-2 shadow-level-3">
           <ul id={`${id}-list`} role="listbox" aria-label="Search results">
             {groups.map((g) => {
               const { label, icon: Icon } = KINDS[g.kind];

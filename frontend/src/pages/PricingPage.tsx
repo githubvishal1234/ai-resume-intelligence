@@ -41,11 +41,6 @@ export function PricingPage() {
       <PublicHeader signedIn={signedIn} />
       <main>
         <section aria-labelledby="pricing-title" className="relative overflow-hidden">
-          <svg aria-hidden viewBox="0 0 520 520" className="pointer-events-none absolute -right-40 -top-44 size-[520px] animate-spin-slow opacity-60">
-            <circle cx="260" cy="260" r="250" fill="none" className="stroke-primary-fixed-dim" strokeWidth="2" strokeDasharray="6 14" />
-          </svg>
-          <div aria-hidden className="pointer-events-none absolute left-[6%] top-24 hidden size-20 animate-float rounded-full bg-accent sm:block" />
-          <div aria-hidden className="pointer-events-none absolute bottom-10 right-[12%] hidden size-10 rotate-12 rounded-control bg-primary sm:block" />
           <div className="relative mx-auto max-w-5xl animate-rise px-4 pb-12 pt-16 text-center sm:px-6">
             <p className="text-label-md font-semibold uppercase tracking-wider text-primary">Pricing</p>
             <h1 id="pricing-title" className="mt-2 font-display text-[40px] font-extrabold leading-tight tracking-[-0.035em] sm:text-[56px]">Simple pricing</h1>

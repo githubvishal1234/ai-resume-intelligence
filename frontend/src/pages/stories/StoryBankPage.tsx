@@ -40,7 +40,6 @@ export function StoryBankPage() {
     <div>
       <PageHeader
         title="Story Bank"
-        photo="interview"
         description="Interview stories in STAR form, grown from lines your resume already backs up. Ready before anyone asks."
       />
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import delete, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import AuditLog, User, UserSession
 
@@ -33,7 +33,12 @@ class SessionRepository:
         return session
 
     def get_by_token_hash(self, token_hash: str) -> UserSession | None:
-        return self.db.scalar(select(UserSession).where(UserSession.token_hash == token_hash))
+        # The user is read on every authenticated request: one joined query, not two.
+        return self.db.scalar(
+            select(UserSession)
+            .options(joinedload(UserSession.user))
+            .where(UserSession.token_hash == token_hash)
+        )
 
     def touch(self, session_id: uuid.UUID, when: datetime) -> None:
         self.db.execute(

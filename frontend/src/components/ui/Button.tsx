@@ -10,19 +10,19 @@ const VARIANTS: Record<Variant, string> = {
   primary:
     "bg-primary text-on-primary shadow-brand hover:bg-primary-hover active:bg-primary-active border border-transparent",
   secondary:
-    "bg-surface-container-lowest text-on-surface border border-hairline-strong hover:bg-surface-container-low hover:border-outline",
+    "bg-surface-container-lowest text-on-surface border border-hairline-strong shadow-level-1 hover:bg-surface-container-low",
   destructive:
     "bg-critical-surface text-critical-ink border border-critical-border hover:border-critical",
-  ghost: "bg-transparent text-on-surface-variant border border-transparent hover:bg-surface-container-low",
+  ghost: "bg-transparent text-on-surface-variant border border-transparent hover:bg-surface-container hover:text-on-surface",
 };
 const SIZES: Record<Size, string> = {
-  md: "h-11 px-5 text-body-md gap-2",
-  sm: "h-9 px-3.5 text-label-md gap-1.5",
+  md: "h-10 px-4 text-body-md gap-2",
+  sm: "h-8 px-3 text-label-md gap-1.5",
 };
 
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", extra?: string) {
   return cn(
-    "inline-flex items-center justify-center rounded-control font-semibold select-none whitespace-nowrap",
+    "inline-flex items-center justify-center rounded-control font-medium select-none whitespace-nowrap",
     // A slight press on click or tap; never on a disabled button.
     "transition-[color,background-color,border-color,box-shadow,scale] duration-150 active:scale-[0.98] aria-disabled:active:scale-100",
     "aria-disabled:cursor-not-allowed aria-disabled:opacity-55 aria-disabled:pointer-events-auto",

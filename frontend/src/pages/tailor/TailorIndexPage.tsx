@@ -41,7 +41,6 @@ export function TailorIndexPage() {
     <div>
       <PageHeader
         title="Tailor Resume"
-        photo="register"
         description="Paste a job description and a resume, and get a copy of the resume aimed at that job. Nothing is invented: every change is checked against the resume you paste."
       />
       <QuickTailor master={master} />

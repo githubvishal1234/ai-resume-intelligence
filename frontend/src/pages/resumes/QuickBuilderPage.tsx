@@ -214,7 +214,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                   className={cn(
                     "flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-body-md font-semibold transition-colors",
                     i === step
-                      ? "border-primary bg-primary text-on-primary shadow-brand"
+                      ? "border-primary bg-primary text-on-primary"
                       : "border-hairline bg-surface-container-lowest text-on-surface-variant hover:border-primary-fixed-dim hover:text-on-surface",
                   )}
                 >

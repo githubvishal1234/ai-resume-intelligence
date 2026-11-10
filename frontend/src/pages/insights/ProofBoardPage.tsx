@@ -38,7 +38,6 @@ export function ProofBoardPage() {
     <div>
       <PageHeader
         title="Proof Board"
-        photo="proofs"
         description="Turn skill gaps into real evidence: small projects, certifications or write-ups, tracked until your resume shows them."
       />
       <AddProof ideas={ideas} />

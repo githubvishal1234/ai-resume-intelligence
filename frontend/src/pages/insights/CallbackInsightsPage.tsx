@@ -21,7 +21,6 @@ export function CallbackInsightsPage() {
     <div>
       <PageHeader
         title="Callback Insights"
-        photo="insights"
         description="Which resume version and which match level actually get replies, from your own applications."
       />
       {o.total.sent === 0 ? (
@@ -90,8 +89,7 @@ function Headline({ groups }: { groups: OutcomeGroup[] }) {
   const text = headline(groups);
   if (!text) return null;
   return (
-    <section className="relative isolate overflow-hidden rounded-card bg-ink-deep p-6 text-on-ink shadow-level-2">
-      <div aria-hidden className="absolute -right-12 -top-12 -z-10 size-48 rounded-full bg-primary/40 blur-3xl" />
+    <section className="rounded-card bg-ink-deep p-6 text-on-ink">
       <p className="inline-flex items-center gap-2 text-label-sm uppercase tracking-wider text-on-ink-muted">
         <Trophy className="size-4 text-accent" aria-hidden /> What your applications say
       </p>

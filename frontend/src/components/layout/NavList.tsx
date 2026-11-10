@@ -4,7 +4,7 @@ import { NAV_GROUPS, navDisabledReason, type NavItem } from "@/constants/navigat
 import { cn } from "@/lib/cn";
 
 const ROW =
-  "flex items-center gap-3 rounded-control px-3 py-2 text-body-md transition-colors";
+  "group/row flex items-center gap-2.5 rounded-control px-2.5 py-1.5 text-body-md transition-colors";
 
 export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
@@ -18,12 +18,12 @@ export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () =>
           cn(
             ROW,
             isActive
-              ? "bg-primary font-semibold text-on-primary shadow-brand"
+              ? "bg-surface-container font-medium text-on-surface [&>svg]:text-primary"
               : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
           )
         }
       >
-        <Icon className="size-[18px] shrink-0" aria-hidden />
+        <Icon className="size-4 shrink-0" aria-hidden />
         <span className="truncate">{item.label}</span>
       </NavLink>
     );
@@ -38,7 +38,7 @@ export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () =>
       title={reason}
       className={cn(ROW, "cursor-not-allowed text-outline")}
     >
-      <Icon className="size-[18px] shrink-0" aria-hidden />
+      <Icon className="size-4 shrink-0" aria-hidden />
       <span className="truncate">{item.label}</span>
       <span className="ml-auto rounded-full bg-surface-container px-2 py-0.5 font-mono text-label-sm text-on-surface-variant">
         P{item.phase}
@@ -50,9 +50,9 @@ export function NavRow({ item, onNavigate }: { item: NavItem; onNavigate?: () =>
 
 export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
-  const heading = "px-3 text-label-sm uppercase tracking-wider text-outline";
+  const heading = "px-2.5 text-label-sm font-medium text-outline";
   return (
-    <nav aria-label="Primary" className="space-y-5">
+    <nav aria-label="Primary" className="space-y-4">
       {NAV_GROUPS.map((group) => {
         const list = (
           <ul className="space-y-0.5">

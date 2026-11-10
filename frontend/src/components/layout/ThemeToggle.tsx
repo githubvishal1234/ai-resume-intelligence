@@ -16,7 +16,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={`Switch to ${next} theme`}
       className={cn("rounded-control p-2 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface", className)}
     >
-      <Icon className="size-5" aria-hidden />
+      <Icon className="size-[18px]" aria-hidden />
     </button>
   );
 }

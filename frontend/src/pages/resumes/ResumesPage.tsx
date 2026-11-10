@@ -21,7 +21,6 @@ export function ResumesPage() {
     <div>
       <PageHeader
         title="My Resumes"
-        photo="resumes"
         description="Your master resume is the verified source of truth. Tailored versions are built from it."
         actions={
           master ? (

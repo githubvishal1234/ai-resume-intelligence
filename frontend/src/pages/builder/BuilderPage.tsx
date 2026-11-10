@@ -29,12 +29,10 @@ const COPY = {
   resume: {
     title: "Resume Builder",
     description: "Pick a resume and an ATS-safe template, check how screening software reads it, and download the PDF.",
-    photo: "builder" as const,
   },
   cv: {
     title: "CV Builder",
     description: "A full-length CV: education first for academic roles, every section kept, still readable by screening software.",
-    photo: "analysis" as const,
   },
 };
 
@@ -89,7 +87,7 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
 
   return (
     <div>
-      <PageHeader title={COPY[kind].title} photo={COPY[kind].photo} description={COPY[kind].description} />
+      <PageHeader title={COPY[kind].title} description={COPY[kind].description} />
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         <div className="space-y-6">
           <Card aria-labelledby={`${id}-opts`}>

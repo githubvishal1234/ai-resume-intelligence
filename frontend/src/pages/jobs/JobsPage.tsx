@@ -20,7 +20,6 @@ export function JobsPage() {
     <div>
       <PageHeader
         title="Job Analyzer"
-        photo="jobs"
         description="Saved job descriptions and what each one asks for."
         actions={
           list.data.length ? (
@@ -59,7 +58,7 @@ function JobCard({ job }: { job: JobSummary }) {
   const remove = useDeleteJob(job.id);
   const del = useDeleteControls({ name: job.title, note: JOB_DELETE_NOTE, action: remove });
   return (
-    <Card className="relative hover:border-primary">
+    <Card className="lift relative">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <Link

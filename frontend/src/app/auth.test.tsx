@@ -19,8 +19,7 @@ describe("auth routing", () => {
     ]);
     renderApp("/");
     expect(await screen.findByRole("heading", { name: "Welcome, Ada" })).toBeInTheDocument();
-    expect(await screen.findByText("AI provider")).toBeInTheDocument();
-    expect(screen.getAllByText("Not configured").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "Getting started" })).toBeInTheDocument();
   });
 
   it("redirects signed-in users away from /login", async () => {
@@ -130,6 +129,7 @@ describe("logout", () => {
     ]);
     const { router } = renderApp("/");
     await screen.findByRole("heading", { name: "Welcome, Ada" });
+    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(calls.find((c) => c.path === "/auth/logout")?.headers["X-CSRF-Token"]).toBe("csrf-abc");
@@ -144,8 +144,10 @@ describe("logout", () => {
     ]);
     const { router } = renderApp("/");
     await screen.findByRole("heading", { name: "Welcome, Ada" });
+    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Sign out" })).not.toHaveAttribute("aria-busy"));
+    expect(await screen.findByText(/couldn't sign you out/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).not.toHaveAttribute("aria-busy");
     expect(router.state.location.pathname).toBe("/");
   });
 });

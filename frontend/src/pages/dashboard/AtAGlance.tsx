@@ -1,6 +1,5 @@
 import { ArrowRight, BarChart3, FileSignature, Hammer, Map as MapIcon, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CardHeader } from "@/components/ui/Card";
 import { useLetterList } from "@/hooks/useCoverLetters";
 import { useMarket, useOutcomes, useProofs } from "@/hooks/useInsights";
 
@@ -60,21 +59,24 @@ export function AtAGlance() {
 
   return (
     <section aria-labelledby="glance-title">
-      <CardHeader id="glance-title" title="At a glance" description="Where your search stands, from your own data." />
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <h2 id="glance-title" className="sr-only">
+        At a glance
+      </h2>
+      {/* One panel, four readings, hairlines between them: not four separate cards. */}
+      <ul className="card grid grid-cols-1 gap-px overflow-hidden bg-hairline sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map(({ to, icon: Icon, label, value, detail, empty }) => (
-          <li key={label} className="group relative rounded-card border border-hairline bg-surface-container-lowest p-4 shadow-level-1 transition hover:-translate-y-0.5 hover:border-primary-fixed-dim hover:shadow-level-2">
-            <div className="flex items-center justify-between gap-2 text-label-sm uppercase tracking-wide text-on-surface-variant">
+          <li key={label} className="group relative bg-surface-container-lowest p-5 transition-colors hover:bg-surface-container-low">
+            <div className="flex items-center justify-between gap-2 text-label-md text-on-surface-variant">
               <span>{label}</span>
-              <Icon className="size-4" aria-hidden />
+              <Icon className="size-4 text-outline" aria-hidden />
             </div>
-            <Link to={to} className="tnum mt-2 block font-display text-headline-lg text-on-surface after:absolute after:inset-0 group-hover:text-primary">
+            <Link to={to} className="tnum mt-2 block font-display text-headline-lg text-on-surface after:absolute after:inset-0">
               {value}
               <span className="sr-only">{` ${label}: ${detail}`}</span>
             </Link>
             <p className="mt-1 flex items-center gap-1 truncate text-body-sm text-on-surface-variant" aria-hidden>
               <span className="truncate">{detail}</span>
-              {empty ? <ArrowRight className="size-3.5 shrink-0" /> : null}
+              {empty ? <ArrowRight className="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" /> : null}
             </p>
           </li>
         ))}

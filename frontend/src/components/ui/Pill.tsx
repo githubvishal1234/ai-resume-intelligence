@@ -12,12 +12,12 @@ const TONES: Record<PillTone, string> = {
   brand: "bg-primary-fixed border-primary-fixed-dim text-on-primary-fixed",
 };
 
-/** Status badges / keyword tokens: full pill shape, mono 11px (DESIGN.md). */
+/** Status badges and keyword tokens. `mono` is for code-like readouts only. */
 export function Pill({
   tone = "neutral",
   children,
   className,
-  mono = true,
+  mono = false,
 }: {
   tone?: PillTone;
   children: ReactNode;
@@ -27,7 +27,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-label-sm",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-label-sm font-medium whitespace-nowrap",
         mono && "font-mono",
         TONES[tone],
         className,
