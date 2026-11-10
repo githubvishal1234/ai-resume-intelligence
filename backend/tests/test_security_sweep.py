@@ -20,6 +20,9 @@ PUBLIC = {
     ("POST", "/api/v1/auth/password-reset/request"),
     ("POST", "/api/v1/auth/password-reset/confirm"),
     ("POST", "/api/v1/auth/logout"),  # no session: nothing to log out, answers without effect
+    # The public template gallery offers fonts before sign-in; they hold no user data.
+    ("GET", "/api/v1/output/fonts"),
+    ("GET", "/api/v1/output/fonts/{name}.ttf"),
 }
 UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
