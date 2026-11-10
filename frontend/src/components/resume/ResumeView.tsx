@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 import { arrange, RESUME_ORDER, type SectionKey } from "@/constants/templates";
+import { sectionOrder } from "@/lib/sectionOrder";
 import type { ResumeDoc } from "@/services/resumeService";
 
 function dates(start: string, end: string): string {
@@ -88,7 +89,7 @@ export function ResumeView({ doc }: { doc: ResumeDoc }) {
         {c.headline ? <p className="font-semibold">{c.headline}</p> : null}
         <p className="text-on-surface-variant">{[c.location, c.email, c.phone, ...c.links].filter(Boolean).join(" · ")}</p>
       </header>
-      {arrange(RESUME_ORDER, doc.section_order).map((key) => <Fragment key={key}>{sections[key]}</Fragment>)}
+      {arrange(RESUME_ORDER, sectionOrder(doc)).map((key) => <Fragment key={key}>{sections[key]}</Fragment>)}
       {doc.other.map((o) => (
         <section key={o.id}>
           <H>{o.heading || "Other"}</H>

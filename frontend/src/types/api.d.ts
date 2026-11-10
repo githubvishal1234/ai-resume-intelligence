@@ -940,6 +940,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/output/fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Fonts */
+        get: operations["list_fonts_api_v1_output_fonts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/output/fonts/{name}.ttf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Font File
+         * @description The same files the PDF embeds, so the browser preview shows the real letters. Public,
+         *     like any web font: they hold no user data.
+         */
+        get: operations["font_file_api_v1_output_fonts__name__ttf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/output/templates": {
         parameters: {
             query?: never;
@@ -2288,6 +2326,18 @@ export interface components {
         FinalizeIn: {
             /** Title */
             title?: string | null;
+        };
+        /** FontOut */
+        FontOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Style
+             * @enum {string}
+             */
+            style: "sans" | "modern" | "serif" | "condensed";
         };
         /** FunnelOut */
         FunnelOut: {
@@ -5694,6 +5744,55 @@ export interface operations {
             };
         };
     };
+    list_fonts_api_v1_output_fonts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FontOut"][];
+                };
+            };
+        };
+    };
+    font_file_api_v1_output_fonts__name__ttf_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_templates_api_v1_output_templates_get: {
         parameters: {
             query?: never;
@@ -5719,6 +5818,8 @@ export interface operations {
             query?: {
                 template?: string;
                 version?: number | null;
+                font?: string | null;
+                skills?: "table" | null;
             };
             header?: never;
             path: {
@@ -5750,6 +5851,8 @@ export interface operations {
         parameters: {
             query?: {
                 template?: string;
+                font?: string | null;
+                skills?: "table" | null;
             };
             header?: never;
             path: {

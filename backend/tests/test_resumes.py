@@ -601,3 +601,26 @@ def test_a_filled_skills_section_leaves_short_lines_in_experience_alone() -> Non
     c = parse_resume(text).content
     assert [s.name for s in c.skills] == ["Python", "SQL"]
     assert len(c.experience) == 1
+
+
+def test_a_project_keeps_its_stack_and_tagline_lines() -> None:
+    text = "\n".join(
+        [
+            "Asha Rao",
+            "asha@example.com",
+            "PROJECTS",
+            "MediCOR AI",
+            "Python, FastAPI, React, SQL Server",
+            "Multi-Tenant AI Healthcare Voice Receptionist",
+            "- Built a voice receptionist.",
+            "RAG Assistant",
+            "Python, LangChain, FAISS",
+            "LangGraph & LLMs",
+            "- Built retrieval.",
+        ]
+    )
+    projects = parse_resume(text).content.projects
+    assert [(p.name, p.technologies[:2], p.description, len(p.bullets)) for p in projects] == [
+        ("MediCOR AI", ["Python", "FastAPI"], "Multi-Tenant AI Healthcare Voice Receptionist", 1),
+        ("RAG Assistant", ["Python", "LangChain"], "LangGraph & LLMs", 1),
+    ]

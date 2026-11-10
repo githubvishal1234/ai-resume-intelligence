@@ -2,6 +2,9 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PublicHeader } from "@/components/layout/PublicHeader";
+import { FontChips } from "@/components/resume/FontChips";
+import { SkillsChips } from "@/components/resume/TemplatePicker";
+import type { SkillsStyle } from "@/services/outputService";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { matches, NO_FILTERS, TemplateFilters, type Filters } from "@/components/resume/TemplateFilters";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +24,8 @@ export function TemplatesPage() {
   const signedIn = Boolean(useSession().data);
   const [kind, setKind] = useState<"resume" | "cv">("resume");
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [font, setFont] = useState("");
+  const [skills, setSkills] = useState<SkillsStyle>("");
   const ofKind = TEMPLATE_STYLES.filter((t) => t.kind === kind);
   const shown = ofKind.filter((t) => matches(t.id, filters));
   const builder = kind === "cv" ? "/cv-builder" : "/resumes/new";
@@ -64,6 +69,10 @@ export function TemplatesPage() {
             </p>
           </div>
           <TemplateFilters value={filters} onChange={setFilters} />
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-4">
+            <SkillsChips value={skills} onChange={setSkills} />
+            <FontChips value={font} onChange={setFont} />
+          </div>
         </div>
 
         {shown.length === 0 ? (
@@ -78,18 +87,18 @@ export function TemplatesPage() {
             {shown.map((t) => (
               <li key={t.id} className="group relative rounded-card border border-hairline bg-surface-container-lowest p-3 shadow-level-1 transition hover:-translate-y-0.5 hover:shadow-level-3">
                 <div className="rounded-control bg-surface-container-low p-3">
-                  <ResumePaper doc={SAMPLE_RESUME} template={t.id} label={`Sample ${kind === "cv" ? "CV" : "resume"} in the ${t.name} template`} />
+                  <ResumePaper doc={SAMPLE_RESUME} template={t.id} font={font} skillsTable={skills === "table"} label={`Sample ${kind === "cv" ? "CV" : "resume"} in the ${t.name} template`} />
                 </div>
                 <div className="flex items-start justify-between gap-2 px-1 pt-3">
                   <div className="min-w-0">
                     <h2 className="text-label-md font-semibold text-on-surface">{t.name}</h2>
-                    <p className="text-body-sm text-on-surface-variant">{t.category} · {t.serif ? "Serif" : "Sans-serif"}{t.photo ? " · Photo" : ""}</p>
+                    <p className="text-body-sm text-on-surface-variant">{t.category} · {font ? "Your font" : t.serif ? "Serif" : "Sans-serif"}{t.photo ? " · Photo" : ""}</p>
                     <Pill tone={atsLevel(t) === "safe" ? "matched" : "neutral"} className="mt-1">{atsLevel(t) === "safe" ? "ATS-safe" : "ATS-friendly"}</Pill>
                   </div>
                   <span aria-hidden className="mt-1 size-4 shrink-0 rounded-full ring-1 ring-hairline-strong" style={{ background: t.accent }} />
                 </div>
                 <Link
-                  to={`${builder}?template=${encodeURIComponent(t.id)}`}
+                  to={`${builder}?template=${encodeURIComponent(t.id)}${font ? `&font=${font}` : ""}${skills ? `&skills=${skills}` : ""}`}
                   className="mt-3 flex items-center justify-center gap-1.5 rounded-control bg-primary px-3 py-2 text-label-md font-semibold text-on-primary after:absolute after:inset-0 hover:bg-primary/90"
                 >
                   Use this template<span className="sr-only">: {t.name}</span> <ArrowRight className="size-4" aria-hidden />

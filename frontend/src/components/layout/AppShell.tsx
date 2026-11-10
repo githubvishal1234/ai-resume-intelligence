@@ -1,6 +1,6 @@
 import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
-import { Outlet, useLocation, useNavigation } from "react-router-dom";
+import { Outlet, ScrollRestoration, useLocation, useNavigation } from "react-router-dom";
 import { useLogout, useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/Button";
 import { BrandMark, BrandIcon } from "./BrandMark";
@@ -105,6 +105,7 @@ export function AppShell() {
           <div key={pathname} className="animate-page">
             <Outlet />
           </div>
+          <ScrollRestoration />
         </main>
       </div>
 

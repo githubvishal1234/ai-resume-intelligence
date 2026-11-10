@@ -10,18 +10,20 @@ from __future__ import annotations
 
 import io
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any
 from xml.sax.saxutils import escape
 
 from PIL import Image as PILImage
 from PIL import ImageDraw, ImageOps
+from pypdf import PdfReader
 from reportlab.lib.colors import Color, HexColor, white
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -41,6 +43,7 @@ from reportlab.platypus import (
 from reportlab.platypus.flowables import Flowable
 
 from app.output import fonts
+from app.output.order import section_order
 from app.output.templates import HEADINGS, SIDEBAR_SECTIONS, Template, arrange
 from app.resumes.content import Contact, ResumeContent
 
@@ -158,8 +161,9 @@ def _styles(t: Template, prefix: str, text: Color, heading_colour: Color, band: 
             spaceAfter=5 if band else 2,
             backColor=tint(t.accent) if band else None,
             borderPadding=(2, 4, 2, 4) if band else 0,
+            keepWithNext=1,  # never the last line of a page
         ),
-        entry=ParagraphStyle(f"{prefix}entry", parent=base, fontName=t.font_bold),
+        entry=ParagraphStyle(f"{prefix}entry", parent=base, fontName=t.font_bold, keepWithNext=1),
         meta=ParagraphStyle(f"{prefix}meta", parent=base, fontSize=t.body_size - 0.5),
         meta_right=ParagraphStyle(
             f"{prefix}metar", parent=base, fontSize=t.body_size - 0.5, alignment=TA_RIGHT
@@ -185,7 +189,23 @@ _PLAIN_TABLE = [
 ]
 
 
-def render_pdf(
+def _glue(section: list[Flowable]) -> list[Flowable]:
+    """A section's heading (and rule) kept on the same page as its first entry.
+
+    keepWithNext alone can't do it when that entry is itself a KeepTogether, as roles and
+    projects are, so the heading joins that group.
+    """
+    n = 0
+    while n < len(section) and section[n].getKeepWithNext():
+        n += 1
+    if not n or n == len(section):
+        return section
+    head, first = section[:n], section[n]
+    joined = [*head, *first._content] if isinstance(first, KeepTogether) else [*head, first]
+    return [KeepTogether(joined), *section[n + 1 :]]
+
+
+def _render(
     content: ResumeContent, template: Template, title: str = "Resume", photo: bytes | None = None
 ) -> bytes:
     """`photo` (the user's stored photo) is drawn only by templates with `photo=True`."""
@@ -214,7 +234,7 @@ def render_pdf(
     on_solid = sidebar and t.sidebar_fill == "solid"
     side = _styles(t, "s", white if on_solid else black, white if on_solid else accent, False)
     if t.header == "banner":
-        main.name.textColor = main.contact.textColor = white
+        main.name.textColor = main.headline.textColor = main.contact.textColor = white
         main.contact.spaceAfter = 0
     image = Image(circle_photo(photo), 26 * mm, 26 * mm, mask="auto") if t.photo and photo else None
 
@@ -253,7 +273,16 @@ def render_pdf(
         if t.header == "split" and name:
             right = _lines(contact_parts, s.meta_right) if contact_parts else ""
             left = [f for f in (name, title) if f]
-            return [table([[left, right]], [main_w * 0.55, main_w * 0.45]), Spacer(1, 6)]
+            # As wide as the longest contact line (a long link would break mid-word), up to 60%.
+            longest = max(
+                (
+                    stringWidth(_safe(x), s.meta_right.fontName, s.meta_right.fontSize)
+                    for x in contact_parts
+                ),
+                default=0.0,
+            )
+            right_w = min(max(main_w * 0.4, longest + 4), main_w * 0.6)
+            return [table([[left, right]], [main_w - right_w, right_w]), Spacer(1, 6)]
         if t.header == "monogram" and name:
             initials = "".join(w[0] for w in c.contact.full_name.split()[:2]).upper()
             mono_style = ParagraphStyle(
@@ -290,7 +319,9 @@ def render_pdf(
     def heading(text: str, s: _Styles) -> list[Flowable]:
         out: list[Flowable] = [_p(text.upper() if t.upper_headings else text, s.heading)]
         if t.heading_rule:
-            out.append(HRFlowable(width="100%", thickness=0.6, color=s.rule, spaceAfter=3))
+            rule = HRFlowable(width="100%", thickness=0.6, color=s.rule, spaceAfter=3)
+            rule.keepWithNext = 1
+            out.append(rule)
         return out
 
     def bullets(lines: list[str], s: _Styles) -> list[Flowable]:
@@ -304,12 +335,16 @@ def render_pdf(
             ]
         return [_p(head, s.entry)] + ([_p(when, s.meta)] if when else [])
 
-    def dated(when: str, body: list[Flowable], s: _Styles, width: float) -> list[Flowable]:
+    def dated(
+        when: str, head: list[Flowable], body: list[Flowable], s: _Styles, width: float
+    ) -> list[Flowable]:
         """Timeline layout: dates in a left gutter, the entry right of an accent line."""
         gutter = 25 * mm
         cell = [_p(when, s.meta_right)] if when else []
-        # One row per line: a single row can't break across pages, so a long role crashed.
-        rows = [[cell if i == 0 else [], [line]] for i, line in enumerate(body)]
+        # The title row also holds the first line below it, so a date that wraps to two lines
+        # leaves no gap; every later line is its own row, since one row can't break across pages.
+        lines = [head + body[:1], *([line] for line in body[1:])]
+        rows = [[cell if i == 0 else [], line] for i, line in enumerate(lines)]
         return [
             table(
                 rows,
@@ -334,8 +369,8 @@ def render_pdf(
             head = " — ".join(p for p in (e.title, e.company) if p) or "Role"
             when = _dates(e.start_date, e.end_date, e.current)
             if t.layout == "timeline":
-                body = [_p(head, s.entry)] + ([_p(e.location, s.meta)] if e.location else [])
-                out += dated(when, body + bullets(e.bullets, s), s, width)
+                top = [_p(head, s.entry)] + ([_p(e.location, s.meta)] if e.location else [])
+                out += dated(when, top, bullets(e.bullets, s), s, width)
                 continue
             if t.dates_right:
                 block = titled(head, when, s, width) + (
@@ -356,10 +391,10 @@ def render_pdf(
             when = _dates(d.start_date, d.end_date)
             school = d.institution if degree else ""
             if t.layout == "timeline":
-                body = [_p(degree or d.institution, s.entry)] + (
+                top = [_p(degree or d.institution, s.entry)] + (
                     [_p(school, s.meta)] if school else []
                 )
-                out += dated(when, body + bullets(d.details, s), s, width)
+                out += dated(when, top, bullets(d.details, s), s, width)
                 continue
             if sidebar and s is side:  # narrow column: one fact per line
                 out += [_p(degree or d.institution, s.entry)]
@@ -381,10 +416,37 @@ def render_pdf(
         groups: dict[str, list[str]] = {}
         for sk in c.skills:
             groups.setdefault(sk.category, []).append(sk.name)
+        if t.skills_table and not (sidebar and s is side):  # a narrow sidebar keeps its list
+            # Category | skills, one row each, reading in that order. Each row is its own table,
+            # so the heading stays with the first row and the rest can go on to the next page.
+            for category, names in groups.items():
+                cells = (
+                    [[_p(category, s.entry), _p(", ".join(names), s.base)]]
+                    if category
+                    else [[_p(", ".join(names), s.base), ""]]
+                )
+                row = Table(cells, colWidths=[width * 0.3, width * 0.7])
+                row.setStyle(
+                    TableStyle(
+                        [
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("BOX", (0, 0), (-1, -1), 0.5, tint(t.accent, 0.35)),
+                            ("LINEAFTER", (0, 0), (0, 0), 0.5, tint(t.accent, 0.35)),
+                            ("BACKGROUND", (0, 0), (0, 0), tint(t.accent, 0.08)),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                            ("TOPPADDING", (0, 0), (-1, -1), 3),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                            *([] if category else [("SPAN", (0, 0), (1, 0))]),
+                        ]
+                    )
+                )
+                out.append(row)
+            return out
         for category, names in groups.items():
-            if sidebar and s is side:  # one skill per line, under its category
+            if sidebar and s is side:  # the category, then its skills wrapped below it
                 out += [_p(category, s.entry)] if category else []
-                out += [_p(n, s.base) for n in names] + [Spacer(1, 3)]
+                out += [_p(", ".join(names), s.base), Spacer(1, 3)]
             elif t.skills_grid:
                 out += [_p(category, s.entry)] if category else []
                 cells = [Paragraph(escape(_safe(n)), s.bullet, bulletText="•") for n in names]
@@ -402,12 +464,13 @@ def render_pdf(
             return []
         out = heading(HEADINGS["projects"], s)
         for p in c.projects:
-            out.append(_p(p.name or "Project", s.entry))
+            block: list[Flowable] = [_p(p.name or "Project", s.entry)]
             if p.technologies:
-                out.append(_p(", ".join(p.technologies), s.meta))
+                block.append(_p(", ".join(p.technologies), s.meta))
             if p.description:
-                out.append(_p(p.description, s.base))
-            out += bullets(p.bullets, s) + [Spacer(1, 3)]
+                block.append(_p(p.description, s.base))
+            out.append(KeepTogether(block + bullets(p.bullets, s)[:1]))
+            out += bullets(p.bullets, s)[1:] + [Spacer(1, 3)]
         return out
 
     def certifications(s: _Styles, width: float) -> list[Flowable]:
@@ -442,12 +505,30 @@ def render_pdf(
         side_story += [Spacer(1, 4)] + [_p(x, side.meta) for x in contact_parts]
     else:
         main_story += header()
-    for key in arrange(t.order, list(c.section_order)):
-        in_side = sidebar and key in SIDEBAR_SECTIONS
+    height = A4[1] - 2 * margin
+    order = arrange(t.order, section_order(c, t.kind))
+    side_keys = [k for k in order if sidebar and k in SIDEBAR_SECTIONS]
+
+    def tall(story: list[Flowable]) -> float:
+        return float(
+            sum(f.wrap(side_w, height)[1] + f.getSpaceBefore() + f.getSpaceAfter() for f in story)
+        )
+
+    # The sidebar is read first and fills page one only, so whatever doesn't fit there moves,
+    # last section first, to the top of the main column: the reading order stays the same.
+    while (
+        side_keys
+        and tall(side_story + [f for k in side_keys for f in builders[k](side, side_w)]) > height
+    ):
+        side_keys.pop()
+    for key in order:
+        in_side = key in side_keys
         target = side_story if in_side else main_story
-        target += builders[key](side if in_side else main, side_w if in_side else main_w)
+        target += _glue(builders[key](side if in_side else main, side_w if in_side else main_w))
     for o in c.other:
-        main_story += heading(o.heading or "Additional information", main) + bullets(o.lines, main)
+        main_story += _glue(
+            heading(o.heading or "Additional information", main) + bullets(o.lines, main)
+        )
 
     out = io.BytesIO()
     meta_kw: dict[str, Any] = {
@@ -478,10 +559,8 @@ def render_pdf(
         return out.getvalue()
 
     # Sidebar: page one has the sidebar frame (filled and read first), then the main frame;
-    # later pages continue the main column only.
-    # ponytail: a sidebar taller than one page spills into the main frame; cap its content
-    # (or give later pages a sidebar frame too) if that ever happens.
-    height = A4[1] - 2 * margin
+    # later pages continue the main column only. Sections that don't fit the sidebar moved to
+    # the main column above.
     main_x = margin + side_w + gap
     doc = BaseDocTemplate(
         out,
@@ -509,6 +588,26 @@ def render_pdf(
     )
     doc.build([NextPageTemplate("rest"), *side_story, FrameBreak(), *main_story])
     return out.getvalue()
+
+
+def render_pdf(
+    content: ResumeContent, template: Template, title: str = "Resume", photo: bytes | None = None
+) -> bytes:
+    """`photo` (the user's stored photo) is drawn only by templates with `photo=True`."""
+    pdf = _render(content, template, title, photo)
+    t = template
+    # One-page templates step the type and spacing down until it fits, never below 7.5 pt.
+    while t.fit_one_page and len(PdfReader(io.BytesIO(pdf)).pages) > 1 and t.body_size > 7.5:
+        t = replace(
+            t,
+            body_size=round(t.body_size - 0.3, 2),
+            heading_size=round(t.heading_size - 0.3, 2),
+            name_size=max(14.0, t.name_size - 0.5),
+            margin_mm=max(9.0, t.margin_mm - 0.5),
+            line_height=max(1.12, round(t.line_height - 0.02, 2)),
+        )
+        pdf = _render(content, t, title, photo)
+    return pdf
 
 
 def render_letter(

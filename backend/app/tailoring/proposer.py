@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import TIER_WEIGHT, EvidenceRef, MatchResult
+from app.output.order import section_order
 from app.output.templates import HEADINGS, RESUME_ORDER, arrange
 from app.resumes.analysis import MIN_SKILLS, MIN_WORDS, word_count
 from app.resumes.content import ResumeContent, Skill, new_id
@@ -287,7 +288,7 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
     best_role = max((score(b) for e in master.experience for b in e.bullets), default=0)
     best_project = max(master.projects, key=lambda p: score(project_text(p)), default=None)
     # The master's own section order is kept; projects only move up to sit before experience.
-    current = arrange(RESUME_ORDER, list(master.section_order))
+    current = arrange(RESUME_ORDER, section_order(master))
     projects_later = current.index("projects") > current.index("experience")
     if (
         master.experience

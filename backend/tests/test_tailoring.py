@@ -675,7 +675,7 @@ def test_focus_reshapes_the_copy_with_only_master_facts() -> None:
     assert doc.contact.headline == headline
     # The API project fits best, so it moves up to sit right before experience.
     assert doc.section_order == [
-        "summary", "projects", "experience", "education", "skills", "certifications",
+        "summary", "skills", "projects", "experience", "education", "certifications",
     ]  # fmt: skip
     # Maximum focus: unrelated bullets go, but every role stays with at least one.
     assert doc.experience[0].bullets == master.experience[0].bullets[:2]

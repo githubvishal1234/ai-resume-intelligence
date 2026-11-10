@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -9,9 +10,18 @@ from fastapi.testclient import TestClient
 from pypdf import PdfReader
 
 from app.output.ats import ats_check
+from app.output.fonts import CHOICES
 from app.output.pdf import render_pdf
-from app.output.templates import DESIGNS, PALETTES, RESUME_ORDER, TEMPLATES, arrange
-from app.resumes.content import Contact, Experience, Project, ResumeContent
+from app.output.templates import (
+    DESIGNS,
+    PALETTES,
+    RESUME_ORDER,
+    TEMPLATES,
+    arrange,
+    with_font,
+    with_skills,
+)
+from app.resumes.content import Contact, Experience, Project, ResumeContent, Skill
 from app.resumes.parser import parse_resume
 from tests.conftest import login_as
 from tests.fixtures import SAMPLE_TEXT
@@ -186,7 +196,7 @@ def test_headline_and_section_order_reach_the_pdf_and_the_ats_check() -> None:
     content.projects = [Project(name="Search service", bullets=["Built a search API."])]
     content.section_order = ["projects", "experience"]
     assert arrange(RESUME_ORDER, content.section_order) == [
-        "summary", "projects", "experience", "education", "skills", "certifications",
+        "summary", "skills", "projects", "experience", "education", "certifications",
     ]  # fmt: skip
     for template in ("classic", "sidebar-navy", "timeline-navy", "split-navy"):
         pdf = render_pdf(content, TEMPLATES[template])
@@ -221,3 +231,107 @@ def test_a_very_long_role_renders_in_every_layout() -> None:
     for family in {t.split("-")[0]: t for t in TEMPLATES}.values():
         text = " ".join(_text(render_pdf(content, TEMPLATES[family])).split())
         assert "release number 99 of" in text, family
+
+
+@pytest.mark.parametrize("font", [f.id for f in CHOICES])
+def test_every_font_choice_embeds_and_reads_back(font: str) -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.contact.full_name = "José Núñez"
+    pdf = render_pdf(content, with_font(TEMPLATES["classic"], font))
+    text = " ".join(_text(pdf).split())
+    assert "José Núñez" in text and "Experience" in text
+    fonts = {
+        str(f.get_object()["/BaseFont"])
+        for page in PdfReader(io.BytesIO(pdf)).pages
+        for f in page["/Resources"]["/Font"].values()
+    }
+    # Both cuts embed under their own names: a bold that calls itself regular renders wrongly.
+    # (reportlab's canvas always lists Helvetica as its starting font, as with DejaVu.)
+    embedded = {f.split("+")[-1] for f in fonts} - {"/Helvetica"}
+    assert embedded == {f"{font}-Regular", f"{font}-Bold"}
+    assert ats_check(content, pdf, "classic", font=font).checks
+
+
+def test_a_character_a_font_lacks_is_reported() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.summary += " Salary in ₹ and roles in Москва."
+    pdf = render_pdf(content, with_font(TEMPLATES["classic"], "Poppins"))
+    checks = {c.id: c for c in ats_check(content, pdf, "classic", font="Poppins").checks}
+    assert checks["text.characters"].status != "pass"
+    assert "₹" not in checks["text.characters"].detail
+
+
+def test_font_endpoints(user_client: TestClient) -> None:
+    fonts = user_client.get("/api/v1/output/fonts").json()
+    assert {"id": "Inter", "name": "Inter", "style": "sans"} in fonts and len(fonts) == len(CHOICES)
+    file = user_client.get("/api/v1/output/fonts/EBGaramond-Bold.ttf")
+    assert file.status_code == 200 and file.headers["content-type"] == "font/ttf"
+    assert user_client.get("/api/v1/output/fonts/DejaVuSans.ttf").status_code == 404
+    assert user_client.get("/api/v1/output/fonts/..%2F..%2Fconfig.ttf").status_code == 404
+    master = import_and_confirm(user_client)
+    base = f"/api/v1/resumes/{master['id']}"
+    pdf = user_client.get(f"{base}/export.pdf?template=classic&font=NotoSerif")
+    assert pdf.status_code == 200 and b"NotoSerif" in pdf.content
+    assert user_client.get(f"{base}/export.pdf?font=ComicSans").status_code == 422
+    assert user_client.get(f"{base}/ats?template=classic&font=Lato").status_code == 200
+
+
+def _many_skills() -> ResumeContent:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.skills = [Skill(name=f"Skill {i}", category=f"Group {i // 4}") for i in range(40)]
+    return content
+
+
+@pytest.mark.parametrize("template", ["sidebar-navy", "portfolio-teal"])
+def test_a_long_sidebar_never_leaves_page_one_empty(template: str) -> None:
+    pdf = render_pdf(_many_skills(), TEMPLATES[template])
+    first = PdfReader(io.BytesIO(pdf)).pages[0].extract_text()
+    assert "Experience" in first and "Skill 39" in _text(pdf)
+
+
+def test_a_section_heading_is_never_the_last_line_of_a_page() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.summary = " ".join([content.summary] * 6)  # pushes a heading near a page end
+    for template in ("classic", "elegant-forest", "ledger-teal", "split-navy", "timeline-navy"):
+        for filler in range(0, 12):
+            content.experience[0].bullets = ["Shipped a release of the product."] * filler
+            pdf = render_pdf(content, TEMPLATES[template])
+            for page in PdfReader(io.BytesIO(pdf)).pages[:-1]:
+                last = page.extract_text().strip().splitlines()[-1].strip()
+                assert last not in {"Summary", "Experience", "Education", "Skills", "Projects"}, (
+                    template,
+                    filler,
+                )
+
+
+def test_one_page_shrinks_to_fit_and_the_rest_keep_their_size() -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    content.experience[0].bullets = ["Built Python services with authentication and storage."] * 46
+    pages = lambda t: len(PdfReader(io.BytesIO(render_pdf(content, t))).pages)  # noqa: E731
+    assert pages(replace(TEMPLATES["one-page"], fit_one_page=False)) == 2  # needs the shrink
+    assert pages(TEMPLATES["one-page"]) == 1
+    assert pages(TEMPLATES["compact"]) == 2  # other templates keep their type size
+
+
+@pytest.mark.parametrize("template", ["classic", "ledger-teal", "timeline-navy", "portfolio-teal"])
+def test_skills_as_a_table_read_category_then_skills(template: str) -> None:
+    content = parse_resume(SAMPLE_TEXT).content
+    pdf = render_pdf(content, with_skills(TEMPLATES[template], "table"))
+    text = " ".join(_text(pdf).split())
+    groups: dict[str, list[str]] = {}
+    for sk in content.skills:
+        groups.setdefault(sk.category, []).append(sk.name)
+    for category, names in groups.items():
+        assert f"{category} {', '.join(names)}".strip() in text, (template, category)
+    statuses = {c.id: c.status for c in ats_check(content, pdf, template).checks}
+    assert statuses["layout.order"] == "pass"
+    plain = render_pdf(content, TEMPLATES[template])
+    assert len(PdfReader(io.BytesIO(pdf)).pages) == len(PdfReader(io.BytesIO(plain)).pages)
+
+
+def test_skills_query_reaches_the_pdf(user_client: TestClient) -> None:
+    master = import_and_confirm(user_client)
+    base = f"/api/v1/resumes/{master['id']}"
+    assert user_client.get(f"{base}/export.pdf?template=classic&skills=table").status_code == 200
+    assert user_client.get(f"{base}/ats?template=classic&skills=table").status_code == 200
+    assert user_client.get(f"{base}/export.pdf?skills=chart").status_code == 422

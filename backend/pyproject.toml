@@ -31,7 +31,7 @@ build-backend = "setuptools.build_meta"
 include = ["app*"]
 
 [tool.setuptools.package-data]
-"app.output" = ["fonts/*.ttf", "fonts/LICENSE"]
+"app.output" = ["fonts/*.ttf", "fonts/LICENSE", "fonts/OFL.txt"]
 
 [tool.ruff]
 line-length = 100
