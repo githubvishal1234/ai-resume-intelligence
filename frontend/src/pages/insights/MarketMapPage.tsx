@@ -132,7 +132,6 @@ function TopGap({ gap, total, planned }: { gap: SkillDemand; total: number; plan
   const create = useCreateProof();
   return (
     <section className="rounded-card bg-ink-deep p-6 text-on-ink">
-      <div aria-hidden className="absolute -right-10 -top-10 -z-10 size-40 rounded-full bg-accent/25 blur-2xl" />
       <p className="inline-flex items-center gap-2 text-label-sm uppercase tracking-wider text-on-ink-muted">
         <Crosshair className="size-4" aria-hidden /> Biggest gap in your market
       </p>

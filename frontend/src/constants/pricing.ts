@@ -1,8 +1,10 @@
 /**
  * Plans shown on /pricing. Prices are set here only (one edit to change them).
- * No payment provider is chosen yet: Pro is a waitlist, and plan limits are not enforced in the
- * app. When billing is added, the feature split below is what the backend should gate.
+ * Pro is sold through Razorpay when the deployment has billing configured, and is a waitlist
+ * otherwise. The feature split below is what the backend gates.
  */
+import { TEMPLATE_STYLES } from "@/constants/templates";
+
 export const CURRENCY = "INR";
 
 export const PRO_PRICE = { monthly: 299, yearly: 2499 } as const;
@@ -16,7 +18,7 @@ export function formatPrice(amount: number): string {
 
 export const FREE_FEATURES = [
   "Quick builder with live preview",
-  "All 6 ATS-safe templates",
+  `All ${TEMPLATE_STYLES.length} resume and CV templates`,
   "PDF download with ATS check",
   "Import an existing resume (PDF, DOCX, TXT)",
   "Job analyzer, match score and skill gaps",

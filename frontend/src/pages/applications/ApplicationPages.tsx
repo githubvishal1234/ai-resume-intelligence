@@ -122,11 +122,11 @@ function ApplicationCard({ application: a }: { application: ApplicationSummary }
         </div>
         <div className="flex flex-wrap gap-2">
           {a.follow_up_due ? (
-            <Pill tone="missing" mono={false}>
+            <Pill tone="missing">
               Follow up due
             </Pill>
           ) : a.follow_up_on && !CLOSED.has(a.status) ? (
-            <Pill mono={false}>Follow up {formatDay(a.follow_up_on)}</Pill>
+            <Pill>Follow up {formatDay(a.follow_up_on)}</Pill>
           ) : null}
           <StatusPill status={a.status} />
         </div>

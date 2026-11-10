@@ -116,6 +116,7 @@
   --color-on-ink-success: #a7f3d0;
 
   /* Motion (all switched off under prefers-reduced-motion, see the end of this file). */
+  /* One easing for the whole product (this also sets the `ease-out` utility). */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --animate-rise: rise 0.32s var(--ease-out) both;
   --animate-fill: fill 0.7s var(--ease-out) 0.1s both;

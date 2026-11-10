@@ -401,8 +401,8 @@ export function PracticePage() {
                     <p className="mt-2 text-body-md text-on-surface-variant">Not answered.</p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {a?.self_rating ? <Pill mono={false}>Your rating {a.self_rating}/5</Pill> : null}
-                    {a?.feedback ? <Pill tone="brand" mono={false}>Coach score {a.feedback.score}/5</Pill> : null}
+                    {a?.self_rating ? <Pill>Your rating {a.self_rating}/5</Pill> : null}
+                    {a?.feedback ? <Pill tone="brand">Coach score {a.feedback.score}/5</Pill> : null}
                   </div>
                   {a?.notes ? <p className="mt-2 text-body-sm text-on-surface-variant">Notes: {a.notes}</p> : null}
                 </Card>

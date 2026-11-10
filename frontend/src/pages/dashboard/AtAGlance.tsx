@@ -63,9 +63,9 @@ export function AtAGlance() {
         At a glance
       </h2>
       {/* One panel, four readings, hairlines between them: not four separate cards. */}
-      <ul className="card grid grid-cols-1 gap-px overflow-hidden bg-hairline sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="card grid grid-cols-2 gap-px overflow-hidden bg-hairline xl:grid-cols-4">
         {tiles.map(({ to, icon: Icon, label, value, detail, empty }) => (
-          <li key={label} className="group relative bg-surface-container-lowest p-5 transition-colors hover:bg-surface-container-low">
+          <li key={label} className="group relative min-w-0 bg-surface-container-lowest p-4 transition-colors hover:bg-surface-container-low sm:p-5">
             <div className="flex items-center justify-between gap-2 text-label-md text-on-surface-variant">
               <span>{label}</span>
               <Icon className="size-4 text-outline" aria-hidden />
