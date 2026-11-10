@@ -121,7 +121,7 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
               <Download className="size-4" aria-hidden /> Download PDF
             </a>
             <p className="mt-2 text-body-sm text-on-surface-variant">
-              Single column, standard fonts and headings, real text. The final template set is still to be approved.
+              Single column, standard fonts and headings, real text.
             </p>
           </Card>
           {kind === "resume" ? <SectionOrderCard resumeId={resumeId} /> : null}
