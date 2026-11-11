@@ -227,3 +227,12 @@ def test_endpoint_refusals_offer_the_paste_fallback(user_client: TestClient) -> 
     assert internal.status_code == 422
     assert internal.json()["code"] == "JOB_SOURCE_NOT_SUPPORTED"
     assert user_client.get(API).json() == []
+
+
+def test_unknown_charset_falls_back_to_utf8(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.jobs import fetch as fetch_module
+
+    monkeypatch.setattr(
+        fetch_module, "fetch", lambda url, accept="text/html": ("café".encode(), "x-not-a-charset")
+    )
+    assert fetch_module.fetch_text("https://example.com") == "café"

@@ -216,7 +216,8 @@ score, requirement evidence and a flagged claim), not a photo. Photos appear in 
 ## Layout
 - **≥ 1024px:** a fixed 256px sidebar. The current page is a quiet tint with an emerald icon.
 - **< 1024px:** a modal drawer, built on a native `<dialog>`.
-- **< 768px:** a bottom tab bar with five destinations.
+- **< 768px:** a bottom tab bar with five destinations. The header search collapses to a button that opens the
+  search box across the header.
 - The dashboard is a page header with the next step, one "At a glance" panel of four readings,
   the six getting-started steps as a checklist, and the newest open applications.
 - Screens that are not built yet appear as disabled navigation items tagged with their phase.

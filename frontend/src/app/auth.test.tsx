@@ -49,6 +49,22 @@ describe("login", () => {
     expect(calls.filter((c) => c.path === "/auth/login")).toHaveLength(0);
   });
 
+  it("returns to the page that asked for sign-in", async () => {
+    const { routes } = mockApi([
+      { path: "/auth/me", ...NOT_AUTHED },
+      { method: "POST", path: "/auth/login", body: SESSION },
+      { path: "/account/sign-ins", body: [] },
+      { path: "/billing", body: { configured: false } },
+      { path: "/account/photo", status: 404, body: { code: "NOT_FOUND", message: "x", request_id: "r" } },
+    ]);
+    const { router } = renderApp("/settings");
+    await userEvent.type(await screen.findByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
+    routes.unshift({ path: "/auth/me", body: SESSION });
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings"));
+  });
+
   it("shows the server's generic error on bad credentials", async () => {
     mockApi([
       { path: "/auth/me", ...NOT_AUTHED },

@@ -58,7 +58,7 @@ export function AppShell() {
 
           <GlobalSearch />
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex items-center gap-1 md:ml-auto">
             <ThemeToggle />
             <NotificationBell />
             {user ? <AccountMenu user={user} /> : null}

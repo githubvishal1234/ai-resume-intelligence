@@ -32,7 +32,11 @@ export function RedirectIfAuthed() {
   if (session.data) {
     // Signed up (or already signed in) from the Pro waitlist button: confirm on the pricing page.
     const wantsPro = new URLSearchParams(location.search).get("plan") === "pro";
-    return <Navigate to={wantsPro ? "/pricing?join=pro" : "/"} replace />;
+    // Sent here from a deep link (see RequireAuth): go back to it once signed in. This guard
+    // re-renders before the sign-in form's own navigate runs, so it has to know the way too.
+    const from = (location.state as { from?: string } | null)?.from;
+    const back = from && from.startsWith("/") && !from.startsWith("//") ? from : "/";
+    return <Navigate to={wantsPro ? "/pricing?join=pro" : back} replace />;
   }
   return <Outlet />;
 }
