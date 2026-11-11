@@ -19,7 +19,7 @@ from app.interview.questions import Question
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import MatchResult
 from app.resumes.content import ResumeContent
-from app.tailoring.factcheck import master_text
+from app.tailoring.factcheck import ai_context, master_text
 
 METHOD_VERSION = "interview-ai-v1"
 PER_REQUEST = 5
@@ -77,7 +77,7 @@ def ai_questions(
         AiQuestions,
         [
             LLMMessage(role="system", content=INSTRUCTIONS),
-            LLMMessage(role="user", content="RESUME:\n" + master_text(resume)),
+            LLMMessage(role="user", content="RESUME:\n" + ai_context(resume, job_text)),
             LLMMessage(role="user", content="JOB POSTING:\n" + job_text[:20_000]),
             LLMMessage(role="user", content="REQUIREMENTS (id [tier] text):\n" + requirements),
             LLMMessage(role="user", content="SKILL GAPS:\n" + gaps),

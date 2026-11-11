@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Notice } from "@/components/ui/Notice";
-import { ON_DARK_ACTIONS } from "@/components/ui/PhotoBanner";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import { ScoreRing } from "@/components/ui/Score";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
@@ -36,7 +35,6 @@ export function MarketMapPage() {
     <div>
       <PageHeader
         title="Market Map"
-        photo="market"
         description="What the jobs you are targeting ask for, across every posting you saved, and how much of it your resume proves."
       />
       {m.jobs_analyzed === 0 ? (
@@ -126,15 +124,18 @@ export function MarketMapPage() {
   );
 }
 
+/** Buttons on the dark panel: primary turns white, secondary outlined, in both themes. */
+const ON_DARK_ACTIONS =
+  "flex flex-wrap gap-2 [&>.bg-primary]:bg-on-ink [&>.bg-primary]:text-ink-deep [&>.bg-primary]:shadow-none [&>.bg-primary:hover]:bg-on-ink-muted [&>.bg-surface-container-lowest]:border-on-ink/50 [&>.bg-surface-container-lowest]:bg-transparent [&>.bg-surface-container-lowest]:text-on-ink [&>.bg-surface-container-lowest:hover]:bg-on-ink/10";
+
 function TopGap({ gap, total, planned }: { gap: SkillDemand; total: number; planned: boolean }) {
   const create = useCreateProof();
   return (
-    <section className="relative isolate overflow-hidden rounded-card bg-ink-deep p-6 text-on-ink shadow-level-2">
-      <div aria-hidden className="absolute -right-10 -top-10 -z-10 size-40 rounded-full bg-accent/25 blur-2xl" />
+    <section className="rounded-card bg-ink-deep p-6 text-on-ink">
       <p className="inline-flex items-center gap-2 text-label-sm uppercase tracking-wider text-on-ink-muted">
         <Crosshair className="size-4" aria-hidden /> Biggest gap in your market
       </p>
-      <p className="mt-2 font-display text-[32px] font-extrabold leading-tight">{gap.name}</p>
+      <p className="mt-2 font-display text-headline-lg">{gap.name}</p>
       <p className="mt-1 text-body-lg text-on-ink-muted">
         Asked for in {gap.jobs} of {total} saved {total === 1 ? "job" : "jobs"}
         {gap.required_in ? `, required in ${gap.required_in}` : ""}.{" "}

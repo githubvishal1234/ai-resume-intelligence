@@ -22,10 +22,10 @@ export function NavDrawer({ open, onClose }: { open: boolean; onClose: () => voi
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
-      className="m-0 h-dvh max-h-none w-72 max-w-[85vw] bg-surface-container-lowest p-0 shadow-level-3 backdrop:bg-on-surface/40"
+      className="drawer m-0 h-dvh max-h-none w-72 max-w-[85vw] bg-surface-container-lowest p-0 shadow-level-3 backdrop:bg-on-surface/40"
     >
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-between border-b border-hairline px-4">
+        <div className="flex h-14 items-center justify-between border-b border-hairline px-4">
           <BrandMark />
           <button
             type="button"

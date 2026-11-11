@@ -6,12 +6,11 @@ import { cn } from "@/lib/cn";
 export type Filters = {
   category: TemplateCategory | "";
   colour: string;
-  font: "" | "sans" | "serif";
   header: "" | TemplateStyle["header"];
   layout: "" | TemplateStyle["layout"];
   photo: "" | "with" | "without";
 };
-export const NO_FILTERS: Filters = { category: "", colour: "", font: "", header: "", layout: "", photo: "" };
+export const NO_FILTERS: Filters = { category: "", colour: "", header: "", layout: "", photo: "" };
 
 const CATEGORIES: TemplateCategory[] = ["Professional", "Modern", "Creative", "Simple"];
 const HEADERS = [
@@ -35,18 +34,31 @@ export function matches(id: string, f: Filters): boolean {
   return (
     (!f.category || t.category === f.category) &&
     (!f.colour || t.colour === f.colour) &&
-    (!f.font || t.serif === (f.font === "serif")) &&
     (!f.header || t.header === f.header) &&
     (!f.layout || t.layout === f.layout) &&
     (!f.photo || t.photo === (f.photo === "with"))
   );
 }
 
-function Chips<T extends string>({ legend, options, value, onChange }: { legend: string; options: { id: T; label: string }[]; value: T | ""; onChange: (v: T | "") => void }) {
+export function Chips<T extends string>({
+  legend,
+  options,
+  value,
+  onChange,
+  allLabel = "All",
+  className,
+}: {
+  legend: string;
+  options: { id: T; label: string }[];
+  value: T | "";
+  onChange: (v: T | "") => void;
+  allLabel?: string;
+  className?: string;
+}) {
   const name = useId();
-  const all = [{ id: "" as const, label: "All" }, ...options];
+  const all = [{ id: "" as const, label: allLabel }, ...options];
   return (
-    <fieldset className="min-w-0">
+    <fieldset className={cn("min-w-0", className)}>
       <legend className="mb-1.5 text-label-sm font-semibold uppercase tracking-wide text-on-surface-variant">{legend}</legend>
       <div className="flex flex-wrap gap-1.5">
         {all.map((o) => (
@@ -66,7 +78,7 @@ function Chips<T extends string>({ legend, options, value, onChange }: { legend:
   );
 }
 
-/** Style, colour, font and header filters for a list of templates. */
+/** Style, layout, photo, colour and header filters for a list of templates. */
 export function TemplateFilters({ value, onChange, className }: { value: Filters; onChange: (f: Filters) => void; className?: string }) {
   const name = useId();
   const set = <K extends keyof Filters>(k: K) => (v: Filters[K]) => onChange({ ...value, [k]: v });
@@ -102,7 +114,6 @@ export function TemplateFilters({ value, onChange, className }: { value: Filters
           })}
         </div>
       </fieldset>
-      <Chips legend="Font" options={[{ id: "sans", label: "Sans-serif" }, { id: "serif", label: "Serif" }]} value={value.font} onChange={set("font")} />
       <Chips legend="Header" options={HEADERS.map((h) => ({ id: h.id, label: h.label }))} value={value.header} onChange={set("header")} />
     </div>
   );

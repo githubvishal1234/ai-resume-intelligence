@@ -21,9 +21,11 @@ from pydantic import BaseModel, Field
 
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import TIER_WEIGHT, EvidenceRef, MatchResult
+from app.output.order import section_order
 from app.output.templates import HEADINGS, RESUME_ORDER, arrange
 from app.resumes.analysis import MIN_SKILLS, MIN_WORDS, word_count
 from app.resumes.content import ResumeContent, Skill, new_id
+from app.resumes.parser import ROLE_NOTE
 from app.skills.vocabulary import canonical, category_of, find_skills
 from app.tailoring.factcheck import known_skills
 
@@ -286,7 +288,7 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
     best_role = max((score(b) for e in master.experience for b in e.bullets), default=0)
     best_project = max(master.projects, key=lambda p: score(project_text(p)), default=None)
     # The master's own section order is kept; projects only move up to sit before experience.
-    current = arrange(RESUME_ORDER, list(master.section_order))
+    current = arrange(RESUME_ORDER, section_order(master))
     projects_later = current.index("projects") > current.index("experience")
     if (
         master.experience
@@ -371,6 +373,27 @@ def focus(master: ResumeContent, job: JobAnalysis, result: MatchResult) -> list[
             )
         )
     return out
+
+
+def pick_bullets[T](
+    items: list[tuple[T, str]], wanted: set[str], limit: int
+) -> list[tuple[T, str]]:
+    """Which (entry, bullet) pairs an AI call rewrites: each entry's best in turn, so a long
+    resume doesn't spend the whole call on its newest role. Keeps the resume's order."""
+    labels = [b for _, b in items]
+    work = [i for i, b in enumerate(labels) if not ROLE_NOTE.match(b)]
+    if len(work) <= limit:
+        return [items[i] for i in work]
+    hits = {i: len(wanted & set(find_skills(labels[i]))) for i in work}
+    turns: dict[int, list[int]] = {}
+    for i in sorted(work, key=lambda i: (-hits[i], i)):
+        turns.setdefault(id(items[i][0]), []).append(i)
+    chosen: list[int] = []
+    while len(chosen) < limit:
+        for queue in turns.values():
+            if queue and len(chosen) < limit:
+                chosen.append(queue.pop(0))
+    return [items[i] for i in sorted(chosen)]
 
 
 def keep_length(master: ResumeContent, proposals: list[Proposal]) -> list[Proposal]:

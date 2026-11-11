@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { BriefcaseBusiness, FileSignature, FileText, Hammer, Search, Telescope, type LucideIcon } from "lucide-react";
+import { BriefcaseBusiness, FileSignature, FileText, Hammer, Search, Telescope, X, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/services/apiClient";
@@ -35,6 +35,8 @@ export function GlobalSearch() {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // Phones have no room for the box in the header: a button opens it across the header instead.
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const id = useId();
@@ -52,7 +54,9 @@ export function GlobalSearch() {
       const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea, select, [contenteditable]");
       if ((e.key === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !typing)) {
         e.preventDefault();
-        input.current?.focus();
+        setPhoneOpen(true);
+        // After the box is shown (it is display:none on phones until opened).
+        requestAnimationFrame(() => input.current?.focus());
         setOpen(true);
       }
     };
@@ -62,6 +66,7 @@ export function GlobalSearch() {
 
   const go = (hit: Hit) => {
     setOpen(false);
+    setPhoneOpen(false);
     setText("");
     input.current?.blur();
     navigate(KINDS[hit.kind].to(hit.id));
@@ -80,7 +85,10 @@ export function GlobalSearch() {
       go(hits[active]!);
     } else if (e.key === "Escape") {
       setOpen(false);
-      if (!text) input.current?.blur();
+      if (!text) {
+        input.current?.blur();
+        setPhoneOpen(false);
+      }
     }
   };
 
@@ -89,7 +97,25 @@ export function GlobalSearch() {
   const optionId = (i: number) => `${id}-opt-${i}`;
 
   return (
-    <div className="relative ml-auto hidden w-full max-w-sm md:ml-0 md:block">
+    <>
+    <button
+      type="button"
+      aria-label="Open search"
+      onClick={() => {
+        setPhoneOpen(true);
+        requestAnimationFrame(() => input.current?.focus());
+      }}
+      className="ml-auto rounded-control p-2 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface md:hidden"
+    >
+      <Search className="size-[18px]" aria-hidden />
+    </button>
+    <div
+      className={cn(
+        "md:static md:flex md:h-auto md:w-full md:max-w-sm md:bg-transparent md:p-0",
+        phoneOpen ? "absolute inset-x-0 top-0 z-20 flex h-14 items-center gap-2 bg-surface px-4" : "hidden",
+      )}
+    >
+    <div className="relative w-full">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-placeholder" aria-hidden />
       <input
         ref={input}
@@ -110,15 +136,15 @@ export function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={onKeyDown}
-        className="h-10 w-full rounded-control border border-hairline bg-surface-container-low pl-9 pr-14 text-body-md text-on-surface placeholder:text-placeholder focus:border-primary focus:bg-surface-container-lowest focus:shadow-focus focus:outline-none"
+        className="h-9 w-full rounded-control border border-hairline bg-surface-container-low pl-9 pr-14 text-body-md text-on-surface placeholder:text-placeholder focus:border-primary focus:bg-surface-container-lowest focus:shadow-focus focus:outline-none"
       />
       {text ? null : (
-        <kbd aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-hairline-strong px-1.5 font-mono text-label-sm text-on-surface-variant">
+        <kbd aria-hidden className="pointer-events-none absolute max-md:hidden right-2.5 top-1/2 -translate-y-1/2 rounded border border-hairline-strong px-1.5 font-mono text-label-sm text-on-surface-variant">
           Ctrl K
         </kbd>
       )}
       {showPanel ? (
-        <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[70dvh] overflow-y-auto rounded-card border border-hairline bg-surface-container-lowest p-2 shadow-level-3">
+        <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[70dvh] origin-top animate-menu overflow-y-auto rounded-card border border-hairline bg-surface-container-lowest p-2 shadow-level-3">
           <ul id={`${id}-list`} role="listbox" aria-label="Search results">
             {groups.map((g) => {
               const { label, icon: Icon } = KINDS[g.kind];
@@ -167,5 +193,18 @@ export function GlobalSearch() {
         </div>
       ) : null}
     </div>
+    <button
+      type="button"
+      aria-label="Close search"
+      onClick={() => {
+        setPhoneOpen(false);
+        setText("");
+      }}
+      className="rounded-control p-2 text-on-surface-variant hover:bg-surface-container-low md:hidden"
+    >
+      <X className="size-[18px]" aria-hidden />
+    </button>
+    </div>
+    </>
   );
 }

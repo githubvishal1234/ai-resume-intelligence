@@ -12,11 +12,19 @@ from pydantic import BaseModel
 from app.ai.provider import LLMCapabilities, LLMMessage, LLMProvider, LLMUsage, StructuredResult
 from app.ai.registry import register_provider, unregister_provider
 from app.core.config import Settings, get_settings
+from app.core.errors import AiProviderFailed
 from app.jobs.analyzer import analyze_job
 from app.matching.matcher import match
-from app.resumes.content import Project, ResumeContent, Skill
+from app.resumes.content import Experience, OtherSection, Project, ResumeContent, Skill
 from app.resumes.parser import parse_resume
-from app.tailoring.factcheck import check_text
+from app.tailoring.factcheck import (
+    CONFIRMED_HEADING,
+    ai_context,
+    blocking,
+    check_role,
+    check_text,
+    master_text,
+)
 from app.tailoring.proposer import (
     ChangeNotApplicable,
     Proposal,
@@ -24,6 +32,7 @@ from app.tailoring.proposer import (
     apply_order,
     focus,
     keep_length,
+    pick_bullets,
     propose,
 )
 from app.tailoring.service import TailoringService
@@ -60,6 +69,84 @@ def test_factual_check_accepts_facts_from_the_master() -> None:
     ]
     flags = check_text("Engineered Initech pipelines.", master)
     assert [(f.kind, f.value) for f in flags] == [("name", "Initech")]
+
+
+def _two_jobs() -> ResumeContent:
+    return ResumeContent(
+        experience=[
+            Experience(id="a", title="Engineer", company="Acme", bullets=["Ran Docker by 40%."]),
+            Experience(id="b", title="Developer", company="Initech", bullets=["Wrote Python."]),
+        ],
+        projects=[Project(id="p", name="Bot", technologies=["Redis"], bullets=["Cached it."])],
+    )
+
+
+def test_a_bullet_may_only_use_what_its_own_role_shows() -> None:
+    master = _two_jobs()
+    flags = check_role("Wrote Python on Docker, up 40%.", master, "b")
+    assert {(f.kind, f.value, f.severity) for f in flags} == {
+        ("technology", "Docker", "block"),
+        ("number", "40%", "block"),
+    }
+    assert check_text("Wrote Python on Docker, up 40%.", master) == []  # resume-wide it passes
+    assert check_role("Ran Docker with Python.", master, "a")[0].value == "Python"
+    assert check_role("Cached it in Redis.", master, "p") == []  # a project's tech list counts
+    assert check_role("Ran Rust.", master, "a") == []  # check_text reports this one, not twice
+    assert check_role("Wrote Docker.", master, "gone") == []
+
+
+def test_every_real_bullet_passes_its_own_role_check() -> None:
+    master = _master()
+    entries = [*master.experience, *master.projects]
+    assert any(e.bullets for e in entries)
+    for entry in entries:
+        for bullet in entry.bullets:
+            assert check_role(bullet, master, entry.id) == []
+
+
+def test_a_skill_confirmed_for_a_role_counts_there_only() -> None:
+    master = _two_jobs()
+    note = "Jira (used in Developer at Initech): ran sprints on Jira with Kafka"
+    master.other.append(OtherSection(heading=CONFIRMED_HEADING, lines=[note]))
+    assert check_role("Ran sprints on Jira with Kafka.", master, "b") == []
+    assert {f.value for f in check_role("Ran sprints on Jira.", master, "a")} == {"Jira"}
+
+
+def test_role_flags_block_ai_text_and_warn_on_the_users_own() -> None:
+    master, value = _two_jobs(), {"text": "Wrote Python on Docker."}
+    assert blocking(TailoringService._flags("rewrite_bullet", value, master, "b"))
+    mine = TailoringService._flags("rewrite_bullet", value, master, "b", mine=True)
+    assert [f["severity"] for f in mine] == ["warn"] and not blocking(mine)
+    assert TailoringService._flags("summary", value, master) == []  # a summary spans the roles
+
+
+def test_ai_context_keeps_a_long_resume_small_and_on_topic() -> None:
+    assert ai_context(_master(), "anything") == master_text(_master())  # short: all of it
+    roles = [
+        Experience(
+            title=f"Engineer {n}",
+            company=f"Company {n}",
+            bullets=[f"Wrote billing reports and invoices for customer number {n} with care."] * 40,
+        )
+        for n in range(20)
+    ]
+    roles[-1].bullets[-1] = (
+        "Scaled the Kubernetes clusters that served every regional payments gateway."
+    )
+    text = ai_context(ResumeContent(experience=roles), "Kubernetes payments gateway", 2_000)
+    assert len(text) < 2_000
+    assert "Scaled the Kubernetes" in text  # the relevant bullet, from the very end
+    assert all(f"Company {n}" in text for n in range(20))  # and the whole career
+
+
+def test_ai_rewrites_are_shared_across_roles() -> None:
+    new, old = Experience(title="New"), Experience(title="Old")
+    items = [(new, f"Filed report number {i}.") for i in range(30)]
+    items += [(old, "Environment: Python, Docker"), (old, "Ran Docker in production.")]
+    picked = pick_bullets(items, {"Docker"}, 5)
+    assert len(picked) == 5 and (old, "Ran Docker in production.") in picked
+    assert (old, "Environment: Python, Docker") not in picked  # a tool list isn't rewritten
+    assert pick_bullets(items[:2], set(), 5) == items[:2]  # under the limit: all, in order
 
 
 def test_factual_check_flags_invented_facts() -> None:
@@ -261,6 +348,21 @@ def fake_ai(app: FastAPI, settings: Settings) -> Iterator[None]:
     _FakeProvider.reply = "Python backend engineer who scaled APIs 10x at Google."
     _FakeProvider.structured = {}
     _FakeProvider.calls = []
+
+
+def test_tailoring_keeps_the_rule_changes_when_the_ai_fails(
+    user_client: TestClient, fake_ai: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*args: Any, **kwargs: Any) -> None:
+        raise AiProviderFailed()
+
+    monkeypatch.setattr(_FakeProvider, "generate_structured", fail)
+    started = user_client.post(f"{API}/quick", json={"resume_text": SAMPLE_TEXT, "job_text": JD})
+    assert started.status_code == 201, started.text
+    tailored = user_client.post(f"{API}/{started.json()['id']}/tailor", json={"skills": []})
+    assert tailored.status_code == 200, tailored.text
+    headline = _change(tailored.json(), "headline")
+    assert headline["source"] == "rules" and headline["decision"] == "accepted"
 
 
 def test_ai_rewrite_output_is_fact_checked(user_client: TestClient, fake_ai: None) -> None:
@@ -573,7 +675,7 @@ def test_focus_reshapes_the_copy_with_only_master_facts() -> None:
     assert doc.contact.headline == headline
     # The API project fits best, so it moves up to sit right before experience.
     assert doc.section_order == [
-        "summary", "projects", "experience", "education", "skills", "certifications",
+        "summary", "skills", "projects", "experience", "education", "certifications",
     ]  # fmt: skip
     # Maximum focus: unrelated bullets go, but every role stays with at least one.
     assert doc.experience[0].bullets == master.experience[0].bullets[:2]

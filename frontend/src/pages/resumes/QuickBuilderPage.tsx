@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ResumePaper } from "@/components/resume/ResumePaper";
 import { TextBacked } from "@/components/resume/ResumeEditor";
+import { SectionOrderEditor } from "@/components/resume/SectionOrderEditor";
 import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
 import { linesToList, listToLines, skillsToText, textToSkills } from "@/components/resume/editorText";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +32,7 @@ import {
   type StepId,
 } from "@/lib/resumeHelpers";
 import { ApiError } from "@/services/apiClient";
-import { outputService } from "@/services/outputService";
+import { outputService, type SkillsStyle } from "@/services/outputService";
 import { emptyResume, newId, type Education, type Experience, type Project, type ResumeDetail, type ResumeDoc } from "@/services/resumeService";
 import { PageHeader } from "./common";
 
@@ -46,7 +47,7 @@ const STEPS: { id: StepId; label: string; title: string; description: string }[]
   { id: "finish", label: "Finish", title: "Review and save", description: "Check what's missing, then save and download your PDF." },
 ];
 
-type Draft = { doc: ResumeDoc; template: string; title: string; step: number; skipped?: StepId[] };
+type Draft = { doc: ResumeDoc; template: string; title: string; step: number; skipped?: StepId[]; font?: string; skills?: SkillsStyle };
 
 const blankRole = (): Experience => ({ id: newId(), title: "", company: "", location: "", start_date: "", end_date: "", current: false, bullets: [] });
 const blankProject = (): Project => ({ id: newId(), name: "", url: "", description: "", technologies: [], bullets: [] });
@@ -90,6 +91,10 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
     [params.get("template"), initial.template].find((id) => templates.some((t) => t.id === id)) ?? templates[0]?.id ?? DEFAULT_TEMPLATE,
   );
   const [title, setTitle] = useState(initial.title);
+  const [font, setFont] = useState(params.get("font") ?? initial.font ?? "");
+  const [skills, setSkills] = useState<SkillsStyle>(
+    (params.get("skills") ?? initial.skills) === "table" ? "table" : "",
+  );
   const [step, setStep] = useState(Math.min(initial.step, STEPS.length - 1));
   // Sections the user skipped; one counts again as soon as something is added to it.
   const [skipList, setSkipList] = useState<StepId[]>(initial.skipped ?? []);
@@ -114,8 +119,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   const allowLeave = useUnsavedGuard(Boolean(master) && JSON.stringify(doc) !== JSON.stringify(master?.content));
 
   useEffect(() => {
-    if (!master) writeDraft(draftKey, { doc, template, title, step, skipped: skipList } satisfies Draft);
-  }, [master, draftKey, doc, template, title, step, skipList]);
+    if (!master) writeDraft(draftKey, { doc, template, title, step, skipped: skipList, font, skills } satisfies Draft);
+  }, [master, draftKey, doc, template, title, step, skipList, font, skills]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -133,7 +138,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
   const previewNote = blank ? "Sample shown until you add your details." : "The downloaded PDF uses the same layout with embedded fonts.";
   const wide = current.id === "style";
   const name = doc.contact.full_name.trim();
-  const goPdf = (id: string) => navigate(`/builder?resume=${id}&template=${template}`);
+  const goPdf = (id: string) => navigate(`/builder?resume=${id}&template=${template}${font ? `&font=${font}` : ""}${skills ? `&skills=${skills}` : ""}`);
 
   const onSave = () => {
     if (master) {
@@ -183,8 +188,8 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
             <span className="text-on-surface">Step {step + 1} of {STEPS.length}: {current.label}</span>
             <span className="text-on-surface-variant tnum">{percent}% complete</span>
           </div>
-          <div role="progressbar" aria-label="Resume completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-container-high">
-            <div className="h-full rounded-full bg-accent transition-[width] duration-500" style={{ width: `${percent}%` }} />
+          <div role="progressbar" aria-label="Resume completeness" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container-high">
+            <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${percent}%` }} />
           </div>
         </div>
         <Button variant="secondary" size="sm" className="lg:hidden" onClick={() => setShowPreview((v) => !v)}
@@ -207,14 +212,14 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                   onClick={() => setStep(i)}
                   aria-current={i === step ? "step" : undefined}
                   className={cn(
-                    "flex items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-body-md font-semibold transition-colors",
+                    "flex items-center gap-2 rounded-full border py-1 pl-1 pr-3.5 text-label-md font-medium transition-colors",
                     i === step
-                      ? "border-primary bg-primary text-on-primary shadow-brand"
-                      : "border-hairline bg-surface-container-lowest text-on-surface-variant hover:border-primary-fixed-dim hover:text-on-surface",
+                      ? "border-on-surface bg-on-surface text-surface"
+                      : "border-hairline bg-surface-container-lowest text-on-surface-variant hover:border-hairline-strong hover:text-on-surface",
                   )}
                 >
                   <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-label-sm tnum",
-                    done ? "border-success bg-success text-on-primary" : i === step ? "border-on-primary bg-on-primary text-primary" : "border-hairline-strong")}>
+                    done ? "border-success bg-success text-on-primary" : i === step ? "border-surface bg-surface text-on-surface" : "border-hairline-strong")}>
                     {done ? <Check className="size-3.5" aria-hidden /> : isSkipped ? <SkipForward className="size-3.5" aria-hidden /> : i + 1}
                   </span>
                   {s.label}
@@ -231,7 +236,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
 
         <section aria-labelledby="step-title" className={cn("min-w-0", wide && "lg:col-span-2")}>
           <Card key={current.id} className="animate-rise">
-            <h2 id="step-title" ref={headingRef} tabIndex={-1} className="font-display text-headline-lg font-extrabold tracking-[-0.03em] text-on-surface focus:outline-none">
+            <h2 id="step-title" ref={headingRef} tabIndex={-1} className="font-display text-headline-md text-on-surface focus:outline-none">
               {current.title}
             </h2>
             <p className="mt-1 mb-6 text-body-md text-on-surface-variant">{current.description}</p>
@@ -247,7 +252,12 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
                 </span>
               </div>
             ) : null}
-            {current.id === "style" ? <TemplatePicker templates={templates} value={template} onChange={setTemplate} doc={previewDoc} columns="sm:grid-cols-2 xl:grid-cols-3" /> : null}
+            {current.id === "style" ? (
+              <SectionOrderEditor doc={doc} onChange={(order) => setDoc({ ...doc, section_order: order })} className="mb-6 max-w-md" />
+            ) : null}
+            {current.id === "style" ? (
+              <TemplatePicker templates={templates} value={template} onChange={setTemplate} doc={previewDoc} font={font} onFontChange={setFont} skills={skills} onSkillsChange={setSkills} columns="sm:grid-cols-2 xl:grid-cols-3" />
+            ) : null}
             {current.id === "contact" ? <ContactStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "experience" ? <ExperienceStep doc={doc} onChange={setDoc} /> : null}
             {current.id === "projects" ? <ProjectsStep doc={doc} onChange={setDoc} /> : null}
@@ -265,7 +275,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
           </Card>
           {showPreview ? (
             <div className="mt-6 space-y-2 lg:hidden">
-              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
+              <ResumePaper doc={previewDoc} template={template} font={font} skillsTable={skills === "table"} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           ) : null}
@@ -273,12 +283,11 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
 
         {wide ? null : (
           <aside aria-label="Live preview" className="hidden lg:block">
-            <div className="sticky top-24 space-y-3 rounded-panel bg-surface-container-high p-4">
+            <div className="sticky top-20 space-y-3 rounded-panel border border-hairline bg-surface-container-low p-4">
               <p className="flex items-center gap-2 text-label-md font-semibold text-on-surface">
-                <span aria-hidden className="size-2 animate-pulse rounded-full bg-success" />
                 Live preview · {TEMPLATE_STYLES.find((t) => t.id === template)?.name ?? template}
               </p>
-              <ResumePaper doc={previewDoc} template={template} photoUrl={photo.url} />
+              <ResumePaper doc={previewDoc} template={template} font={font} skillsTable={skills === "table"} photoUrl={photo.url} />
               <p className="text-body-sm text-on-surface-variant">{previewNote}</p>
             </div>
           </aside>
@@ -286,7 +295,7 @@ function Builder({ templates, userId, master }: { templates: TemplateOption[]; u
       </div>
 
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-hairline bg-surface-container-lowest/95 px-4 py-3 backdrop-blur md:bottom-0 lg:left-64">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-2">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-2">
           <Button variant="ghost" disabledReason={step === 0 ? "This is the first step." : undefined} onClick={() => setStep((s) => s - 1)} icon={<ArrowLeft className="size-4" aria-hidden />}>
             Back
           </Button>

@@ -28,7 +28,6 @@ export function CoverLettersPage() {
     <div>
       <PageHeader
         title="Cover Letter Builder"
-        photo="register"
         description="A first draft from your own resume, matched to the job: every claim in it is a line you already wrote."
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">

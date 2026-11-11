@@ -7,7 +7,7 @@ import { PRODUCT_NAME } from "@/constants/branding";
 export function BrandIcon({ className = "size-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#047857" />
+      <rect width="32" height="32" rx="7" fill="#047857" />
       <path d="M8 10h16M8 15.5h11" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
       <path d="M8 21h5l3 3.2 8-9" stroke="#fbbf24" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -17,8 +17,8 @@ export function BrandIcon({ className = "size-8" }: { className?: string }) {
 export function BrandMark() {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <BrandIcon />
-      <span className="truncate font-display text-headline-sm leading-tight text-on-surface">{PRODUCT_NAME}</span>
+      <BrandIcon className="size-7 shrink-0" />
+      <span className="truncate font-display text-[15px] font-semibold leading-tight tracking-[-0.01em] text-on-surface">{PRODUCT_NAME}</span>
     </div>
   );
 }

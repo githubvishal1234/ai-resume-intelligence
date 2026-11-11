@@ -4,11 +4,12 @@
  * The list of available templates still comes from GET /output/templates.
  */
 export type SectionKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications";
-export const RESUME_ORDER: SectionKey[] = ["summary", "experience", "education", "skills", "projects", "certifications"];
+/** Summary, skills, experience, projects, education: what recruiters read first comes first. */
+export const RESUME_ORDER: SectionKey[] = ["summary", "skills", "experience", "projects", "education", "certifications"];
 export const CV_ORDER: SectionKey[] = ["summary", "education", "experience", "projects", "certifications", "skills"];
 /** Sidebar layouts: these sections sit in the sidebar, which the PDF draws (and an ATS reads) first. */
-export const SIDEBAR_SECTIONS: SectionKey[] = ["skills", "certifications", "education"];
-export const SIDEBAR_ORDER: SectionKey[] = [...SIDEBAR_SECTIONS, "summary", "experience", "projects"];
+export const SIDEBAR_SECTIONS: SectionKey[] = ["skills", "certifications"];
+export const SIDEBAR_ORDER: SectionKey[] = [...SIDEBAR_SECTIONS, "summary", "experience", "projects", "education"];
 
 /** `order` with the `lead` sections, in that order, where the first of them sits (mirrors `arrange` in templates.py). */
 export function arrange(order: SectionKey[], lead: readonly SectionKey[]): SectionKey[] {
@@ -101,7 +102,7 @@ const DESIGNS: Record<string, Design> = {
   ribbon: { name: "Ribbon", description: "Section headings on soft colour ribbons, plenty of white space.", category: "Modern", serif: false, bodyPt: 10, namePt: 21, headingPt: 11, marginMm: 16, rule: false, center: false, header: "plain", band: true },
   elegant: { name: "Elegant", description: "Serif type, a centred name and soft colour ribbons.", category: "Creative", serif: true, bodyPt: 10.5, namePt: 22, headingPt: 12, marginMm: 18, rule: false, center: true, header: "plain", band: true },
   statement: { name: "Statement", description: "Serif name on a colour band with ruled serif headings.", category: "Professional", serif: true, bodyPt: 10.5, namePt: 23, headingPt: 12, marginMm: 17, rule: true, center: true, header: "banner", band: false },
-  sidebar: { name: "Sidebar", description: "A solid colour sidebar with contact, skills and education.", category: "Modern", serif: false, bodyPt: 9.5, namePt: 19, headingPt: 11, marginMm: 13, rule: true, center: false, header: "plain", band: false, layout: "sidebar", order: SIDEBAR_ORDER },
+  sidebar: { name: "Sidebar", description: "A solid colour sidebar with contact and skills.", category: "Modern", serif: false, bodyPt: 9.5, namePt: 19, headingPt: 11, marginMm: 13, rule: true, center: false, header: "plain", band: false, layout: "sidebar", order: SIDEBAR_ORDER },
   portfolio: { name: "Portfolio", description: "A soft sidebar with your photo, contact and skills.", category: "Creative", serif: false, bodyPt: 9.5, namePt: 18, headingPt: 11, marginMm: 13, rule: true, center: false, header: "plain", band: false, layout: "sidebar", sidebarFill: "tint", photo: true, order: SIDEBAR_ORDER },
   timeline: { name: "Timeline", description: "Roles on a timeline, dates in the margin, colour headings.", category: "Creative", serif: false, bodyPt: 9.5, namePt: 22, headingPt: 11.5, marginMm: 15, rule: false, center: false, header: "plain", band: false, layout: "timeline", skillsGrid: true },
   split: { name: "Split", description: "Name on the left, contact on the right, dates aligned right.", category: "Professional", serif: false, bodyPt: 10, namePt: 22, headingPt: 11.5, marginMm: 16, rule: true, center: false, header: "split", band: false, datesRight: true },

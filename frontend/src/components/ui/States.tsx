@@ -17,7 +17,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center rounded-card border border-dashed border-hairline-strong bg-surface-container-lowest px-6 py-10 text-center">
-      <div className="mb-3 text-outline">{icon ?? <Inbox className="size-8" aria-hidden />}</div>
+      <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-surface-container text-on-surface-variant [&>svg]:size-6">{icon ?? <Inbox aria-hidden />}</div>
       <h3 className="font-display text-headline-sm">{title}</h3>
       <p className="mt-1 max-w-md text-body-md text-on-surface-variant">{description}</p>
       {action ? <div className="mt-4">{action}</div> : null}
@@ -56,7 +56,7 @@ export function ErrorState({
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("animate-pulse rounded-control bg-surface-container", className)} />;
+  return <div aria-hidden className={cn("skeleton rounded-control", className)} />;
 }
 
 export function PageLoading({ label = "Loading" }: { label?: string }) {

@@ -4,14 +4,17 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CV_SECTIONS } from "@/constants/templates";
 import { ResumePaper } from "@/components/resume/ResumePaper";
+import { SectionOrderEditor } from "@/components/resume/SectionOrderEditor";
 import { TemplatePicker, type TemplateOption } from "@/components/resume/TemplatePicker";
 import { buttonClasses, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ScoreRing } from "@/components/ui/Score";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
 import { useProfilePhoto } from "@/hooks/useProfilePhoto";
-import { useResume, useResumeList } from "@/hooks/useResumes";
-import { outputService, type AtsReport } from "@/services/outputService";
+import { useResume, useResumeList, useSaveContent } from "@/hooks/useResumes";
+import { Notice } from "@/components/ui/Notice";
+import { ApiError } from "@/services/apiClient";
+import { outputService, type AtsReport, type SkillsStyle } from "@/services/outputService";
 import { PageHeader } from "@/pages/resumes/common";
 
 const ICON = {
@@ -26,12 +29,10 @@ const COPY = {
   resume: {
     title: "Resume Builder",
     description: "Pick a resume and an ATS-safe template, check how screening software reads it, and download the PDF.",
-    photo: "builder" as const,
   },
   cv: {
     title: "CV Builder",
     description: "A full-length CV: education first for academic roles, every section kept, still readable by screening software.",
-    photo: "analysis" as const,
   },
 };
 
@@ -73,9 +74,12 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
     );
   }
   const template = offered.some((t) => t.id === params.get("template")) ? (params.get("template") as string) : offered[0]!.id;
+  const font = params.get("font") ?? "";
+  const skills: SkillsStyle = params.get("skills") === "table" ? "table" : "";
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(params);
-    next.set(key, value);
+    if (value) next.set(key, value);
+    else next.delete(key);
     setParams(next, { replace: true });
   };
   const resume = list.find((r) => r.id === resumeId)!;
@@ -83,7 +87,7 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
 
   return (
     <div>
-      <PageHeader title={COPY[kind].title} photo={COPY[kind].photo} description={COPY[kind].description} />
+      <PageHeader title={COPY[kind].title} description={COPY[kind].description} />
       <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
         <div className="space-y-6">
           <Card aria-labelledby={`${id}-opts`}>
@@ -106,24 +110,36 @@ export function BuilderPage({ kind = "resume" }: { kind?: "resume" | "cv" }) {
             </div>
             <p className="mt-4 text-label-md text-on-surface">
               Template: <span className="text-primary">{offered.find((t) => t.id === template)?.name ?? template}</span>
+              {font ? <> · Font: <span className="text-primary">{font}</span></> : null}
+              {skills ? <> · Skills: <span className="text-primary">Table</span></> : null}
             </p>
             <a
-              href={outputService.pdfUrl(resumeId, template)}
+              href={outputService.pdfUrl(resumeId, template, font, skills)}
               download={filename}
               className={buttonClasses("primary", "md", "mt-4 w-full")}
             >
               <Download className="size-4" aria-hidden /> Download PDF
             </a>
             <p className="mt-2 text-body-sm text-on-surface-variant">
-              Single column, standard fonts and headings, real text. The final template set is still to be approved.
+              Single column, standard fonts and headings, real text.
             </p>
           </Card>
-          <LivePreview resumeId={resumeId} template={template} />
+          {kind === "resume" ? <SectionOrderCard resumeId={resumeId} /> : null}
+          <LivePreview resumeId={resumeId} template={template} font={font} skills={skills} />
         </div>
-        <AtsPanel resumeId={resumeId} template={template} />
+        <AtsPanel resumeId={resumeId} template={template} font={font} skills={skills} />
       </div>
       {kind === "cv" ? <CvSections resumeId={resumeId} /> : null}
-      <TemplateGallery resumeId={resumeId} templates={offered} value={template} onChange={(t) => update("template", t)} />
+      <TemplateGallery
+        resumeId={resumeId}
+        templates={offered}
+        value={template}
+        font={font}
+        onChange={(t) => update("template", t)}
+        onFontChange={(f) => update("font", f)}
+        skills={skills}
+        onSkillsChange={(v) => update("skills", v)}
+      />
     </div>
   );
 }
@@ -156,30 +172,58 @@ function CvSections({ resumeId }: { resumeId: string }) {
   );
 }
 
-function LivePreview({ resumeId, template }: { resumeId: string; template: string }) {
+/** The resume's section order. A change is saved as a new version, so every copy keeps it. */
+function SectionOrderCard({ resumeId }: { resumeId: string }) {
+  const resume = useResume(resumeId);
+  const save = useSaveContent(resumeId);
+  if (!resume.data) return null;
+  const data = resume.data;
+  return (
+    <Card>
+      <SectionOrderEditor
+        doc={data.content}
+        busy={save.isPending}
+        onChange={(order) =>
+          save.mutate({ baseVersion: data.current_version, content: { ...data.content, section_order: order }, note: "Section order" })
+        }
+      />
+      {save.isError ? (
+        <Notice tone="critical" title="Couldn't save the order" className="mt-3">
+          {save.error instanceof ApiError ? save.error.message : "Something went wrong. Please try again."}
+        </Notice>
+      ) : null}
+    </Card>
+  );
+}
+
+function LivePreview({ resumeId, template, font, skills }: { resumeId: string; template: string; font: string; skills: SkillsStyle }) {
   const resume = useResume(resumeId);
   const photo = useProfilePhoto();
   if (!resume.data) return null;
   return (
     <div className="hidden space-y-2 lg:block">
       <p className="text-label-md text-on-surface-variant">Preview</p>
-      <ResumePaper doc={resume.data.content} template={template} photoUrl={photo.url} />
+      <ResumePaper doc={resume.data.content} template={template} font={font} skillsTable={skills === "table"} photoUrl={photo.url} />
     </div>
   );
 }
 
-function TemplateGallery({ resumeId, templates, value, onChange }: {
+function TemplateGallery({ resumeId, templates, value, font, onChange, onFontChange, skills, onSkillsChange }: {
   resumeId: string;
   templates: TemplateOption[];
   value: string;
+  font: string;
   onChange: (id: string) => void;
+  onFontChange: (id: string) => void;
+  skills: SkillsStyle;
+  onSkillsChange: (style: SkillsStyle) => void;
 }) {
   const resume = useResume(resumeId);
   return (
     <section aria-labelledby="gallery-title" className="mt-8">
       <CardHeader id="gallery-title" title="Choose a template" description="Each preview shows your own resume. The ATS check and download follow your choice." />
       {resume.data ? (
-        <TemplatePicker templates={templates} value={value} onChange={onChange} doc={resume.data.content} />
+        <TemplatePicker templates={templates} value={value} onChange={onChange} doc={resume.data.content} font={font} onFontChange={onFontChange} skills={skills} onSkillsChange={onSkillsChange} />
       ) : resume.isError ? (
         <ErrorState error={resume.error} onRetry={() => void resume.refetch()} />
       ) : (
@@ -189,10 +233,10 @@ function TemplateGallery({ resumeId, templates, value, onChange }: {
   );
 }
 
-function AtsPanel({ resumeId, template }: { resumeId: string; template: string }) {
+function AtsPanel({ resumeId, template, font, skills }: { resumeId: string; template: string; font: string; skills: SkillsStyle }) {
   const report = useQuery({
-    queryKey: ["output", "ats", resumeId, template],
-    queryFn: () => outputService.ats(resumeId, template),
+    queryKey: ["output", "ats", resumeId, template, font, skills],
+    queryFn: () => outputService.ats(resumeId, template, font, skills),
   });
   if (report.isPending) return <PageLoading label="Checking the PDF" />;
   if (report.isError) return <ErrorState error={report.error} onRetry={() => void report.refetch()} />;

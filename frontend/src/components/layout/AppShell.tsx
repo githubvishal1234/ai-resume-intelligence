@@ -1,8 +1,8 @@
-import { LogOut, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
-import { Outlet, useLocation, useNavigation } from "react-router-dom";
-import { useLogout, useSession } from "@/hooks/useSession";
-import { Button } from "@/components/ui/Button";
+import { Outlet, ScrollRestoration, useLocation, useNavigation } from "react-router-dom";
+import { useSession } from "@/hooks/useSession";
+import { AccountMenu } from "./AccountMenu";
 import { BrandMark, BrandIcon } from "./BrandMark";
 import { GlobalSearch } from "./GlobalSearch";
 import { MobileTabBar } from "./MobileTabBar";
@@ -11,21 +11,9 @@ import { NavList } from "./NavList";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 
-function initials(name: string): string {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "?"
-  );
-}
-
 export function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const session = useSession();
-  const logout = useLogout();
   const user = session.data?.user;
   const navigating = useNavigation().state === "loading";
   const { pathname } = useLocation();
@@ -33,8 +21,8 @@ export function AppShell() {
   return (
     <div className="min-h-dvh bg-surface">
       {navigating ? (
-        <div role="progressbar" aria-label="Loading page" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-primary-fixed">
-          <div className="h-full w-1/3 animate-pulse bg-primary" />
+        <div role="progressbar" aria-label="Loading page" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden">
+          <div className="h-full w-1/3 animate-progress bg-primary" />
         </div>
       ) : null}
       <a
@@ -46,7 +34,7 @@ export function AppShell() {
 
       {/* Desktop sidebar (lg+) */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-hairline bg-surface-container-lowest lg:flex">
-        <div className="flex h-16 shrink-0 items-center border-b border-hairline px-4">
+        <div className="flex h-14 shrink-0 items-center border-b border-hairline px-4">
           <BrandMark />
         </div>
         <div className="flex-1 overflow-y-auto p-3">
@@ -57,7 +45,7 @@ export function AppShell() {
       <NavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-hairline bg-surface-container-lowest/95 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-hairline bg-surface/85 px-4 backdrop-blur sm:px-6 lg:px-8">
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
@@ -70,41 +58,19 @@ export function AppShell() {
 
           <GlobalSearch />
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-1 md:ml-auto">
             <ThemeToggle />
             <NotificationBell />
-            {user ? (
-              <div className="hidden items-center gap-2.5 sm:flex">
-                <span
-                  aria-hidden
-                  className="flex size-8 items-center justify-center rounded-full bg-primary-fixed font-display text-label-md text-on-primary-fixed"
-                >
-                  {initials(user.display_name)}
-                </span>
-                <div className="leading-tight">
-                  <p className="text-label-md text-on-surface">{user.display_name}</p>
-                  <p className="text-body-sm text-on-surface-variant">{user.email}</p>
-                </div>
-              </div>
-            ) : null}
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={logout.isPending}
-              onClick={() => logout.mutate()}
-              icon={<LogOut className="size-4" aria-hidden />}
-            >
-              {/* One label: visually hidden on mobile, so the accessible name is never doubled. */}
-              <span className="sr-only sm:not-sr-only">Sign out</span>
-            </Button>
+            {user ? <AccountMenu user={user} /> : null}
           </div>
         </header>
 
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 focus:outline-none sm:px-6 md:pb-10 lg:px-8">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-24 pt-6 focus:outline-none sm:px-6 md:pb-12 lg:px-8 lg:pt-8">
           {/* Each page fades in as it arrives (instant under reduced motion). */}
           <div key={pathname} className="animate-page">
             <Outlet />
           </div>
+          <ScrollRestoration />
         </main>
       </div>
 

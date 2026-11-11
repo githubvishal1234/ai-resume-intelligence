@@ -5,7 +5,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Select, Textarea } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
-import { Pill, type PillTone } from "@/components/ui/Pill";
+import { Pill } from "@/components/ui/Pill";
 import { EmptyState, ErrorState, PageLoading } from "@/components/ui/States";
 import {
   useAddApplicationNote,
@@ -28,31 +28,7 @@ import {
 } from "@/services/applicationService";
 import { formatDate, PageHeader } from "@/pages/resumes/common";
 import { ApplicationForm, toValues } from "./ApplicationForm";
-
-export const STATUS_TONE: Record<ApplicationStatus, PillTone> = {
-  saved: "neutral",
-  applied: "info",
-  screening: "info",
-  interviewing: "brand",
-  offer: "matched",
-  accepted: "matched",
-  rejected: "critical",
-  withdrawn: "neutral",
-};
-
-/** Dates without a time ("2026-10-12") are shown as calendar dates, never shifted by time zone. */
-export function formatDay(day: string): string {
-  const [y, m, d] = day.split("-").map(Number);
-  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1).toLocaleDateString(undefined, { dateStyle: "medium" });
-}
-
-function StatusPill({ status }: { status: ApplicationStatus }) {
-  return (
-    <Pill tone={STATUS_TONE[status]} mono={false}>
-      {STATUS_LABEL[status]}
-    </Pill>
-  );
-}
+import { formatDay, StatusPill } from "./status";
 
 // ---- list ------------------------------------------------------------------------------
 type Filter = "open" | "all" | ApplicationStatus;
@@ -80,7 +56,6 @@ export function ApplicationsPage() {
     <div>
       <PageHeader
         title="Applications"
-        photo="applications"
         description="Every job you're pursuing, the resume version you sent, and what happened next."
         actions={all.length ? addButton : null}
       />
@@ -130,7 +105,7 @@ export function ApplicationsPage() {
 
 function ApplicationCard({ application: a }: { application: ApplicationSummary }) {
   return (
-    <Card className="relative hover:border-primary">
+    <Card className="lift relative">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
@@ -147,11 +122,11 @@ function ApplicationCard({ application: a }: { application: ApplicationSummary }
         </div>
         <div className="flex flex-wrap gap-2">
           {a.follow_up_due ? (
-            <Pill tone="missing" mono={false}>
+            <Pill tone="missing">
               Follow up due
             </Pill>
           ) : a.follow_up_on && !CLOSED.has(a.status) ? (
-            <Pill mono={false}>Follow up {formatDay(a.follow_up_on)}</Pill>
+            <Pill>Follow up {formatDay(a.follow_up_on)}</Pill>
           ) : null}
           <StatusPill status={a.status} />
         </div>

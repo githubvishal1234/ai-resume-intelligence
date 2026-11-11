@@ -2,6 +2,8 @@ import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { arrange, SIDEBAR_SECTIONS, templateStyle, type SectionKey } from "@/constants/templates";
 import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
+import { sectionOrder } from "@/lib/sectionOrder";
+import { fontFamily } from "./resumeFonts";
 
 /** A4 is 595.28pt wide; sizes are in points relative to the container width, so the page scales. */
 const pt = (n: number) => `calc(${n} * 100cqw / 595.28)`;
@@ -56,21 +58,30 @@ export function ResumePaper({
   className,
   label,
   photoUrl,
+  font,
+  skillsTable,
 }: {
   doc: ResumeDoc;
   template: string;
   className?: string;
   label?: string;
   photoUrl?: string | null;
+  /** One of the bundled fonts (resumeFonts.ts) in place of the template's own. */
+  font?: string;
+  /** Skills as a category | skills table, as the PDF draws with skills=table. */
+  skillsTable?: boolean;
 }) {
   const t = templateStyle(template);
+  const chosenFont = fontFamily(font);
   const body = t.bodyPt;
   const sidebar = t.layout === "sidebar";
   const solid = sidebar && t.sidebarFill === "solid";
   const margin = t.marginMm * MM;
   const sideWidthPt = (A4_WIDTH_PT - 2 * margin) * 0.32;
   const page: CSSProperties = {
-    fontFamily: t.serif ? 'Georgia, "Times New Roman", serif' : '"DM Sans Variable", ui-sans-serif, system-ui, sans-serif',
+    fontFamily:
+      (chosenFont ? `${chosenFont}, ` : "") +
+      (t.serif ? 'Georgia, "Times New Roman", serif' : '"DM Sans Variable", ui-sans-serif, system-ui, sans-serif'),
     fontSize: pt(body),
     lineHeight: t.lineHeight ?? 1.35,
     padding: pt(margin),
@@ -201,13 +212,34 @@ export function ResumePaper({
         return groups.length ? (
           <>
             {h}
-            {groups.map((g) => (
+            {skillsTable && !side ? (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <tbody>
+                  {groups.map((g) => {
+                    const line = `${pt(0.5)} solid ${tint(t.accent, 0.35)}`;
+                    const cell: CSSProperties = { border: line, padding: `${pt(3)} ${pt(5)} ${pt(4)}`, verticalAlign: "top" };
+                    return (
+                      <tr key={g.category || "_"}>
+                        {g.category ? (
+                          <>
+                            <td style={{ ...cell, width: "30%", fontWeight: 700, background: tint(t.accent, 0.08) }}>{g.category}</td>
+                            <td style={cell}>{g.names.join(", ")}</td>
+                          </>
+                        ) : (
+                          <td colSpan={2} style={cell}>{g.names.join(", ")}</td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : groups.map((g) => (
               <Fragment key={g.category || "_"}>
                 {side || t.skillsGrid ? (
                   <>
                     {g.category ? <p style={{ fontWeight: 700 }}>{g.category}</p> : null}
                     {side ? (
-                      <div style={{ marginBottom: pt(3) }}>{g.names.map((n) => <p key={n}>{n}</p>)}</div>
+                      <p style={{ marginBottom: pt(3) }}>{g.names.join(", ")}</p>
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
                         {g.names.map((n) => <p key={n}>• {n}</p>)}
@@ -320,7 +352,7 @@ export function ResumePaper({
     );
   };
 
-  const order = arrange(t.order, doc.section_order ?? []);
+  const order = arrange(t.order, sectionOrder(doc, t.kind));
   const sideKeys = order.filter((k) => SIDEBAR_SECTIONS.includes(k));
   const mainKeys = sidebar ? order.filter((k) => !SIDEBAR_SECTIONS.includes(k)) : order;
 

@@ -54,7 +54,7 @@ export function RegisterPage() {
   return (
     <>
       <h1 className="font-display text-headline-lg text-on-surface">Create your account</h1>
-      <p className="mt-1 text-body-md text-on-surface-variant">Your resume data stays private to your account.</p>
+      <p className="mt-1 text-body-md text-on-surface-variant">Only you can see your resumes. With AI on, their text goes to our AI provider to be read and rewritten.</p>
       {wantsPro ? (
         <Notice tone="info" title="Joining the Pro waitlist" className="mt-5">
           Start with a free account. Next, you'll confirm your place on the waitlist. No payment now.

@@ -16,8 +16,9 @@ from pypdf import PdfReader
 
 from app.jobs.analyzer import JobAnalysis
 from app.matching.matcher import parse_month
+from app.output.order import section_order
 from app.output.pdf import unsupported_characters
-from app.output.templates import HEADINGS, TEMPLATES, arrange
+from app.output.templates import HEADINGS, TEMPLATES, arrange, with_font
 from app.resumes.content import ResumeContent
 from app.skills.vocabulary import find_skills
 
@@ -80,8 +81,11 @@ def ats_check(
     template_id: str,
     job: JobAnalysis | None = None,
     photo: bool = False,
+    font: str | None = None,
 ) -> AtsReport:
-    """`photo`: the PDF includes the user's photo (a photo template, with one uploaded)."""
+    """`photo`: the PDF includes the user's photo (a photo template, with one uploaded).
+    `font`: the bundled font the user picked instead of the template's own."""
+    template = with_font(TEMPLATES[template_id], font)
     reader = PdfReader(io.BytesIO(pdf))
     extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
     flat = _norm(extracted)
@@ -115,7 +119,7 @@ def ats_check(
         "projects": bool(c.projects),
         "certifications": bool(c.certifications),
     }
-    order = arrange(TEMPLATES[template_id].order, list(c.section_order))
+    order = arrange(template.order, section_order(c, template.kind))
     expected = [HEADINGS[k] for k in order if has_section[k]]
     lines = [ln.strip().lower() for ln in extracted.splitlines()]
     positions = [lines.index(h.lower()) if h.lower() in lines else -1 for h in expected]
@@ -148,7 +152,7 @@ def ats_check(
         )
 
     # 4. Characters the template's fonts cannot show.
-    odd = sorted(unsupported_characters(_all_text(c), TEMPLATES[template_id]))
+    odd = sorted(unsupported_characters(_all_text(c), template))
     add(
         "text.characters",
         "All characters can be shown",
@@ -232,7 +236,7 @@ def ats_check(
             )
 
     # 8. Layout and photo: both read fine here, but are worth knowing about.
-    layout = TEMPLATES[template_id].layout
+    layout = template.layout
     if layout != "single":
         add(
             "layout.columns",

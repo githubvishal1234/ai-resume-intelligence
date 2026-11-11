@@ -7,7 +7,9 @@ import { cn } from "@/lib/cn";
 import type { ResumeDoc } from "@/services/resumeService";
 import { PhotoUploader } from "./ProfilePhotoCard";
 import { ResumePaper } from "./ResumePaper";
-import { matches, NO_FILTERS, TemplateFilters } from "./TemplateFilters";
+import { FontChips } from "./FontChips";
+import { Chips, matches, NO_FILTERS, TemplateFilters } from "./TemplateFilters";
+import type { SkillsStyle } from "@/services/outputService";
 
 export type TemplateOption = { id: string; name: string; description: string };
 
@@ -19,11 +21,21 @@ export function TemplatePicker({
   doc,
   legend = "Template",
   columns = "sm:grid-cols-2 xl:grid-cols-3",
+  font,
+  onFontChange,
+  skills = "",
+  onSkillsChange,
 }: {
   templates: TemplateOption[];
   value: string;
   onChange: (id: string) => void;
   doc: ResumeDoc;
+  /** A bundled font for every preview; with `onFontChange` the gallery offers the choice. */
+  font?: string;
+  onFontChange?: (id: string) => void;
+  /** "table": skills as a category | skills table in every preview. */
+  skills?: SkillsStyle;
+  onSkillsChange?: (style: SkillsStyle) => void;
   legend?: string;
   columns?: string;
 }) {
@@ -38,6 +50,10 @@ export function TemplatePicker({
     <fieldset>
       <legend className="sr-only">{legend}</legend>
       {filterable ? <TemplateFilters value={filters} onChange={setFilters} className="mb-5" /> : null}
+      <div className="flex flex-wrap gap-x-8 gap-y-4">
+        {onSkillsChange ? <SkillsChips value={skills} onChange={onSkillsChange} className="mb-5" /> : null}
+        {onFontChange ? <FontChips value={font ?? ""} onChange={onFontChange} className="mb-5" /> : null}
+      </div>
       {chosen.photo ? (
         <section aria-labelledby={`${name}-photo`} className="mb-5 rounded-card border border-hairline bg-surface-container-low p-4">
           <h3 id={`${name}-photo`} className="text-label-md font-semibold text-on-surface">
@@ -68,7 +84,7 @@ export function TemplatePicker({
             >
               <input type="radio" name={name} value={t.id} checked={selected} onChange={() => onChange(t.id)} className="sr-only" />
               <div className="overflow-hidden rounded-control bg-surface-container-low p-3">
-                <ResumePaper doc={doc} template={t.id} label={`${t.name} template preview`} photoUrl={photo.url} />
+                <ResumePaper doc={doc} template={t.id} font={font} skillsTable={skills === "table"} label={`${t.name} template preview`} photoUrl={photo.url} />
               </div>
               <div className="flex items-start justify-between gap-2 px-1">
                 <span>
@@ -91,4 +107,9 @@ export function TemplatePicker({
       </div>
     </fieldset>
   );
+}
+
+/** How the skills section is drawn: the template's own way, or a category | skills table. */
+export function SkillsChips({ value, onChange, className }: { value: SkillsStyle; onChange: (v: SkillsStyle) => void; className?: string }) {
+  return <Chips legend="Skills" allLabel="Template style" options={[{ id: "table", label: "Table" }]} value={value} onChange={onChange} className={className} />;
 }

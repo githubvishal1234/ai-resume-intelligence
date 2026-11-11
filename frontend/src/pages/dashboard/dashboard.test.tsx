@@ -33,6 +33,16 @@ describe("dashboard", () => {
     expect(await screen.findByRole("link", { name: /Tailor my resume/ })).toHaveAttribute("href", "/tailor");
   });
 
+  it("lists open applications and leaves closed ones out", async () => {
+    const app = (id: string, role: string, status: string) => ({ id, company: "Acme", role, status, url: null, job_id: null, job_title: null, resume_id: null, resume_title: null, resume_version: null, applied_on: null, follow_up_on: null, follow_up_due: status === "applied", created_at: "2026-10-20T05:00:00Z", updated_at: "2026-10-20T05:00:00Z" });
+    mockApi([...routes({ sent: 1, responded: 0, jobs: 1, proofs: 0, letters: 0, master: true }), { path: "/applications", body: [app("a1", "Backend Engineer", "applied"), app("a2", "Data Engineer", "rejected")] }]);
+    renderApp("/");
+    const panel = await screen.findByRole("region", { name: "Open applications" });
+    expect(await within(panel).findByRole("link", { name: "Backend Engineer" })).toHaveAttribute("href", "/applications/a1");
+    expect(within(panel).getByText(/follow-up due/)).toBeInTheDocument();
+    expect(within(panel).queryByText("Data Engineer")).not.toBeInTheDocument();
+  });
+
   it("points a new account at its first steps", async () => {
     mockApi(routes({ sent: 0, responded: 0, jobs: 0, proofs: 0, letters: 0, master: false }));
     renderApp("/");

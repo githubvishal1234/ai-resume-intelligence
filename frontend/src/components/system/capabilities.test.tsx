@@ -14,7 +14,32 @@ const caps = (configured: boolean) => ({
   },
 });
 
-describe("System status", () => {
+describe("AI data notice", () => {
+  const page = async (configured: boolean) => {
+    mockApi([
+      me,
+      caps(configured),
+      { path: "/tailoring", body: [] },
+      { path: "/jobs", body: [] },
+      { path: "/resumes", body: [] },
+    ]);
+    renderApp("/tailor");
+    await screen.findByText("Step 1: Paste the job and the resume");
+  };
+
+  it("names the provider where a resume is pasted", async () => {
+    await page(true);
+    expect(await screen.findByText("AI features send this text to Groq")).toBeInTheDocument();
+    expect(screen.getByText(/get their permission first/)).toBeInTheDocument();
+  });
+
+  it("stays hidden while AI is off", async () => {
+    await page(false);
+    expect(screen.queryByText(/AI features send this text/)).not.toBeInTheDocument();
+  });
+});
+
+describe("AI and email card", () => {
   it("shows today's AI use when AI is set up", async () => {
     mockApi([
       me,
@@ -23,13 +48,14 @@ describe("System status", () => {
     ]);
     renderApp("/settings");
     expect(await screen.findByText("12 of 100 AI requests used today · resets at midnight UTC")).toBeInTheDocument();
-    expect(screen.getByText("groq · openai/gpt-oss-120b")).toBeInTheDocument();
+    expect(screen.getByText(/the text involved is sent to Groq/)).toBeInTheDocument();
+    expect(screen.queryByText(/openai\/gpt-oss-120b/)).not.toBeInTheDocument();
   });
 
   it("does not ask for usage when AI is not set up", async () => {
     const { calls } = mockApi([me, caps(false)]);
     renderApp("/settings");
-    expect(await screen.findByText(/AI-assisted features stay disabled/)).toBeInTheDocument();
+    expect(await screen.findByText(/AI buttons are switched off/)).toBeInTheDocument();
     expect(screen.queryByText("Your AI use")).not.toBeInTheDocument();
     expect(calls.some((c) => c.path === "/ai/usage")).toBe(false);
   });

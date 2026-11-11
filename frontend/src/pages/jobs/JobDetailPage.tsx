@@ -105,7 +105,7 @@ export function JobDetailPage() {
                           <li key={r.id} className="p-3">
                             <p className="text-body-md text-on-surface">{r.text}</p>
                             <div className="mt-2 flex flex-wrap gap-1.5">
-                              <Pill mono={false}>{CATEGORY_LABEL[r.category]}</Pill>
+                              <Pill>{CATEGORY_LABEL[r.category]}</Pill>
                               {r.skills.map((s) => (
                                 <Pill key={s} tone="info">
                                   {s}
@@ -231,7 +231,7 @@ function Facts({ job }: { job: JobDetail }) {
         <ul className="flex flex-wrap gap-2">
           {facts.map((f) => (
             <li key={f}>
-              <Pill mono={false}>{f}</Pill>
+              <Pill>{f}</Pill>
             </li>
           ))}
         </ul>

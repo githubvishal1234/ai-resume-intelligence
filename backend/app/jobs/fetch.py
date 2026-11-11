@@ -89,7 +89,10 @@ def fetch(url: str, accept: str = "text/html") -> tuple[bytes, str]:
 
 def fetch_text(url: str, accept: str = "text/html") -> str:
     body, charset = fetch(url, accept)
-    return body.decode(charset, errors="replace")
+    try:
+        return body.decode(charset, errors="replace")
+    except LookupError:  # the site named a charset Python does not know
+        return body.decode("utf-8", errors="replace")
 
 
 _BLOCK = {"p", "div", "br", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "section"}

@@ -60,9 +60,9 @@ export function Tabs({
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.id)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-[6px] px-3 py-1.5 text-label-md whitespace-nowrap transition-colors",
+                "inline-flex items-center gap-2 rounded-[4px] px-3 py-1.5 text-label-md whitespace-nowrap transition-[color,background-color,box-shadow] duration-150",
                 selected
-                  ? "bg-surface-container-lowest text-primary shadow-level-1"
+                  ? "bg-surface-container-lowest font-medium text-on-surface shadow-level-1"
                   : "text-on-surface-variant hover:text-on-surface",
               )}
             >

@@ -2,7 +2,8 @@
 
 The look is **Ink & Emerald**: stone neutrals, one emerald brand colour, amber used sparingly as a
 highlight, crisp cards with hairline borders, and dark "ink" panels with a faint grid on the
-product page. The tokens are a Tailwind 4 `@theme` in `frontend/src/styles/index.css`. Token names
+product page. Inside the app the rule is restraint: no photos, no decorative shapes, no glows;
+colour marks state (primary action, status, score), not decoration. The tokens are a Tailwind 4 `@theme` in `frontend/src/styles/index.css`. Token names
 are kept from the earlier systems (`bg-surface`, `text-on-surface`, ...), so screens restyle by
 changing values, not class names.
 
@@ -24,10 +25,10 @@ changing values, not class names.
   for eyebrows, step numbers and code-like readouts. All fonts are bundled locally through
   Fontsource, so the CSP stays same-origin. Scale tokens: `display-lg`, `headline-lg|md|sm`,
   `body-lg|md|sm`, `label-md|sm`, `code-sm`. Quantitative readouts use `.tnum`.
-- **Shape:** controls 10px (`rounded-control`), cards 14px (`rounded-card`), panels 20px
+- **Shape:** controls 6px (`rounded-control`), cards 8px (`rounded-card`), panels 12px
   (`rounded-panel`). Pills are fully rounded.
-- **Elevation:** crisp, low shadows (`shadow-level-1..3`) and `shadow-brand` (an emerald glow
-  under primary buttons and the active nav item). Focus shows a visible emerald ring.
+- **Elevation:** crisp, low shadows (`shadow-level-1..3`) and `shadow-brand` (a 1px shadow and
+  top highlight on primary buttons; not a glow). Focus shows a visible emerald ring.
 - **Cards:** one card style, the `card` utility in `index.css`: the lowest surface, a 1px
   `hairline` border, `rounded-card`, `shadow-level-1`, and in dark mode a faint white top edge
   (`--card-edge`) so cards read as layers rather than flat fills. Feature illustrations sit on a
@@ -41,22 +42,24 @@ changing values, not class names.
   `src/lib/theme.ts` keeps it in sync afterwards and follows OS changes while the choice is
   System. Every token is redefined under `:root[data-theme="dark"]`; components need no
   dark-specific classes.
-- **Photos:** thirteen Unsplash photos are bundled in `src/assets/images/` (credits in
+- **Photos:** five Unsplash photos are bundled in `src/assets/images/` (credits in
   `CREDITS.md`), each with an 800px version, and exported from `constants/images.ts` (`PHOTOS`,
-  `PHOTOS_SMALL`, `photoSrcSet`). They are decorative (empty `alt`).
+  `photoSrcSet`). They are decorative (empty `alt`) and appear on public pages only.
 - **Logo:** the "verified line" mark: resume lines on an emerald square whose last line turns into
   an amber tick (`BrandMark.tsx`, `public/favicon.svg`).
-- **Motion:** `animate-rise` (fade-up on headers, cards and plans), `animate-float` (the photo in
-  page header bands and a shape on the pricing page), `animate-fill` (bars and the hero match
-  score grow in), `animate-pop` (a changed price or tailoring view), `animate-spin-slow` (the
-  dashed ring on page header bands and pricing), `animate-marquee` (the skills strip on the
-  product page) and the `lift` utility (cards rise on hover). Scores count up through
-  `useCountUp` (in `ScoreRing`); screen readers get the final value. Under
+- **Motion:** short and functional; nothing loops for decoration. `animate-page` (a page
+  fading in, 180ms), `animate-rise` (content arriving, 320ms, 6px), `animate-menu` (menus and
+  search results scaling in from their trigger, 140ms), `animate-fade` (a notice appearing),
+  `animate-pop` (a changed price or tailoring view), `animate-fill` (bars and scores growing
+  in), `animate-progress` (the bar at the top while a route loads), the `skeleton` utility (a
+  sweep across loading placeholders), `animate-marquee` (the skills strip on the product page)
+  and the `lift` utility (clickable cards answer hover with border and shadow; nothing moves).
+  The navigation drawer slides in (`dialog.drawer`). Buttons press in slightly. Scores count up
+  through `useCountUp` (in `ScoreRing`); screen readers get the final value. Under
   `prefers-reduced-motion` every animation and transition is off and counts show their final
   value at once.
-- **On the band:** inside `PhotoBanner` actions and the Pro card, primary buttons turn white and
-  secondary ones outlined (child selectors in those components), because an emerald button on
-  the emerald band would disappear.
+- **On dark panels:** on the Pro plan card and the Market Map's gap panel, primary buttons turn
+  white and secondary ones outlined (child selectors in those components).
 
 ## Score thresholds
 Scores below 60 are **critical** (red), 60–79 **warning** (amber), and 80 or above
@@ -70,12 +73,13 @@ Scores below 60 are **critical** (red), 60–79 **warning** (amber), and 80 or a
 | `Card`, `CardHeader` | The section container |
 | `Field`, `Input`, `Textarea` | Label, hint and error wiring through `aria-describedby` |
 | `Notice` | info / warning / critical / success. Warning and critical use `role="alert"`. |
-| `Pill` | Status and keyword tokens (mono, 11px) |
+| `Pill` | Status and keyword tokens (11px; `mono` only for code-like readouts) |
 | `ScoreRing`, `ScoreBar` | Accessible gauges (`role="img"` / `role="meter"`). The ring counts up, the bar fills in. |
 | `StatTile` | KPI tile |
 | `EmptyState`, `ErrorState`, `Skeleton`, `PageLoading` | Data states. `ErrorState` shows the request id. |
+| `PageHeader` (`pages/resumes/common`) | The top of every app page: optional back link, title, one line of description, actions on the right, a hairline under it. |
+| `AccountMenu` (`components/layout`) | The signed-in user in the header: name, email, Settings, Sign out (with an error if signing out fails). |
 | `Tabs` | Roving tabindex, arrow/Home/End keys |
-| `PhotoBanner` | Page title on the emerald `band` with the section's photo framed on the right (md and up). Used by `PageHeader` when it gets a `photo` (section landing pages) and by the dashboard. |
 | `ResumePaper` (`components/resume`) | An A4 page preview of a resume in a template. Sizes use container query units, so it scales to any width without JavaScript. It is paper, not UI: white with dark text in both themes. |
 | `TemplatePicker` (`components/resume`) | Radio group of templates, each a live `ResumePaper`. Used by the quick builder and the Resume Builder. |
 
@@ -116,11 +120,49 @@ white text above 4.5:1, which a test checks.
 | Monogram | One column | Initials in an accent square, serif | Dates right-aligned |
 | Ledger | One column | Plain, compact | Dates right-aligned, skills in a 3-column grid |
 | Portrait | One column | Photo beside the name | Ruled headings |
-| Sidebar | Sidebar | Name and contact at the top of a solid colour sidebar | Skills, certifications and education in the sidebar |
+| Sidebar | Sidebar | Name and contact at the top of a solid colour sidebar | Skills and certifications in the sidebar |
 | Portfolio | Sidebar | Photo, name and contact in a tinted sidebar | As Sidebar, with dark text |
 | Timeline | Timeline | Plain | Roles and education with dates in a gutter beside an accent line; skills grid |
 
 ### Layouts and reading order
+- **One column:** sections in `RESUME_ORDER` (or `CV_ORDER`).
+- **Sidebar:** the PDF fills the sidebar frame first, then the main column (`SIDEBAR_ORDER`:
+  skills, certifications, education, then summary, experience, projects). Extracted text reads
+  sidebar then main, and the ATS heading-order check uses that order. Page 2 onward continues
+  the main column only. The preview mirrors this with a CSS grid.
+- **Timeline:** each role and education entry is a two-cell row, dates then content, so text
+  still reads dates, title, bullets.
+
+### ATS labels
+| Label | Templates | Meaning |
+|---|---|---|
+| ATS-safe | All one-column layouts | One column of text; the safest for any screening system |
+| ATS-friendly | Sidebar, Portfolio, Timeline | Read in a fixed order, but some older parsers handle columns and tables less well |
+
+`atsLevel()` in `constants/templates.ts` derives the label from the layout. It shows on gallery
+cards, and the template picker shows a notice when an ATS-friendly design is chosen. The ATS check
+adds a `layout.columns` warning for sidebar and timeline layouts.
+
+### Photos
+Portrait and Portfolio show the user's profile photo, which is optional: one photo per account,
+uploaded in Settings or inline in the template picker when a photo template is chosen. Uploads are
+re-encoded as a 600 px square JPEG with no metadata and drawn round in the PDF. Without a photo the
+PDF simply has none; previews show initials instead. The ATS check adds a `photo.included` warning
+when a photo is in the PDF.
+
+### Not offered
+No skill bars or proficiency ratings: they would show levels a resume doesn't contain.
+
+## Pages with photos
+The product page hero is a product window built from live components (`ResumePaper`, the match
+score, requirement evidence and a flagged claim), not a photo. Photos appear in two places only:
+
+| Where | Photo |
+|---|---|
+| Product page, "Only here" tiles | `insights`, `market`, `proofs` |
+| Sign in, Forgot / Reset password, Register | `signin`, `register` (split screen, shown from 1024px) |
+
+## Layouts and reading order
 - **One column:** sections in `RESUME_ORDER` (or `CV_ORDER`).
 - **Sidebar:** the PDF fills the sidebar frame first, then the main column (`SIDEBAR_ORDER`:
   skills, certifications, education, then summary, experience, projects). Extracted text reads
@@ -172,9 +214,12 @@ score, requirement evidence and a flagged claim), not a photo. Photos appear in 
 | Profile Builder | `signin` |
 
 ## Layout
-- **≥ 1024px:** a fixed 256px sidebar.
+- **≥ 1024px:** a fixed 256px sidebar. The current page is a quiet tint with an emerald icon.
 - **< 1024px:** a modal drawer, built on a native `<dialog>`.
-- **< 768px:** a bottom tab bar with five destinations.
+- **< 768px:** a bottom tab bar with five destinations. The header search collapses to a button that opens the
+  search box across the header.
+- The dashboard is a page header with the next step, one "At a glance" panel of four readings,
+  the six getting-started steps as a checklist, and the newest open applications.
 - Screens that are not built yet appear as disabled navigation items tagged with their phase.
 - The header holds the global search (Ctrl/Cmd+K or `/`), the light/dark toggle, notifications
-  and the account. Public pages use `PublicHeader` with the Builders menu and the same toggle.
+  and the account menu. Public pages use `PublicHeader` with the Builders menu and the same toggle.

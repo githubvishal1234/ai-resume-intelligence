@@ -25,12 +25,12 @@ import { useBilling, useCancelPro } from "@/hooks/useBilling";
 import { useSession } from "@/hooks/useSession";
 import { applyServerErrors } from "@/lib/formErrors";
 import type { SignIn } from "@/services/accountService";
-import { formatDate } from "@/pages/resumes/common";
+import { formatDate, PageHeader } from "@/pages/resumes/common";
 
 export function SettingsPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-headline-lg text-on-surface">Settings</h1>
+    <div>
+      <PageHeader title="Settings" description="Your account, sign-ins, appearance and plan." />
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileCard />
         <AppearanceCard />

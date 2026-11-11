@@ -19,8 +19,7 @@ describe("auth routing", () => {
     ]);
     renderApp("/");
     expect(await screen.findByRole("heading", { name: "Welcome, Ada" })).toBeInTheDocument();
-    expect(await screen.findByText("AI provider")).toBeInTheDocument();
-    expect(screen.getAllByText("Not configured").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { name: "Getting started" })).toBeInTheDocument();
   });
 
   it("redirects signed-in users away from /login", async () => {
@@ -48,6 +47,22 @@ describe("login", () => {
     expect(await screen.findByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
     expect(calls.filter((c) => c.path === "/auth/login")).toHaveLength(0);
+  });
+
+  it("returns to the page that asked for sign-in", async () => {
+    const { routes } = mockApi([
+      { path: "/auth/me", ...NOT_AUTHED },
+      { method: "POST", path: "/auth/login", body: SESSION },
+      { path: "/account/sign-ins", body: [] },
+      { path: "/billing", body: { configured: false } },
+      { path: "/account/photo", status: 404, body: { code: "NOT_FOUND", message: "x", request_id: "r" } },
+    ]);
+    const { router } = renderApp("/settings");
+    await userEvent.type(await screen.findByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
+    routes.unshift({ path: "/auth/me", body: SESSION });
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings"));
   });
 
   it("shows the server's generic error on bad credentials", async () => {
@@ -130,6 +145,7 @@ describe("logout", () => {
     ]);
     const { router } = renderApp("/");
     await screen.findByRole("heading", { name: "Welcome, Ada" });
+    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(calls.find((c) => c.path === "/auth/logout")?.headers["X-CSRF-Token"]).toBe("csrf-abc");
@@ -144,8 +160,10 @@ describe("logout", () => {
     ]);
     const { router } = renderApp("/");
     await screen.findByRole("heading", { name: "Welcome, Ada" });
+    await userEvent.click(screen.getByRole("button", { name: "Account menu" }));
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Sign out" })).not.toHaveAttribute("aria-busy"));
+    expect(await screen.findByText(/couldn't sign you out/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).not.toHaveAttribute("aria-busy");
     expect(router.state.location.pathname).toBe("/");
   });
 });

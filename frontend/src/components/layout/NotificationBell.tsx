@@ -12,7 +12,7 @@ export function NotificationBell() {
       title={label}
       className="relative rounded-control p-2 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
     >
-      <Bell className="size-5" aria-hidden />
+      <Bell className="size-[18px]" aria-hidden />
       {unread ? (
         <span
           aria-hidden

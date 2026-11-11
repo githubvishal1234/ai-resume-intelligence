@@ -23,7 +23,6 @@ export function ProfileBuilderPage() {
     <div>
       <PageHeader
         title="Profile Builder"
-        photo="signin"
         description="A headline and About section for your professional profile, written from your resume's own words. Edit, then copy."
       />
       {resumes.length === 0 ? (
