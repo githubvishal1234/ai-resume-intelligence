@@ -6,7 +6,7 @@ import { analyzeJob, importMaster, signUp, watchConsole } from "./helpers";
 const PUBLIC = ["/welcome", "/pricing", "/templates"];
 const APP = [
   "/", "/resumes", "/resumes/upload", "/resumes/new", "/analysis", "/builder", "/cv-builder", "/profile-builder",
-  "/jobs", "/jobs/new", "/match", "/skill-gaps", "/tailor", "/cover-letters", "/applications", "/applications/new",
+  "/find-jobs", "/jobs", "/jobs/new", "/match", "/skill-gaps", "/tailor", "/cover-letters", "/applications", "/applications/new",
   "/notifications", "/insights", "/market", "/proofs", "/stories", "/interview", "/settings", "/no-such-page",
 ];
 const SIZES = [

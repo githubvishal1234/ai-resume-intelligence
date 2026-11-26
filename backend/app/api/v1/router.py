@@ -11,6 +11,7 @@ from app.coverletters.router import router as coverletters_router
 from app.insights.router import router as insights_router
 from app.interview.router import router as interview_router
 from app.jobs.router import router as jobs_router
+from app.jobsearch.router import router as jobsearch_router
 from app.matching.router import router as matching_router
 from app.output.router import router as output_router
 from app.proofs.router import router as proofs_router
@@ -25,6 +26,7 @@ api_router.include_router(auth_router)
 api_router.include_router(account_router)
 api_router.include_router(system.router)
 api_router.include_router(resumes_router)
+api_router.include_router(jobsearch_router)
 api_router.include_router(jobs_router)
 api_router.include_router(matching_router)
 api_router.include_router(tailoring_router)

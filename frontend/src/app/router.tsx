@@ -69,6 +69,7 @@ export const routes: RouteObject[] = [
           { path: "/analysis", ...page(() => import("@/pages/resumes/AnalysisPage"), "AnalysisRedirect") },
           { path: "/jobs", ...page(() => import("@/pages/jobs/JobsPage"), "JobsPage") },
           { path: "/jobs/new", ...page(() => import("@/pages/jobs/JobNewPage"), "JobNewPage") },
+          { path: "/find-jobs", ...page(() => import("@/pages/jobs/FindJobsPage"), "FindJobsPage") },
           { path: "/jobs/:jobId", ...page(() => import("@/pages/jobs/JobDetailPage"), "JobDetailPage") },
           { path: "/jobs/:jobId/match", ...page(() => import("@/pages/match/MatchPages"), "MatchPage") },
           { path: "/jobs/:jobId/gaps", ...page(() => import("@/pages/match/MatchPages"), "GapPage") },

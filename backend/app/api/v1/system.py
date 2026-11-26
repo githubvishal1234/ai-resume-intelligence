@@ -10,6 +10,7 @@ from app.auth.deps import CurrentAuth
 from app.benchmarks.base import get_benchmark_provider
 from app.core.config import Settings, get_settings
 from app.jobs.sources import registered_adapters
+from app.jobsearch import adzuna
 from app.mail.base import email_status
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -39,6 +40,11 @@ class JobSourcesCapability(BaseModel):
     external_adapters: list[str]
 
 
+class JobSearchCapability(BaseModel):
+    configured: bool
+    provider: str | None
+
+
 class CapabilitiesOut(BaseModel):
     """What this deployment can actually do. The UI uses this to show honest
     'not configured' states instead of pretending integrations exist."""
@@ -48,6 +54,7 @@ class CapabilitiesOut(BaseModel):
     storage: StorageCapability
     benchmarks: BenchmarkCapability
     job_sources: JobSourcesCapability
+    job_search: JobSearchCapability
 
 
 @router.get("/capabilities", response_model=CapabilitiesOut)
@@ -66,5 +73,9 @@ def capabilities(
         benchmarks=BenchmarkCapability(available=get_benchmark_provider().available),
         job_sources=JobSourcesCapability(
             external_adapters=[a.source_id for a in registered_adapters()]
+        ),
+        job_search=JobSearchCapability(
+            configured=adzuna.configured(settings),
+            provider="adzuna" if adzuna.configured(settings) else None,
         ),
     )

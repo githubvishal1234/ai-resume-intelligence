@@ -2,6 +2,7 @@ import {
   BarChart3,
   BookOpen,
   BriefcaseBusiness,
+  Compass,
   FileSignature,
   FileText,
   GitCompareArrows,
@@ -56,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "job",
     label: "2 · A job",
     items: [
+      { id: "find-jobs", label: "Find Jobs", icon: Compass, to: "/find-jobs", phase: 24, phaseNote: "Job search" },
       { id: "job-analyzer", label: "Job Analyzer", icon: Telescope, to: "/jobs", phase: 3, phaseNote: "Job Intelligence" },
       { id: "job-match", label: "Job Match", icon: GitCompareArrows, to: "/match", phase: 4, phaseNote: "Matching" },
       { id: "tailor", label: "Tailor Resume", shortLabel: "Tailor", icon: Sparkles, to: "/tailor", phase: 5, phaseNote: "Tailoring" },

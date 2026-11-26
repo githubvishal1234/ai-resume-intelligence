@@ -61,4 +61,5 @@ export const CAPS = {
   storage: { backend: "local" },
   benchmarks: { available: false },
   job_sources: { external_adapters: [] },
+  job_search: { configured: false, provider: null },
 };
