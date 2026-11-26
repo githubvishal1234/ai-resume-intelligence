@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from app.core.config import Settings, get_settings
 from app.jobsearch import adzuna
@@ -69,7 +70,7 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 @pytest.fixture
 def search_settings() -> Settings:
     return get_settings().model_copy(
-        update={"adzuna_app_id": "app-1", "adzuna_app_key": "key-secret-1"}
+        update={"adzuna_app_id": "app-1", "adzuna_app_key": SecretStr("key-secret-1")}
     )
 
 
