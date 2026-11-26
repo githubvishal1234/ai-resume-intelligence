@@ -550,6 +550,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/resumes/{resume_id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Jobs For Resume */
+        get: operations["jobs_for_resume_api_v1_resumes__resume_id__jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -1924,6 +1941,7 @@ export interface components {
             storage: components["schemas"]["StorageCapability"];
             benchmarks: components["schemas"]["BenchmarkCapability"];
             job_sources: components["schemas"]["JobSourcesCapability"];
+            job_search: components["schemas"]["JobSearchCapability"];
         };
         /** Certification */
         Certification: {
@@ -2507,6 +2525,74 @@ export interface components {
              * Format: uri
              */
             url: string;
+        };
+        /** JobListingOut */
+        JobListingOut: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Company */
+            company: string | null;
+            /** Location */
+            location: string | null;
+            /** Description */
+            description: string;
+            /** Url */
+            url: string;
+            /** Created */
+            created: string | null;
+            /** Salary Min */
+            salary_min: number | null;
+            /** Salary Max */
+            salary_max: number | null;
+            /** Contract Time */
+            contract_time: string | null;
+            /** Shown Skills */
+            shown_skills: string[];
+            /** Listed Skills */
+            listed_skills: string[];
+            /** Missing Skills */
+            missing_skills: string[];
+        };
+        /** JobQueryOut */
+        JobQueryOut: {
+            /** What */
+            what: string;
+            /** Where */
+            where: string;
+        };
+        /** JobSearchCapability */
+        JobSearchCapability: {
+            /** Configured */
+            configured: boolean;
+            /** Provider */
+            provider: string | null;
+        };
+        /** JobSearchOut */
+        JobSearchOut: {
+            /** Method Version */
+            method_version: string;
+            /** Provider */
+            provider: string;
+            /** Country */
+            country: string;
+            /** Attribution Url */
+            attribution_url: string;
+            /**
+             * Resume Id
+             * Format: uuid
+             */
+            resume_id: string;
+            /** Resume Version */
+            resume_version: number;
+            query: components["schemas"]["JobQueryOut"];
+            /** Page */
+            page: number;
+            /** Total */
+            total: number;
+            /** Results */
+            results: components["schemas"]["JobListingOut"][];
         };
         /** JobSkill */
         JobSkill: {
@@ -4920,6 +5006,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalysisOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_for_resume_api_v1_resumes__resume_id__jobs_get: {
+        parameters: {
+            query?: {
+                what?: string | null;
+                where?: string | null;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSearchOut"];
                 };
             };
             /** @description Validation Error */

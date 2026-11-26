@@ -83,6 +83,13 @@ class Settings(BaseSettings):
     smtp_timeout_seconds: float = Field(default=15, gt=0, le=120)
     password_reset_ttl_minutes: int = Field(default=30, ge=5, le=24 * 60)
 
+    # --- Live job search (Adzuna). App id + key set => on; either missing => off. ---
+    adzuna_app_id: str | None = None
+    adzuna_app_key: SecretStr | None = None
+    # Two-letter country of the openings searched (Adzuna's code: in, gb, us, ...).
+    adzuna_country: str = Field(default="in", pattern=r"^[a-z]{2}$")
+    adzuna_api_base: str = "https://api.adzuna.com/v1/api"
+
     storage_backend: str = "local"
     storage_local_root: str = "./var/storage"
     # STORAGE_BACKEND=s3: any service with the S3 API (D-06 picks which). No vendor SDK.
@@ -127,6 +134,8 @@ class Settings(BaseSettings):
         "razorpay_webhook_secret",
         "razorpay_plan_monthly",
         "razorpay_plan_yearly",
+        "adzuna_app_id",
+        "adzuna_app_key",
         mode="before",
     )
     @classmethod
@@ -153,6 +162,8 @@ class Settings(BaseSettings):
                 problems.append("SMTP_SECURITY must be starttls or ssl")
             if (self.razorpay_key_id or "").startswith("rzp_test_"):
                 problems.append("RAZORPAY_KEY_ID is a test-mode key")
+            if not self.adzuna_api_base.startswith("https://"):
+                problems.append("ADZUNA_API_BASE must use https")
             if not self.razorpay_api_base.startswith("https://"):
                 problems.append("RAZORPAY_API_BASE must use https")
             if problems:

@@ -71,6 +71,14 @@
   which depends on hosting (D-06). The size, page, archive-size and macro limits above bound
   the work a single upload can cause.
 
+## Job search (Adzuna)
+- The app id and key are read from the environment; the key is a `SecretStr`. The request URL carries
+  the key, so it is never logged or put in an error; failures log the HTTP status only.
+- The API base is configuration, never user input, and production refuses one that is not https.
+- Listing links are kept only when they are http(s), so a `javascript:` link cannot reach the page;
+  titles and snippets are reduced to text.
+- Searches are limited per user (30 per 10 minutes, per process), and another user's resume answers 404.
+
 ## AI providers
 - The providers are Groq and OpenAI (D-03), both in `app/ai/providers/openai.py` (they share
   the OpenAI API format). It is the only module that calls a vendor API. It uses the standard library, so no vendor SDK is installed. Every AI action
